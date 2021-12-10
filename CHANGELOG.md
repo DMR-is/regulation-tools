@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- fix: Make `assertPosInt` accept number typed input
 
 ## 0.4.8
 

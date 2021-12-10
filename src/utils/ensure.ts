@@ -59,7 +59,9 @@ export const assertISODate = (maybeISODate?: string): ISODate | undefined => {
 
 // ---------------------------------------------------------------------------
 
-export const assertPosInt = (maybeNumber?: string): IntPositive | undefined => {
+export const assertPosInt = (
+  maybeNumber?: string | number,
+): IntPositive | undefined => {
   const num = Number(maybeNumber);
   return num && num > 0 && num === Math.floor(num)
     ? (num as IntPositive)
