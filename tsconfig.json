@@ -1,0 +1,11 @@
+{
+  "target": "es5",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "downlevelIteration": true,
+    "jsx": "preserve",
+    "lib": ["dom", "esnext", "dom.iterable"]
+  },
+  "exclude": ["dist"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}
