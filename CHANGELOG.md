@@ -6,6 +6,7 @@
 - **BREAKING** feat: Rename module to `@island.is/regulations-tools`
 - feat: Add regulation API types — `Regulation`, `RegulationDiff`,
   `RegulationRedirect`, `Ministry`, `LawChapter`, etc...
+- feat: Add `/htmldiff-js` fork with bugfixes and size/speed improvements
 
 ## 0.4.8
 

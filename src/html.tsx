@@ -1,5 +1,5 @@
 import React from 'react';
-import htmldiff from 'htmldiff-js';
+import { execute as htmldiff } from './htmldiff-js';
 import { HTMLText, PlainText } from './types';
 
 export const toHTML = (textContent: PlainText) =>
@@ -9,7 +9,7 @@ const SLOW_DIFF_LIMIT = 1500;
 
 export const getDiff = (older: HTMLText, newer: HTMLText, raw?: boolean) => {
   const startTime = Date.now();
-  let diffed = htmldiff.execute(older, newer);
+  let diffed = htmldiff(older, newer);
   if (!raw) {
     diffed = diffed
       .replace(/<del [^>]+>\n*<\/del>/g, '')
