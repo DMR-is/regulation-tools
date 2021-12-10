@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.4.8
+
+_2021-10-11_
+
 - **BREAKING** feat: Rename module to `@island.is/regulations-tools`
 - feat: Add regulation API types — `Regulation`, `RegulationDiff`,
   `RegulationRedirect`, `Ministry`, `LawChapter`, etc...
