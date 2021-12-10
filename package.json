@@ -9,7 +9,7 @@
   "license": "MIT",
   "repository": "ssh://git@github.com:hugsmidjan-is/reglugerdir-api.git",
   "engines": {
-    "node": ">=14.15 <17"
+    "node": "16"
   },
   "scripts": {
     "build": "tsc --noEmit  &&  NODE_ENV=production node build.js",
