@@ -3,9 +3,8 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- fix: Some modules were missing from build
 
-## 0.5.1 – 0.5.3
+## 0.5.1 – 0.5.5
 
 _2021-12-10_
 
@@ -13,6 +12,7 @@ _2021-12-10_
 - feat: Make all `ensure*` helpers accept `unknown` input values
 - feat: Add helpers `ensureReasonableYear`, `ensureRegType`
 - fix: Make `ensurePosInt` accept number typed input
+- fix: Some modules were missing from build
 
 ## 0.5.0
 
