@@ -3,7 +3,6 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- chore: Fix build target declaration and fix build glob
 
 ## 0.5.1 – 0.5.5
 
@@ -14,6 +13,7 @@ _2021-12-10_
 - feat: Add helpers `ensureReasonableYear`, `ensureRegType`
 - fix: Make `ensurePosInt` accept number typed input
 - fix: Some modules were missing from build
+- chore: Fix build target declaration and fix build glob
 
 ## 0.5.0
 
