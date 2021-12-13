@@ -3,9 +3,8 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- chore: Set version-range on `htmldiff-js` git-dependency
 
-## 0.5.1 – 0.5.6
+## 0.5.1 – 0.5.7
 
 _2021-12-10_
 
@@ -18,6 +17,7 @@ _2021-12-10_
 - fix: Inline htmldiff-js wrapper's type signature
 - fix: Rename the private `_utils/*` folder to avoid accidental imports
 - chore: Fix build target declaration and fix build globs
+- chore: Set version-range on `htmldiff-js` git-dependency
 
 ## 0.5.0
 
