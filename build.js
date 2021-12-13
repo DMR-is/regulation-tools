@@ -33,7 +33,9 @@ const opts = process.argv.slice(2).reduce((map, arg) => {
 
 const srcdir = './src/';
 const outdir = './dist/';
-const entryPoints = glob(srcdir + '*.{ts,tsx}', { ignore: '**/*.d.ts' });
+const entryPoints = glob(srcdir + '**/*.{ts,tsx}', {
+  ignore: ['**/*.d.ts', '__test__'],
+});
 
 // ---------------------------------------------------------------------------
 

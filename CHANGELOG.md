@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- fix: Some modules were missing from build
 
 ## 0.5.1 – 0.5.3
 
