@@ -3,7 +3,9 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- fix: Make `assertPosInt` accept number typed input
+- feat: Rename all `ensure*` helpers - deprecate their old `assert*` names
+- feat: Add helper `ensureReasonableYear`
+- fix: Make `ensurePosInt` accept number typed input
 
 ## 0.5.0
 
