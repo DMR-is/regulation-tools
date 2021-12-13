@@ -5,6 +5,7 @@
 - ... <!-- Add new lines here. -->
 - fix: Move cleanup-prettier's configs into a ts module
 - fix: Inline htmldiff-js wrapper's type signature
+- fix: Rename the private `_utils/*` folder to avoid accidental imports
 
 ## 0.5.1 – 0.5.5
 
