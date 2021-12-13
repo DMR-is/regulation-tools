@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- fix: Annoying import issue with htmldiff-js fork
 
 ## 0.5.1 – 0.5.6, 0.5.67
 
