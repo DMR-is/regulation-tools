@@ -7,7 +7,7 @@
     "Már Örlygsson <mar@hugsmidjan.is>"
   ],
   "license": "MIT",
-  "repository": "ssh://git@github.com:hugsmidjan-is/reglugerdir-api.git",
+  "repository": "ssh://git@github.com:island-is/regulations.git",
   "engines": {
     "node": "16"
   },

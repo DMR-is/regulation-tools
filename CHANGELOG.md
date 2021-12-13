@@ -5,9 +5,9 @@
 - ... <!-- Add new lines here. -->
 - fix: Make `assertPosInt` accept number typed input
 
-## 0.4.8
+## 0.5.0
 
-_2021-10-11_
+_2021-12-10_
 
 - **BREAKING** feat: Rename module to `@island.is/regulations-tools`
 - feat: Add regulation API types — `Regulation`, `RegulationDiff`,
