@@ -1,5 +1,3 @@
-declare module 'htmldiff-js' {
-  import { HTMLText } from './types';
-
-  export const execute: (a: HTMLText, b: HTMLText) => HTMLText;
+declare module "htmldiff-js" {
+  export const execute: (a: string, b: string) => string;
 }

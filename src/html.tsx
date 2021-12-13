@@ -9,7 +9,7 @@ const SLOW_DIFF_LIMIT = 1500;
 
 export const getDiff = (older: HTMLText, newer: HTMLText, raw?: boolean) => {
   const startTime = Date.now();
-  let diffed = htmldiff(older, newer);
+  let diffed: string = htmldiff(older, newer);
   if (!raw) {
     diffed = diffed
       .replace(/<del [^>]+>\n*<\/del>/g, '')
