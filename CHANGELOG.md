@@ -3,15 +3,14 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- feat: Add helper `ensureRegType`
 
-## 0.5.1 – 0.5.2
+## 0.5.1 – 0.5.3
 
 _2021-12-10_
 
 - feat: Rename all `ensure*` helpers - deprecate their old `assert*` names
-- feat: Add helper `ensureReasonableYear`
 - feat: Make all `ensure*` helpers accept `unknown` input values
+- feat: Add helpers `ensureReasonableYear`, `ensureRegType`
 - fix: Make `ensurePosInt` accept number typed input
 
 ## 0.5.0
