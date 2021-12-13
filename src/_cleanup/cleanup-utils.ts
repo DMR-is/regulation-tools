@@ -2,7 +2,7 @@ import { Options as PrettierOptions } from 'cleanup-prettier';
 import prettier from 'cleanup-prettier/standalone';
 import parserHtml from 'cleanup-prettier/parser-html';
 import parserCSS from 'cleanup-prettier/parser-postcss';
-import prettierrc from '../__test__/.prettierrc.json';
+import prettierrc from './cleanup-prettierrc';
 import mappify from './mappify';
 import q from '@hugsmidjan/qj/q';
 import qq from '@hugsmidjan/qj/qq';

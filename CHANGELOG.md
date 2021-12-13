@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- fix: Move cleanup-prettier's configs into a ts module
 
 ## 0.5.1 – 0.5.5
 
