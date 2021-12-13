@@ -11,10 +11,10 @@ const reRegQueryNameFlex = /^\d{1,4}-\d{4}$/;
  *  Example: '23-2020' --> '0023-2020'
  *  Example: '0123-202' --> undefined
  */
-export const ensureNameSlug = (slug?: string): RegQueryName | undefined => {
-  if (slug && reRegQueryNameFlex.test(slug)) {
+export const ensureNameSlug = (cand: unknown): RegQueryName | undefined => {
+  if (cand && typeof cand === 'string' && reRegQueryNameFlex.test(cand)) {
     return (
-      slug.length === 9 ? slug : ('000' + slug).slice(-9)
+      cand.length === 9 ? cand : ('000' + cand).slice(-9)
     ) as RegQueryName;
   }
 };
@@ -29,57 +29,80 @@ export const ensureNameSlug = (slug?: string): RegQueryName | undefined => {
  *  Example: '23/2020' --> '0023/2020'
  *  Example: '0123-202' --> undefined
  */
-export const ensureRegName = (slug?: string): RegName | undefined => {
-  slug = slug && slug.replace('-', '/');
-  if (slug && /^\d{1,4}\/\d{4}$/.test(slug)) {
-    return (slug.length === 9 ? slug : ('000' + slug).slice(-9)) as RegName;
+export const ensureRegName = (cand: unknown): RegName | undefined => {
+  const maybeName =
+    !!cand && typeof cand === 'string' && cand.replace('-', '/');
+  if (maybeName && /^\d{1,4}\/\d{4}$/.test(maybeName)) {
+    return (
+      maybeName.length === 9 ? maybeName : ('000' + maybeName).slice(-9)
+    ) as RegName;
   }
 };
 
 // ---------------------------------------------------------------------------
 
-const smellsLikeISODate = (maybeISODate?: string): maybeISODate is string =>
+const smellsLikeISODate = (maybeISODate: string): maybeISODate is string =>
   /^\d{4}-\d{2}-\d{2}$/.test(maybeISODate || '');
 
-/** Asserts that the incoming string is a valid ISODate.
+/** Asserts that the incoming value is a valid ISODate.
  *
  * Returns undefined otherwise.
  *
  * Example: `2012-09-30` --> `2012-09-30`
  * Example: `2012-09-31` --> undefined
  */
-export const ensureISODate = (maybeISODate?: string): ISODate | undefined => {
-  if (smellsLikeISODate(maybeISODate)) {
-    const date = new Date(maybeISODate).toISOString().slice(0, 10) as ISODate;
-    if (date === maybeISODate) {
+export const ensureISODate = (cand: unknown): ISODate | undefined => {
+  if (typeof cand === 'string' && smellsLikeISODate(cand)) {
+    const date = new Date(cand).toISOString().slice(0, 10) as ISODate;
+    if (date === cand) {
       return date;
     }
   }
 };
 
-/** Asserts that string|number evaluates to a number between 1900 and 2150
+/** Asserts that a value is evaluates to a positive integer
  *
- * Guards against "Infinity" and unreasonably off-sized values
+ * Guards against NaN and "Infinity"
+ *
+ *  Example: `1` --> `1`
+ *  Example: `10000` --> `10000`
+ *
+ *  Example: `0` --> `undefined`
+ *  Example: `-1` --> `undefined`
+ *  Example: `1.1` --> `undefined`
+ *  Example: `Infinity` --> `undefined`
+ *  Example: `foobar` --> `undefined`
  */
-export const ensureReasonableYear = (
-  maybeYear?: string | number,
-): Year | undefined => {
-  const yearCand = Number(maybeYear);
-  return yearCand
-    ? (Math.max(1900, Math.min(2150, yearCand)) as Year)
+export const ensurePosInt = (cand: unknown): IntPositive | undefined => {
+  const num = Number(cand);
+  return num && num > 0 && num < Infinity && num === Math.floor(num)
+    ? (num as IntPositive)
     : undefined;
 };
 
-/** Asserts that string|number is a positive integer
+/** Asserts that string|number evaluates to a number between 1900 and 2150
  *
- * Guards against NaN and "Infinity"
- */
-export const ensurePosInt = (
-  maybeNumber?: string | number,
-): IntPositive | undefined => {
-  const num = Number(maybeNumber);
-  return num && num > 0 && num < Infinity && num === Math.floor(num)
-    ? (num as IntPositive)
+ * Additionally, if the input evaluates to a positive integer,
+ * the value is boxed inside the above year-range
+ *
+ * Guards against "Infinity" and unreasonably off-sized values
+ *
+ *  Example: `2012` --> `2012`
+ *  Example: `1912` --> `1912`
+ *  Example: `1` --> `1900`
+ *  Example: `10000` --> `2150`
+ *
+ *  Example: `0` --> `undefined`
+ *  Example: `-1` --> `undefined`
+ *  Example: `2012.1` --> `undefined`
+ *  Example: `Infinity` --> `undefined`
+ *  Example: `foobar` --> `undefined`
+
+*/
+export const ensureReasonableYear = (cand: unknown): Year | undefined => {
+  const yearCand = ensurePosInt(cand);
+  return yearCand
+    ? (Math.max(1900, Math.min(2150, yearCand)) as Year)
     : undefined;
 };
 

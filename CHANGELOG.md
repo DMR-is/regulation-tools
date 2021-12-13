@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Make all `ensure*` helpers accept `unknown` input values
 
 ## 0.5.1
 
