@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Add helper `ensureRegType`
 
 ## 0.5.1 – 0.5.2
 

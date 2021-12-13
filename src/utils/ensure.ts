@@ -1,4 +1,11 @@
-import { IntPositive, ISODate, RegName, RegQueryName, Year } from '../types';
+import {
+  IntPositive,
+  ISODate,
+  RegName,
+  RegQueryName,
+  RegulationType,
+  Year,
+} from '../types';
 
 // ---------------------------------------------------------------------------
 
@@ -107,6 +114,27 @@ export const ensureReasonableYear = (cand: unknown): Year | undefined => {
   return yearCand
     ? (Math.max(1900, Math.min(2150, yearCand)) as Year)
     : undefined;
+};
+
+// ---------------------------------------------------------------------------
+
+/** Asserts that the a string represents a Regulation "type"
+ * ...either 'base' or 'amending'
+ *
+ * Examples:
+ *  * `"base"` --> `"base"`
+ *  * `"amending"` --> `"amending"`
+ *  * `"  amending"` --> `undefined`
+ *  * `"foobar"` --> `undefined`
+ */
+export const ensureRegType = (cand: unknown): RegulationType | undefined => {
+  const types: Record<RegulationType, true> = {
+    amending: true,
+    base: true,
+  };
+  if (typeof cand === 'string' && cand in types) {
+    return cand as RegulationType;
+  }
 };
 
 // ---------------------------------------------------------------------------
