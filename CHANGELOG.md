@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- chore: Set version-range on `htmldiff-js` git-dependency
 
 ## 0.5.1 – 0.5.6
 
