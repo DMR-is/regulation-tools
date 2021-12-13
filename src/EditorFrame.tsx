@@ -1,7 +1,7 @@
 import React, { MutableRefObject, useMemo } from 'react';
 import { asDiv, document_base_url } from './utils';
 import { Editor as TinyMCE, IAllProps } from '@tinymce/tinymce-react';
-import tinymce, { Editor } from 'tinymce';
+import type { Editor } from 'tinymce';
 import { useDomid } from '@hugsmidjan/react/hooks';
 
 import 'tinymce/tinymce';
@@ -14,7 +14,6 @@ import 'tinymce/plugins/lists';
 import 'tinymce/plugins/link';
 import 'tinymce/plugins/image';
 import 'tinymce/plugins/charmap';
-import 'tinymce/plugins/print';
 import 'tinymce/plugins/hr';
 // import 'tinymce/plugins/preview';
 import 'tinymce/plugins/anchor';
@@ -57,7 +56,6 @@ const CONFIG: IAllProps['init'] = {
     'link',
     'image',
     'charmap',
-    'print',
     'hr',
     // 'preview',
     'anchor',
@@ -299,13 +297,6 @@ const CONFIG: IAllProps['init'] = {
     // });
   },
 };
-
-tinymce.PluginManager.add('_onInited_hack_', (editor) => {
-  const uiRegistry = editor.ui.registry;
-  editor.settings.contextmenu = Object.keys(
-    uiRegistry.getAll().contextMenus,
-  ).join(' ');
-});
 
 // ---------------------------------------------------------------------------
 
