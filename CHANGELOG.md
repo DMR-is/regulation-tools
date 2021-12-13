@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- chore: Fix build target declaration and fix build glob
 
 ## 0.5.1 – 0.5.5
 

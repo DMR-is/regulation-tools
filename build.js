@@ -34,7 +34,7 @@ const opts = process.argv.slice(2).reduce((map, arg) => {
 const srcdir = './src/';
 const outdir = './dist/';
 const entryPoints = glob(srcdir + '**/*.{ts,tsx}', {
-  ignore: ['**/*.d.ts', '__test__'],
+  ignore: ['**/*.d.ts', '**/__test__/*'],
 });
 
 // ---------------------------------------------------------------------------
@@ -49,7 +49,8 @@ esbuild
     outdir,
     bundle: false,
     format: 'cjs',
-    chunkNames: `chunks/[name]-[hash]`,
+    // chunkNames: `chunks/[name]-[hash]`,
+    target: 'es6',
 
     define: {
       'process.env.DEV_FILE_SERVER': JSON.stringify(
