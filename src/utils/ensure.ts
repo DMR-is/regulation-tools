@@ -8,8 +8,8 @@ const reRegQueryNameFlex = /^\d{1,4}-\d{4}$/;
  *
  * Returns `undefined` if the slug doesn't roughly look like a valid regulation number
  *
- *  Example: '23-2020' --> '0023-2020'
- *  Example: '0123-202' --> undefined
+ *  Example: `'23-2020'` --> `'0023-2020'`
+ *  Example: `'0123-202'` --> `undefined`
  */
 export const ensureNameSlug = (cand: unknown): RegQueryName | undefined => {
   if (cand && typeof cand === 'string' && reRegQueryNameFlex.test(cand)) {
@@ -25,9 +25,9 @@ export const ensureNameSlug = (cand: unknown): RegQueryName | undefined => {
  *
  * Returns `undefined` if the slug doesn't roughly look like a valid regulation number
  *
- *  Example: '23-2020' --> '0023/2020'
- *  Example: '23/2020' --> '0023/2020'
- *  Example: '0123-202' --> undefined
+ *  * Example: `'23-2020'` --> `'0023/2020'`
+ *  * Example: `'23/2020'` --> `'0023/2020'`
+ *  * Example: `'0123-202'` --> `undefined`
  */
 export const ensureRegName = (cand: unknown): RegName | undefined => {
   const maybeName =
@@ -48,8 +48,9 @@ const smellsLikeISODate = (maybeISODate: string): maybeISODate is string =>
  *
  * Returns undefined otherwise.
  *
- * Example: `2012-09-30` --> `2012-09-30`
- * Example: `2012-09-31` --> undefined
+ * Examples:
+ *  * ``2012-09-30`` --> ``2012-09-30``
+ *  * ``2012-09-31`` --> `undefined`
  */
 export const ensureISODate = (cand: unknown): ISODate | undefined => {
   if (typeof cand === 'string' && smellsLikeISODate(cand)) {
@@ -64,14 +65,15 @@ export const ensureISODate = (cand: unknown): ISODate | undefined => {
  *
  * Guards against NaN and "Infinity"
  *
- *  Example: `1` --> `1`
- *  Example: `10000` --> `10000`
- *
- *  Example: `0` --> `undefined`
- *  Example: `-1` --> `undefined`
- *  Example: `1.1` --> `undefined`
- *  Example: `Infinity` --> `undefined`
- *  Example: `foobar` --> `undefined`
+ * Examples:
+ *  * `1` --> `1`
+ *  * `"1"` --> `1`
+ *  * `10000` --> `10000`
+ *  * `0` --> `undefined`
+ *  * `-1` --> `undefined`
+ *  * `1.1` --> `undefined`
+ *  * `"Infinity"` --> `undefined`
+ *  * `"foobar"` --> `undefined`
  */
 export const ensurePosInt = (cand: unknown): IntPositive | undefined => {
   const num = Number(cand);
@@ -87,16 +89,17 @@ export const ensurePosInt = (cand: unknown): IntPositive | undefined => {
  *
  * Guards against "Infinity" and unreasonably off-sized values
  *
- *  Example: `2012` --> `2012`
- *  Example: `1912` --> `1912`
- *  Example: `1` --> `1900`
- *  Example: `10000` --> `2150`
- *
- *  Example: `0` --> `undefined`
- *  Example: `-1` --> `undefined`
- *  Example: `2012.1` --> `undefined`
- *  Example: `Infinity` --> `undefined`
- *  Example: `foobar` --> `undefined`
+ * Examples:
+ *  * `2012` --> `2012`
+ *  * `"2012"` --> `2012`
+ *  * `1912` --> `1912`
+ *  * `1` --> `1900`
+ *  * `10000` --> `2150`
+ *  * `0` --> `undefined`
+ *  * `-1` --> `undefined`
+ *  * `2012.1` --> `undefined`
+ *  * `Infinity` --> `undefined`
+ *  * `foobar` --> `undefined`
 
 */
 export const ensureReasonableYear = (cand: unknown): Year | undefined => {
