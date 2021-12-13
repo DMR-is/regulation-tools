@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc --noEmit  &&  NODE_ENV=production node build.js",
     "prepublishOnly": "echo \"\nRun 'yarn run publishdist' to publish this package\n\n\"  && exit 1",
-    "publishdist": "yarn test  &&  yarn build  &&  npm publish dist",
+    "publishdist": "yarn test  &&  yarn build  &&  cd dist  &&  npm publish",
     "test": "jest"
   },
   "publishConfig": {
