@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.5.1
+
+_2021-12-10_
+
 - feat: Rename all `ensure*` helpers - deprecate their old `assert*` names
 - feat: Add helper `ensureReasonableYear`
 - fix: Make `ensurePosInt` accept number typed input
