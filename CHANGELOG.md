@@ -3,11 +3,16 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.5.68
+
+_2021-12-14_
+
 - fix: Annoying import issue with htmldiff-js fork
 
 ## 0.5.1 – 0.5.6, 0.5.67
 
-_2021-12-10_
+_2021-12-13_
 
 - feat: Rename all `ensure*` helpers - deprecate their old `assert*` names
 - feat: Make all `ensure*` helpers accept `unknown` input values
