@@ -3,11 +3,8 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- fix: Move cleanup-prettier's configs into a ts module
-- fix: Inline htmldiff-js wrapper's type signature
-- fix: Rename the private `_utils/*` folder to avoid accidental imports
 
-## 0.5.1 – 0.5.5
+## 0.5.1 – 0.5.6
 
 _2021-12-10_
 
@@ -16,7 +13,10 @@ _2021-12-10_
 - feat: Add helpers `ensureReasonableYear`, `ensureRegType`
 - fix: Make `ensurePosInt` accept number typed input
 - fix: Some modules were missing from build
-- chore: Fix build target declaration and fix build glob
+- fix: Move cleanup-prettier's configs into a ts module
+- fix: Inline htmldiff-js wrapper's type signature
+- fix: Rename the private `_utils/*` folder to avoid accidental imports
+- chore: Fix build target declaration and fix build globs
 
 ## 0.5.0
 
