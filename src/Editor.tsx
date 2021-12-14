@@ -13,7 +13,6 @@ import { useTextWarnings } from './useTextWarnings';
 import {
   getTexts,
   nameToSlug,
-  nameToPath,
   asDiv,
   document_base_url,
   typeAttrToStyleValueMap,
@@ -26,36 +25,16 @@ import { RegName } from './types';
 
 const EMPTY_HTML = '' as HTMLText;
 
-export const requestRegulationOriginal = (name: string): Promise<HTMLText> =>
-  fetch(`/api/regulation/${nameToPath(name)}/original`)
-    .then((r: Response) => {
-      if (!r.ok) {
-        return (r.json() as Promise<{ error: string }>)
-          .catch(() => ({ error: r.statusText }))
-          .then(({ error }) => {
-            throw new Error(error || r.statusText);
-          });
-      }
-      return r.json();
-    })
-    .then((result: { text: HTMLText }) => result.text);
-
-// ---------------------------------------------------------------------------
-
 const t = getTexts({
   comparisonTitle: {
     diff: 'Breytingar',
     base: 'Grunntexti',
-    dirty: 'Óhreinsaður texti',
   },
   button: {
     diff: 'Sjá breytingar',
     base: 'Sjá grunntexta',
-    dirty: 'Óhreinsaður',
   },
   diffNow: 'Endurreikna breytingar',
-  getDirtyError: 'Mistókst að sækja upprunalega, óhreinsaða útgáfu',
-  openOldSiteLink: 'Skoða á gamla vef',
 });
 
 // ---------------------------------------------------------------------------
@@ -66,18 +45,8 @@ const EditorFrameInBrowser = React.lazy(() =>
 
 // ---------------------------------------------------------------------------
 
-const modes = ['diff', 'base', 'dirty'] as const;
+const modes = ['diff', 'base'] as const;
 type DiffModes = typeof modes[number];
-
-const getDirtyHTML = (name: string): Promise<HTMLText> =>
-  requestRegulationOriginal(name).catch((e) => {
-    console.error(e);
-    const errLegend = t('getDirtyError');
-    return `<p><strong>${errLegend}:</strong></p> <p>${e}</p>` as HTMLText;
-  });
-
-const getDirtyUrl = (name: string) =>
-  'https://www.reglugerd.is/reglugerdir/allar/nr/' + name.replace('/', '-');
 
 // ---------------------------------------------------------------------------
 
@@ -86,13 +55,13 @@ const stripLocalBaseUrlHost = (root: ReturnType<typeof asDiv>): string => {
   root.qq(`img[src^="${document_base_url}"]`).forEach((elm) => {
     elm.setAttribute(
       'src',
-      (elm.getAttribute('src') as string).substr(baseUrlLength),
+      (elm.getAttribute('src') as string).substring(baseUrlLength),
     );
   });
   root.qq(`a[href^="${document_base_url}"]`).forEach((elm) => {
     elm.setAttribute(
       'href',
-      (elm.getAttribute('href') as string).substr(baseUrlLength),
+      (elm.getAttribute('href') as string).substring(baseUrlLength),
     );
   });
   return root.innerHTML;
@@ -159,15 +128,12 @@ export type EditorClasses = {
   result: string;
   result_diff: string;
   result_base: string;
-  result_dirty?: string;
-  originallinkback?: string;
 } & TextWarningsClasses &
   EditorFrameClasses;
 
 const resultClasses: Record<DiffModes, keyof EditorClasses> = {
   diff: 'result_diff',
   base: 'result_base',
-  dirty: 'result_dirty',
 };
 
 // ===========================================================================
@@ -208,11 +174,10 @@ export type EditorProps = {
 export const Editor = (
   props: EditorProps & {
     classes: EditorClasses;
-    linkToDirty?: boolean;
   },
 ) => {
   const s = props.classes;
-  const { valueRef, elmRef, linkToDirty, name, onChange } = props;
+  const { valueRef, elmRef, name, onChange } = props;
   const isBrowser = useIsBrowserSide();
 
   const triggerOnChange = useRef(true); // Setting this one to false allows skipping ivoking props.onChange when setting initialText
@@ -311,20 +276,13 @@ export const Editor = (
                 <span className={s.diffmodes}>
                   {modes.map(
                     (mode) =>
-                      mode !== diffMode &&
-                      !(mode === 'dirty' && !linkToDirty) && (
+                      mode !== diffMode && (
                         <Fragment key={mode}>
                           {' '}
                           <button
                             className={s.modeButton}
                             onClick={() => {
                               setDiffMode(mode);
-                              if (mode === 'dirty' && linkToDirty) {
-                                setDirtyText(
-                                  '<p>...sæki texta...</p>' as HTMLText,
-                                );
-                                getDirtyHTML(name).then(setDirtyText);
-                              }
                             }}
                           >
                             {t('button', mode)}
@@ -362,25 +320,7 @@ export const Editor = (
                     {t('diffNow')}
                   </button>
                 )}
-                {linkToDirty && diffMode === 'dirty' && (
-                  <a
-                    className={s.originallinkback}
-                    href={getDirtyUrl(name)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t('openOldSiteLink')}
-                  </a>
-                )}
-                <HTMLDump
-                  html={
-                    diffMode === 'diff'
-                      ? diffText
-                      : diffMode === 'base'
-                      ? baseText
-                      : dirtyText
-                  }
-                />
+                <HTMLDump html={diffMode === 'diff' ? diffText : baseText} />
               </div>
             </div>
           </div>
