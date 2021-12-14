@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Remove non-sensical mapper functions from `utils`
 
 ## 0.5.68
 
