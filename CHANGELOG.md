@@ -4,6 +4,7 @@
 
 - ... <!-- Add new lines here. -->
 - feat: Remove non-sensical mapper functions from `utils`
+- fix: Reclassify `@types/jest` as devDependency
 
 ## 0.5.68
 
