@@ -3,14 +3,14 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- feat: Remove non-sensical mapper functions from `utils`
-- fix: Remove unused "dirty/original HTML" features from `<Editor/>`
-- fix: Reclassify `@types/jest` as devDependency
 
-## 0.5.68
+## 0.5.68 – 0.5.69
 
 _2021-12-14_
 
+- feat: Remove non-sensical mapper functions from `utils`
+- fix: Remove unused "dirty/original HTML" features from `<Editor/>`
+- fix: Reclassify `@types/jest` as devDependency
 - fix: Annoying import issue with htmldiff-js fork
 
 ## 0.5.1 – 0.5.6, 0.5.67
