@@ -3,6 +3,8 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- fix(ts): Import `globals.d.ts` where `htmldiff-js` typings are required –
+  (helps local monorepo builds run)
 
 ## 0.5.68 – 0.5.69
 

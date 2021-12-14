@@ -1,3 +1,4 @@
+/// <reference types="./globals" />
 import htmldiff from 'htmldiff-js';
 import { HTMLText } from './types';
 
