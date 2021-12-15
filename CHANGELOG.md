@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.5.70
+
+_2021-12-15_
+
 - feat: Move `combine`-/`extractAppendixesAndComments` and `eliminateComments`
   to `utils` – deprecate importing them from `cleanupEditorOutputs`
 - feat: Add type `RegulationTextProps`
