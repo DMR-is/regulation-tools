@@ -251,3 +251,10 @@ export type RegulationRedirect = {
   /** URL linking to the originally published document as published in Stjórnartíðindi */
   originalDoc?: string | null;
 };
+
+// ---------------------------------------------------------------------------
+
+export type RegulationTextProps = Pick<
+  Regulation,
+  'text' | 'appendixes' | 'comments'
+>;

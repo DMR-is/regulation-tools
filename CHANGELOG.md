@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Add type `RegulationTextProps`
 - fix(ts): Import `globals.d.ts` where `htmldiff-js` typings are required –
   (helps local monorepo builds run)
 
