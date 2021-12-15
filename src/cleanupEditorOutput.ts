@@ -1,12 +1,25 @@
 import qq from '@hugsmidjan/qj/qq';
 import zapElm from '@hugsmidjan/qj/zapElm';
-import { Regulation, HTMLText } from './types';
+import { Regulation, HTMLText, RegulationTextProps } from './types';
 import { CleanerFn, makeMutators } from './_cleanup/cleanup-utils';
 import { cleanTitle } from './cleanTitle';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { asDiv, Node, Text, DocumentFragment, E } from './_cleanup/serverDOM';
 /* eslint-ensable @typescript-eslint/no-unused-vars */
 import { FILE_SERVER } from './constants';
+import {
+  // rename for @deprecation
+  combineTextAppendixesComments as _combineTextAppendixesComments,
+  extractAppendixesAndComments as _extractAppendixesAndComments,
+  eliminateComments as _eliminateComments,
+} from './utils';
+
+/** @deprecated import this method from `@island.is/regulations-tools/utils` instead  (Will be removed in v0.6) */
+export const extractAppendixesAndComments = _extractAppendixesAndComments;
+/** @deprecated import this method from `@island.is/regulations-tools/utils` instead  (Will be removed in v0.6) */
+export const combineTextAppendixesComments = _combineTextAppendixesComments;
+/** @deprecated import this method from `@island.is/regulations-tools/utils` instead  (Will be removed in v0.6) */
+export const eliminateComments = _eliminateComments;
 
 // ---------------------------------------------------------------------------
 
@@ -246,61 +259,11 @@ editorOutputCleaner.prettify = M.prettify;
 
 // ===========================================================================
 
-export const combineTextAppendixesComments = (
-  text: HTMLText,
-  appendixes: Regulation['appendixes'] | undefined,
-  comments: HTMLText | undefined,
-): HTMLText => {
-  const wrappedAppendixes = (appendixes || [])
-    .map(
-      ({ title, text }) =>
-        `<section class="appendix">` +
-        `  <h2 class="appendix__title">${title.replace(/</g, '&lt;')}</h2>` +
-        `  ${text}` +
-        `</section>`,
-    )
-    .join('');
-
-  const wrappedComments =
-    comments && `<section class="comments">${comments}</section>`;
-
-  return (text + wrappedAppendixes + wrappedComments) as HTMLText;
-};
-
-type TextProps = Pick<Regulation, 'text' | 'appendixes' | 'comments'>;
-
-// ===========================================================================
-
-export const extractAppendixesAndComments = (text: HTMLText): TextProps => {
-  const root = asDiv(text);
-  const appendixElms = qq('.appendix', root);
-  appendixElms.forEach((elm) => elm.remove());
-  const commentsElms = qq('.comments', root);
-  commentsElms.forEach((elm) => elm.remove());
-  return {
-    text: root.innerHTML.trim() as HTMLText,
-    appendixes: appendixElms.map((elm) => {
-      const titleElm = elm.querySelector('.appendix__title');
-      const title = (titleElm?.textContent || '').replace(/\n/g, ' ').trim();
-      titleElm?.remove();
-      return {
-        title,
-        text: elm.innerHTML.trim() as HTMLText,
-      };
-    }),
-    comments: (commentsElms.length
-      ? commentsElms[0].innerHTML.trim()
-      : '') as HTMLText,
-  };
-};
-
-// ===========================================================================
-
 export const cleanupAllEditorOutputs = ({
   text,
   appendixes,
   comments,
-}: TextProps): TextProps => ({
+}: RegulationTextProps): RegulationTextProps => ({
   text: cleanupEditorOutput(text),
   appendixes: appendixes.map(({ title, text }) => ({
     title: cleanTitle(title),
@@ -321,7 +284,7 @@ export const cleanupAndCombineEditorOutputs = (
     appendixes: appendixes || [],
     comments: comments || '',
   });
-  const cleanCombined = combineTextAppendixesComments(
+  const cleanCombined = _combineTextAppendixesComments(
     clean.text,
     clean.appendixes,
     clean.comments,
@@ -339,13 +302,8 @@ export const cleanupAndCombineEditorOutputs = (
  * in preparataion for change-diffing against RegulationChange effects...
  */
 export const cleanupRegulationText = (regulationText: HTMLText): HTMLText => {
-  const { text, appendixes, comments } = extractAppendixesAndComments(
+  const { text, appendixes, comments } = _extractAppendixesAndComments(
     regulationText as HTMLText,
   );
   return cleanupAndCombineEditorOutputs(text, appendixes, comments);
 };
-
-// ===========================================================================
-
-export const eliminateComments = (text: HTMLText): HTMLText =>
-  text.replace(/<section class="comments">[^]+?<\/section>/g, '') as HTMLText;
