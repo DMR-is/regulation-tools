@@ -3,5 +3,4 @@ export * from './_utils/dom';
 export * from './_utils/ensure';
 export * from './_utils/filters';
 export * from './_utils/formatters';
-export * from './_utils/texts';
 export * from './_utils/urls';

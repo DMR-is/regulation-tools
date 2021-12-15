@@ -9,7 +9,7 @@
 _2021-12-15_
 
 - feat: Move `combine`-/`extractAppendixesAndComments` and `eliminateComments`
-  to `utils` – deprecate importing them from `cleanupEditorOutputs`
+  to `textHelpers` – deprecate importing them from `cleanupEditorOutputs`
 - feat: Add type `RegulationTextProps`
 - fix(ts): Import `globals.d.ts` where `htmldiff-js` typings are required –
   (helps local monorepo builds run)

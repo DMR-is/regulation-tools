@@ -1,5 +1,5 @@
-import { HTMLText, Regulation, RegulationTextProps } from '../types';
-import { asDiv } from '../_cleanup/serverDOM';
+import { HTMLText, Regulation, RegulationTextProps } from './types';
+import { asDiv } from './_cleanup/serverDOM';
 import qq from '@hugsmidjan/qj/qq';
 
 // ===========================================================================

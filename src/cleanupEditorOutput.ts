@@ -12,13 +12,13 @@ import {
   combineTextAppendixesComments as _combineTextAppendixesComments,
   extractAppendixesAndComments as _extractAppendixesAndComments,
   eliminateComments as _eliminateComments,
-} from './utils';
+} from './textHelpers';
 
-/** @deprecated import this method from `@island.is/regulations-tools/utils` instead  (Will be removed in v0.6) */
+/** @deprecated import this method from `@island.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
 export const extractAppendixesAndComments = _extractAppendixesAndComments;
-/** @deprecated import this method from `@island.is/regulations-tools/utils` instead  (Will be removed in v0.6) */
+/** @deprecated import this method from `@island.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
 export const combineTextAppendixesComments = _combineTextAppendixesComments;
-/** @deprecated import this method from `@island.is/regulations-tools/utils` instead  (Will be removed in v0.6) */
+/** @deprecated import this method from `@island.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
 export const eliminateComments = _eliminateComments;
 
 // ---------------------------------------------------------------------------
