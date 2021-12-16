@@ -4,8 +4,10 @@ import {
   RegName,
   RegQueryName,
   RegulationType,
+  URLString,
   Year,
 } from '../types';
+import { newURL } from './urls';
 
 // ---------------------------------------------------------------------------
 
@@ -134,6 +136,24 @@ export const ensureRegType = (cand: unknown): RegulationType | undefined => {
   };
   if (typeof cand === 'string' && cand in types) {
     return cand as RegulationType;
+  }
+};
+
+// ---------------------------------------------------------------------------
+
+/** Asserts that the a string represents a Regulation "type"
+ * ...either 'base' or 'amending'
+ *
+ * Examples:
+ *  * `"base"` --> `"base"`
+ *  * `"amending"` --> `"amending"`
+ *  * `"  amending"` --> `undefined`
+ *  * `"foobar"` --> `undefined`
+ */
+export const ensureURLString = (cand: unknown): URLString | undefined => {
+  if (typeof cand === 'string') {
+    const url = newURL(cand);
+    return url && (url.toString() as URLString);
   }
 };
 

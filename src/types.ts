@@ -43,6 +43,10 @@ declare const IntPositive__Brand: unique symbol;
 /** Positive integer (>1) */
 export type IntPositive = number & { [IntPositive__Brand]: true };
 
+declare const _URLString__Brand: unique symbol;
+/** Fully qualified URL, protocol and all — e.g. `http://www.example.com` */
+export type URLString = string & { [_URLString__Brand]: true };
+
 // ---------------------------------------------------------------------------
 
 /** Regulations are roughly classified based on whether they contain
