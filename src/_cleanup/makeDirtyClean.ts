@@ -309,9 +309,9 @@ export const makeDirtyClean = (
           '|' + matchChar + '|',
         );
         node.replaceWith(
-          new Text(text.substr(0, matchIndex)), // insert Text node to faciliate cleanup after
+          new Text(text.substring(0, matchIndex)), // insert Text node to faciliate cleanup after
           dashNode,
-          new Text(text.substr(matchIndex + matchLength)), // insert Text node to faciliate cleanup after
+          new Text(text.substring(matchIndex + matchLength)), // insert Text node to faciliate cleanup after
         );
       }
     });

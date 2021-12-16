@@ -36,7 +36,7 @@ export function toISODate(
       date = undefined;
     }
   }
-  return date ? (date.toISOString().substr(0, 10) as ISODate) : null;
+  return date ? (date.toISOString().substring(0, 10) as ISODate) : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,5 +56,5 @@ export function toISODateTime(
       date = undefined;
     }
   }
-  return date ? (date.toISOString().substr(0, 19) as ISODateTime) : null;
+  return date ? (date.toISOString().substring(0, 19) as ISODateTime) : null;
 }
