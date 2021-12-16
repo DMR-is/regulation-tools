@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.5.72
+
+_2021-12-16_
+
 - feat: Add branded string type `URLString` and helper `ensureURLString()`
 
 ## 0.5.70 – 0.5.71
