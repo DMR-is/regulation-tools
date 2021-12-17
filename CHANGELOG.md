@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.5.73
+
+_2021-12-17_
+
 - fix: Remove stray plugin reference in `Editor`
 
 ## 0.5.72
