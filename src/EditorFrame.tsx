@@ -69,8 +69,6 @@ const CONFIG: IAllProps['init'] = {
     'paste',
     // 'help',
     // 'template',
-
-    '_onInited_hack_',
   ],
 
   advlist_number_styles:
