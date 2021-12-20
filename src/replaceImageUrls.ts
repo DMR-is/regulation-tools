@@ -1,15 +1,18 @@
+// FIXME: Move this logic into the api-server, where it belongs,
+// and thus make the ENV variable resolution simpler
+
 import qq from '@hugsmidjan/qj/qq';
 import { HTMLText } from './types';
 import { asDiv } from './_cleanup/serverDOM';
 
-const { FILE_UPLOAD_KEY_PUBLISH, REGULATIONS_API_SERVER } = process.env;
+const { FILE_UPLOAD_KEY_PUBLISH, REGULATIONS_API_URL } = process.env;
 
 type SourcesMap = Array<{ oldUrl: string; newUrl: string }>;
 
 export const replaceImageUrls = async (html: HTMLText) => {
-  if (!REGULATIONS_API_SERVER || !FILE_UPLOAD_KEY_PUBLISH) {
+  if (!REGULATIONS_API_URL || !FILE_UPLOAD_KEY_PUBLISH) {
     throw new Error(
-      'REGULATIONS_API_SERVER and/or FILE_UPLOAD_KEY_PUBLISH not configured',
+      'REGULATIONS_API_URL and/or FILE_UPLOAD_KEY_PUBLISH not configured',
     );
   }
 
@@ -24,7 +27,7 @@ export const replaceImageUrls = async (html: HTMLText) => {
     });
 
     const sourcesMap: SourcesMap = await fetch(
-      REGULATIONS_API_SERVER + '/file-upload-urls',
+      REGULATIONS_API_URL + '/file-upload-urls',
       {
         method: 'POST',
         headers: {
