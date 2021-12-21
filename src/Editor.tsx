@@ -12,16 +12,15 @@ import { TextWarnings, TextWarningsClasses } from './TextWarnings';
 import { useTextWarnings } from './useTextWarnings';
 import {
   getTexts,
-  nameToSlug,
   asDiv,
   document_base_url,
   typeAttrToStyleValueMap,
+  ensureNameSlug,
 } from './utils';
 import { getDiff, HTMLDump } from './html';
 import { HTMLText } from './types';
 import { EditorFrameClasses } from './EditorFrame';
 import { useIsBrowserSide } from '@hugsmidjan/react/hooks';
-import { RegName } from './types';
 
 const EMPTY_HTML = '' as HTMLText;
 
@@ -149,7 +148,10 @@ export type EditorProps = {
    * Default: ''
    */
   baseText?: HTMLText;
-  /** The publication name of the Regulation (zero-padded NNNN/YYYY) */
+  /**
+   * The name for the Regulation (e.g. zero-padded NNNN/YYYY, or some unique id)
+   * to be used as folder-name when uploading files/images
+   */
   name: string;
   /** Flags the type of editing being performed.
    *
@@ -179,6 +181,9 @@ export const Editor = (
   const s = props.classes;
   const { valueRef, elmRef, name, onChange } = props;
   const isBrowser = useIsBrowserSide();
+
+  let mediaFolder = name.replace(/\//g, '-').replace(/\.\.+/g, '.');
+  mediaFolder = ensureNameSlug(mediaFolder) || mediaFolder;
 
   const triggerOnChange = useRef(true); // Setting this one to false allows skipping ivoking props.onChange when setting initialText
   const [baseText, setBaseText] = useState(() =>
@@ -219,7 +224,7 @@ export const Editor = (
           {isBrowser && (
             <Suspense fallback={<div className={s.editorBooting} />}>
               <EditorFrameInBrowser
-                mediaFolder={nameToSlug(name as RegName)}
+                mediaFolder={mediaFolder}
                 containerRef={editorDivRef}
                 classes={s}
                 onReady={(baseTextEditorized, editor) => {
