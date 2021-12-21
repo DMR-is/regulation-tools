@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.5.74
+
+_2021-12-20_
+
 - feat: `Editor` normalizes empty, single-element HTMLText to literal `''`
 - fix: Make `Editor`'s `name` prop safer and document its purpose better
 
