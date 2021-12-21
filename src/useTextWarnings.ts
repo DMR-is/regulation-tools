@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { getTexts, asDiv } from './utils';
 import q from '@hugsmidjan/qj/q';
 import qq from '@hugsmidjan/qj/qq';
+
 import { inlineSelfClosingElms } from './_cleanup/cleanup-consts';
+import { asDiv, getTexts } from './utils';
 
 const t = getTexts({
   listTables: {

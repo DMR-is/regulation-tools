@@ -1,31 +1,31 @@
 /* eslint-disable deprecation/deprecation */
 
-import qq from '@hugsmidjan/qj/qq';
-import q from '@hugsmidjan/qj/q';
 import A from '@hugsmidjan/qj/A';
-import zapElm from '@hugsmidjan/qj/zapElm';
+import hypertext from '@hugsmidjan/qj/E';
+import q from '@hugsmidjan/qj/q';
+import qq from '@hugsmidjan/qj/qq';
 import removeNode from '@hugsmidjan/qj/removeNode';
-import { makeMutators, CleanerFn } from './cleanup-utils';
+import zapElm from '@hugsmidjan/qj/zapElm';
+
+import { FILE_SERVER } from '../constants';
+import { HTMLText } from '../types';
 
 import {
   blockElms,
   /* eslint-disable @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports-ts */
   // Keeping these here for reference (out of sight out of mind, etc.)
   blockTextElms,
+  inlineElms,
   inlineSelfClosingElms,
   inlineTextElms,
   isBlockElm,
   isInlineElms,
-  isTableCell,
-  inlineElms,
   isInlineTextElm,
+  isTableCell,
   tableCells,
   /* eslint-enable @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports-ts */
 } from './cleanup-consts';
-
-import hypertext from '@hugsmidjan/qj/E';
-import { FILE_SERVER } from '../constants';
-import { HTMLText } from '../types';
+import { CleanerFn, makeMutators } from './cleanup-utils';
 
 export const makeDirtyClean = (
   asDiv: (html: string) => HTMLDivElement,

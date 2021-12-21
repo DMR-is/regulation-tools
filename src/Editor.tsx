@@ -6,21 +6,21 @@ import React, {
   useRef,
   useState,
 } from 'react';
-
 import debounce from '@hugsmidjan/qj/debounce';
+import { useIsBrowserSide } from '@hugsmidjan/react/hooks';
+
+import { EditorFrameClasses } from './EditorFrame';
+import { getDiff, HTMLDump } from './html';
 import { TextWarnings, TextWarningsClasses } from './TextWarnings';
+import { HTMLText } from './types';
 import { useTextWarnings } from './useTextWarnings';
 import {
-  getTexts,
   asDiv,
   document_base_url,
-  typeAttrToStyleValueMap,
   ensureNameSlug,
+  getTexts,
+  typeAttrToStyleValueMap,
 } from './utils';
-import { getDiff, HTMLDump } from './html';
-import { HTMLText } from './types';
-import { EditorFrameClasses } from './EditorFrame';
-import { useIsBrowserSide } from '@hugsmidjan/react/hooks';
 
 const EMPTY_HTML = '' as HTMLText;
 

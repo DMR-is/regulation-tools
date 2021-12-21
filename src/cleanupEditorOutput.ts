@@ -1,8 +1,7 @@
 import qq from '@hugsmidjan/qj/qq';
 import zapElm from '@hugsmidjan/qj/zapElm';
-import { Regulation, HTMLText, RegulationTextProps } from './types';
+
 import { CleanerFn, makeMutators } from './_cleanup/cleanup-utils';
-import { cleanTitle } from './cleanTitle';
 import {
   // NOTE: Allow unused imports to prevent later accidental fallbacks
   // to subtly incompatible global browser types
@@ -12,13 +11,15 @@ import {
   Node,
   Text, // eslint-disable-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports-ts
 } from './_cleanup/serverDOM';
+import { cleanTitle } from './cleanTitle';
 import { FILE_SERVER } from './constants';
 import {
   // rename for @deprecation
   combineTextAppendixesComments as _combineTextAppendixesComments,
-  extractAppendixesAndComments as _extractAppendixesAndComments,
   eliminateComments as _eliminateComments,
+  extractAppendixesAndComments as _extractAppendixesAndComments,
 } from './textHelpers';
+import { HTMLText, Regulation, RegulationTextProps } from './types';
 
 /** @deprecated import this method from `@island.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
 export const extractAppendixesAndComments = _extractAppendixesAndComments;

@@ -2,8 +2,9 @@
 // and thus make the ENV variable resolution simpler
 
 import qq from '@hugsmidjan/qj/qq';
-import { HTMLText } from './types';
+
 import { asDiv } from './_cleanup/serverDOM';
+import { HTMLText } from './types';
 
 const { FILE_UPLOAD_KEY_PUBLISH, REGULATIONS_API_URL } = process.env;
 

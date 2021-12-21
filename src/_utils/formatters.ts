@@ -1,5 +1,6 @@
 import translate, { Messages } from 'translate.js';
 import { plural_IS } from 'translate.js/pluralize';
+
 import { RegName } from '../types';
 
 const THIN_SPACE = ' ';

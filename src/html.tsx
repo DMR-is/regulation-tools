@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { execute as htmldiff } from './htmldiff-js';
 import { HTMLText, PlainText } from './types';
 

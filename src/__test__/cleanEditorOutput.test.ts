@@ -1,4 +1,5 @@
-import { editorOutputCleaner, CleanerFn } from '../cleanupEditorOutput';
+import { CleanerFn, editorOutputCleaner } from '../cleanupEditorOutput';
+
 import {
   runCleanupFiletests,
   runCleanupMicroTests,

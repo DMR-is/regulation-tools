@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useOnUpdate } from '@hugsmidjan/react/hooks';
+
 import { Angsts, WarningList } from './useTextWarnings';
 import { getTexts } from './utils';
-import { useOnUpdate } from '@hugsmidjan/react/hooks';
 
 const t = getTexts({
   title: 'Gátlisti:',

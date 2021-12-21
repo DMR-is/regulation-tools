@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'fs';
-import { HTMLText } from '../types';
+
 import { CleanerFn } from '../_cleanup/cleanup-utils';
+import { HTMLText } from '../types';
 
 type TestDescr<Options> = {
   input: string;

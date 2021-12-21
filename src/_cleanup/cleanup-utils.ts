@@ -1,15 +1,15 @@
-import { Options as PrettierOptions } from 'cleanup-prettier';
-import prettier from 'cleanup-prettier/standalone';
-import parserHtml from 'cleanup-prettier/parser-html';
-import parserCSS from 'cleanup-prettier/parser-postcss';
-import prettierrc from './cleanup-prettierrc';
-import mappify from './mappify';
-import q from '@hugsmidjan/qj/q';
-import qq from '@hugsmidjan/qj/qq';
 import A from '@hugsmidjan/qj/A';
 import hypertext from '@hugsmidjan/qj/E';
-import zapElm from '@hugsmidjan/qj/zapElm';
+import q from '@hugsmidjan/qj/q';
+import qq from '@hugsmidjan/qj/qq';
 import removeNode from '@hugsmidjan/qj/removeNode';
+import zapElm from '@hugsmidjan/qj/zapElm';
+import { Options as PrettierOptions } from 'cleanup-prettier';
+import parserHtml from 'cleanup-prettier/parser-html';
+import parserCSS from 'cleanup-prettier/parser-postcss';
+import prettier from 'cleanup-prettier/standalone';
+
+import { HTMLText } from '../types';
 import { styleValueToTypeAttrMap } from '../utils';
 
 import {
@@ -20,13 +20,11 @@ import {
   isBlockElm,
   isInlineElms,
   isTableCell,
-  inlineElms,
-  isInlineTextElm,
-  tableCells,
-  unsafeElements,
   meaninglessElements,
+  unsafeElements,
 } from './cleanup-consts';
-import { HTMLText } from '../types';
+import prettierrc from './cleanup-prettierrc';
+import mappify from './mappify';
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
 declare global {
