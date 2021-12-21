@@ -1,5 +1,0 @@
-src/__test__/input/*.html
-src/__test__/expected/*.html
-src/__test__/cleanEditorOutput/**/*
-# src/scripts/temp/*.html
-*TODO.md
