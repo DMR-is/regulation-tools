@@ -98,7 +98,11 @@ const importText = (text: HTMLText): HTMLText => {
   // root.qq('table.layout.layout--list').forEach((elm) => {
   //   elm.classList.remove('layout');
   // });
-  return root.innerHTML as HTMLText;
+  return (
+    root.innerHTML
+      // Replace empty HTML with empty string ('')
+      .replace(/(<(?!\/)[^>]+>)+(<\/[^>]+>)+/, '') as HTMLText
+  );
 };
 
 const exportText = (text: HTMLText): HTMLText => {
