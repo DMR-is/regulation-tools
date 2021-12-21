@@ -376,6 +376,7 @@ export type EditorFrameProps = {
 };
 
 export const EditorFrame = (props: EditorFrameProps) => {
+  const { onBlur, onFocus } = props;
   const s = props.classes;
   const domid = 'toolbar' + useDomid();
 
@@ -420,8 +421,8 @@ export const EditorFrame = (props: EditorFrameProps) => {
             }
           }, 67);
         }}
-        onFocus={props.onFocus}
-        onBlur={props.onBlur}
+        onFocus={onFocus && (() => onFocus())}
+        onBlur={onBlur && (() => onBlur())}
         onEditorChange={(content) => {
           const newText = asDiv(content).innerHTML.replace(
             /\n/g,
