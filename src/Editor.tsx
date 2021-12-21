@@ -194,7 +194,6 @@ export const Editor = (
   valueRef.current = () => exportText(currentValue.current);
 
   const [debouncedCurrentText, setDebouncedCurrentText] = useState(baseText);
-  const [dirtyText, setDirtyText] = useState(EMPTY_HTML);
   const [diffText, setDiffText] = useState(EMPTY_HTML);
   const [updating, setUpdating] = useState<true | undefined>(true);
   const [needsUpdating, setNeedsUpdating] = useState<true | undefined>();
