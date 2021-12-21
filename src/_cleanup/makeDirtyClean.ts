@@ -1,4 +1,5 @@
 /* eslint-disable deprecation/deprecation */
+
 import qq from '@hugsmidjan/qj/qq';
 import q from '@hugsmidjan/qj/q';
 import A from '@hugsmidjan/qj/A';
@@ -8,6 +9,8 @@ import { makeMutators, CleanerFn } from './cleanup-utils';
 
 import {
   blockElms,
+  /* eslint-disable @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports-ts */
+  // Keeping these here for reference (out of sight out of mind, etc.)
   blockTextElms,
   inlineSelfClosingElms,
   inlineTextElms,
@@ -17,8 +20,8 @@ import {
   inlineElms,
   isInlineTextElm,
   tableCells,
+  /* eslint-enable @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports-ts */
 } from './cleanup-consts';
-/* eslint-ensable @typescript-eslint/no-unused-vars */
 
 import hypertext from '@hugsmidjan/qj/E';
 import { FILE_SERVER } from '../constants';

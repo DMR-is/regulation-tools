@@ -3,9 +3,15 @@ import zapElm from '@hugsmidjan/qj/zapElm';
 import { Regulation, HTMLText, RegulationTextProps } from './types';
 import { CleanerFn, makeMutators } from './_cleanup/cleanup-utils';
 import { cleanTitle } from './cleanTitle';
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { asDiv, Node, Text, DocumentFragment, E } from './_cleanup/serverDOM';
-/* eslint-ensable @typescript-eslint/no-unused-vars */
+import {
+  // NOTE: Allow unused imports to prevent later accidental fallbacks
+  // to subtly incompatible global browser types
+  asDiv,
+  DocumentFragment, // eslint-disable-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports-ts
+  E,
+  Node,
+  Text, // eslint-disable-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports-ts
+} from './_cleanup/serverDOM';
 import { FILE_SERVER } from './constants';
 import {
   // rename for @deprecation

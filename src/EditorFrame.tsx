@@ -1,8 +1,16 @@
+/* eslint-disable simple-import-sort/imports */
+// NOTE: disable import sorting until the side-effects
+// on the tinymce/plugin side-effect imports have
+//  been properly tested
+
 import React, { MutableRefObject, useMemo } from 'react';
-import { asDiv, document_base_url } from './utils';
+import { useDomid } from '@hugsmidjan/react/hooks';
 import { Editor as TinyMCE, IAllProps } from '@tinymce/tinymce-react';
 import type { Editor } from 'tinymce';
-import { useDomid } from '@hugsmidjan/react/hooks';
+
+import dirtyClean from './dirtyClean-browser';
+import { HTMLText } from './types';
+import { asDiv, document_base_url } from './utils';
 
 import 'tinymce/tinymce';
 import 'tinymce/themes/silver';
@@ -27,9 +35,6 @@ import 'tinymce/plugins/table';
 import 'tinymce/plugins/paste';
 // import 'tinymce/plugins/help';
 // import 'tinymce/plugins/template';
-
-import dirtyClean from './dirtyClean-browser';
-import { HTMLText } from './types';
 
 // ---------------------------------------------------------------------------
 
