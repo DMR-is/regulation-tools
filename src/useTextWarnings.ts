@@ -3,7 +3,7 @@ import q from '@hugsmidjan/qj/q';
 import qq from '@hugsmidjan/qj/qq';
 
 import { inlineSelfClosingElms } from './_cleanup/cleanup-consts';
-import { asDiv, getTexts } from './utils';
+import { asDiv, getTexts, isNonNull } from './utils';
 
 const t = getTexts({
   listTables: {
@@ -194,8 +194,8 @@ export const makeWarnings = (text: string, isImpact?: boolean): WarningList => {
 
     const surpriseArticleNumbers = numberArticleTitles.reduce<Array<number>>(
       (surprising, item, i, arr) => {
-        const last = i > 0 ? arr[i - 1].num : 0;
-        const expected = last + 1;
+        const lastNum = i > 0 ? arr[i - 1]!.num : 0;
+        const expected = lastNum + 1;
 
         if (item.num !== expected) {
           surprising.push(item.idx);
@@ -209,7 +209,9 @@ export const makeWarnings = (text: string, isImpact?: boolean): WarningList => {
         warning: t('articleNumbersWeird'),
         find: (root) => {
           const titles = qq(articleTitleSelector, root);
-          return surpriseArticleNumbers.map((idx) => titles[idx]);
+          return surpriseArticleNumbers
+            .map((idx) => titles[idx])
+            .filter(isNonNull);
         },
         angst: 'medium',
       });

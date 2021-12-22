@@ -70,7 +70,7 @@ const TextWarnings__item = (props: ItemProps) => {
           onClick={() => {
             const elms = find(contentRoot) || [];
             if (elms.length === 1) {
-              show(elms[0]);
+              show(elms[0]!);
             } else {
               setInstances(elms);
             }

@@ -163,7 +163,10 @@ export const makeDirtyClean = (
           if (row.children.length > 1 || row.previousElementSibling) {
             return true;
           }
-          table.before(divify(row.children[0]));
+          const cell = row.children[0];
+          if (cell) {
+            table.before(divify(cell));
+          }
           row.remove();
         });
         qq('tr', table)
@@ -172,7 +175,10 @@ export const makeDirtyClean = (
             if (row.children.length > 1 || row.nextElementSibling) {
               return true;
             }
-            table.after(divify(row.children[0]));
+            const cell = row.children[0];
+            if (cell) {
+              table.after(divify(cell));
+            }
             row.remove();
           });
       });
@@ -303,7 +309,7 @@ export const makeDirtyClean = (
       const text = node.textContent.trim();
       const match = /\s([-–—])\s/.exec(text + ' ');
       if (match) {
-        const matchChar = match[0];
+        const matchChar = match[0]!;
         const matchIndex = match.index;
         const matchLength = matchChar.length;
         dashNode = E(
@@ -617,7 +623,7 @@ export const makeDirtyClean = (
       return 'A';
     }
     if (romanNumerlMarkerRd.test(text)) {
-      return text[0].toLowerCase() === text[0] ? 'i' : 'I';
+      return text[0]!.toLowerCase() === text[0] ? 'i' : 'I';
     }
     return;
   };
@@ -629,7 +635,7 @@ export const makeDirtyClean = (
         return;
       }
       const rows = qq('tr', table);
-      const colCount = getColCount(rows[0]);
+      const colCount = rows[0] ? getColCount(rows[0]) : 0;
       if (colCount < 2 || colCount > 3) {
         return;
       }
@@ -660,7 +666,8 @@ export const makeDirtyClean = (
   // ---------------------------------------------------------------------------
 
   const getItemMarker = (node: ChildNode) =>
-    node.textContent.slice(0, 10).trim().split(' ')[0];
+    node.textContent.slice(0, 10).trim().split(' ')[0] || '';
+
   const getItemType = (elm: Element, preferRoman?: boolean) =>
     isFauxListMarker(getItemMarker(elm), preferRoman);
 
@@ -668,15 +675,15 @@ export const makeDirtyClean = (
     if (!q('p > br', elm)) {
       return elm;
     }
-    const items: Array<HTMLLIElement> = [E('li')];
+    const items = [E('li')];
     A(elm.childNodes).forEach((node, i, list) => {
       if (node.nodeName !== 'BR') {
-        items[items.length - 1].append(node.cloneNode(true));
+        items[items.length - 1]!.append(node.cloneNode(true));
       } else if (i !== list.length - 1) {
         items.push(E('li'));
       }
     });
-    const type = getItemType(items[0], true);
+    const type = getItemType(items[0]!, true);
     const isRomanType = type && /^[iI]$/.test(type);
     if (
       type === 'complex' ||

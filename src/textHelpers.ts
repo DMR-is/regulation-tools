@@ -48,7 +48,7 @@ export const extractAppendixesAndComments = (
       };
     }),
     comments: (commentsElms.length
-      ? commentsElms[0].innerHTML.trim()
+      ? commentsElms[0]!.innerHTML.trim()
       : '') as HTMLText,
   };
 };
