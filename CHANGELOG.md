@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.5.75
+
+_2021-12-27_
+
 - fix: Update `tinymce`, add workaround for a plugin-init regression
 
 ## 0.5.74
