@@ -1,4 +1,5 @@
 /* eslint-disable simple-import-sort/imports */
+
 // NOTE: disable import sorting until the side-effects
 // on the tinymce/plugin side-effect imports have
 //  been properly tested
@@ -12,7 +13,7 @@ import dirtyClean from './dirtyClean-browser';
 import { HTMLText } from './types';
 import { asDiv, document_base_url } from './utils';
 
-import 'tinymce/tinymce';
+import tinymce from 'tinymce/tinymce';
 import 'tinymce/themes/silver';
 import 'tinymce/icons/default';
 
@@ -74,6 +75,8 @@ const CONFIG: IAllProps['init'] = {
     'paste',
     // 'help',
     // 'template',
+
+    '_onInited_hack_',
   ],
 
   advlist_number_styles:
@@ -300,6 +303,16 @@ const CONFIG: IAllProps['init'] = {
     // });
   },
 };
+
+// NOTE: This uses function declaration syntax for the plugin to
+// pass as a constructor, if/when it's called with a `new` keyword
+// See: https://github.com/tinymce/tinymce/commit/4f192166
+tinymce.PluginManager.add('_onInited_hack_', function (editor) {
+  const uiRegistry = editor.ui.registry;
+  editor.settings.contextmenu = Object.keys(
+    uiRegistry.getAll().contextMenus,
+  ).join(' ');
+});
 
 // ---------------------------------------------------------------------------
 
