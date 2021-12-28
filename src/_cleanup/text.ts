@@ -8,7 +8,6 @@ import { HTMLText } from '../types';
 
 import { blockTextElms } from './cleanup-consts';
 import prettierrc from './cleanup-prettierrc';
-import { asDiv } from './serverDOM';
 
 const PRE_PLACEHOLDER = '$$__PRE_PLACEHOLDER__$$';
 const prePlaceholderRe = new RegExp(PRE_PLACEHOLDER.replace(/\$/g, '\\$'), 'g');
@@ -27,8 +26,7 @@ const removePres = (html: HTMLText) => {
 const reInsertPres = (html: HTMLText, pres: Array<HTMLText>): HTMLText =>
   html.replace(prePlaceholderRe, () => pres.shift() || '') as HTMLText;
 
-const padBlockElements = (html: string) => {
-  const root = asDiv(html);
+const padBlockElements = (root: HTMLElement) => {
   qq(blockTextElms, root).forEach((elm) => {
     elm.prepend('\n');
     elm.append('\n');
@@ -38,44 +36,46 @@ const padBlockElements = (html: string) => {
 
 // ---------------------------------------------------------------------------
 
-export const prettify = (html: HTMLText): HTMLText => {
-  const paddedHtml = padBlockElements(html)
-    .trim()
-    .replace(/&nbsp;/g, ' ') as HTMLText;
+export const makePrettify =
+  (asDiv: (html: string) => HTMLDivElement) =>
+  (html: HTMLText): HTMLText => {
+    const paddedHtml = padBlockElements(asDiv(html))
+      .trim()
+      .replace(/&nbsp;/g, ' ') as HTMLText;
 
-  const { htmlSansPre, pres } = removePres(paddedHtml);
+    const { htmlSansPre, pres } = removePres(paddedHtml);
 
-  let prettifiedHtml = prettier
-    .format(htmlSansPre, {
-      ...prettierrc,
-      plugins: [parserHtml, parserCSS],
-      parser: 'html',
-    } as PrettierOptions)
-    // Reformat to one word/open-tag/close-tag per line for effective word-based diffing behavior.
-    // Yes, cute kittens will be struck by lightning
-    // ...but it works. ¯\_(ツ)_/¯
-    // preserve formatting <pre>s as is
-    .replace(/\t/g, '') // remove indenting
-    .replace(/ /g, '\n') // break on every space!
-    .replace(/\n>/g, '>') // un-wrap end-angle-bracket of inline elements (i.e. like `<em\n>This</em>`...
-    .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (poor)
-    .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (man's)
-    .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (recursion)
-    .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (FTW!)
-    .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (o_O)
-    .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (Ack!)
-    .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (Ick!)
-    .replace(
-      /(<\/?(?:p|h[2-6]|t(?:able|body|head|r|d|h)|caption|li|ul|ol|blockquote|section)(?:>| .+?>))/g,
-      '\n$1\n',
-    ) // Add space around OPENING and CLOSING block-level tags
-    .replace(/\n\n/g, '\n') // collspase double newlines
-    .trimStart() as HTMLText;
+    let prettifiedHtml = prettier
+      .format(htmlSansPre, {
+        ...prettierrc,
+        plugins: [parserHtml, parserCSS],
+        parser: 'html',
+      } as PrettierOptions)
+      // Reformat to one word/open-tag/close-tag per line for effective word-based diffing behavior.
+      // Yes, cute kittens will be struck by lightning
+      // ...but it works. ¯\_(ツ)_/¯
+      // preserve formatting <pre>s as is
+      .replace(/\t/g, '') // remove indenting
+      .replace(/ /g, '\n') // break on every space!
+      .replace(/\n>/g, '>') // un-wrap end-angle-bracket of inline elements (i.e. like `<em\n>This</em>`...
+      .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (poor)
+      .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (man's)
+      .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (recursion)
+      .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (FTW!)
+      .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (o_O)
+      .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (Ack!)
+      .replace(/(<[^>]+)\n([^>]+>)/g, '$1 $2') // join HTML-tag attributes on a single line (Ick!)
+      .replace(
+        /(<\/?(?:p|h[2-6]|t(?:able|body|head|r|d|h)|caption|li|ul|ol|blockquote|section)(?:>| .+?>))/g,
+        '\n$1\n',
+      ) // Add space around OPENING and CLOSING block-level tags
+      .replace(/\n\n/g, '\n') // collspase double newlines
+      .trimStart() as HTMLText;
 
-  prettifiedHtml = reInsertPres(prettifiedHtml, pres);
+    prettifiedHtml = reInsertPres(prettifiedHtml, pres);
 
-  return prettifiedHtml as HTMLText;
-};
+    return prettifiedHtml as HTMLText;
+  };
 /** /
 // Failed attempt at brute-forcing a normalized line-breaks
 // inside *every* bock-level element – even empty ones –

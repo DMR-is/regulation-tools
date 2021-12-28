@@ -20,7 +20,7 @@ import {
   unsafeElements,
 } from './cleanup-consts';
 import mappify from './mappify';
-import { prettify } from './text';
+import { makePrettify } from './text';
 
 declare global {
   // Override TypeScript's primitive Node definitions which say string|null
@@ -52,6 +52,8 @@ export const makeMutators = (
   E: typeof hypertext,
   Node: typeof window.Node,
 ) => {
+  const prettify = makePrettify(asDiv);
+
   // ---------------------------------------------------------------------------
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
