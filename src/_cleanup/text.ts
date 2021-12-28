@@ -110,3 +110,11 @@ export const prettify = (html: string) => {
   return prettyHTML;
 };
 /**/
+
+// ---------------------------------------------------------------------------
+
+export const dePrettify = (html: HTMLText): HTMLText => {
+  const { htmlSansPre, pres } = removePres(html);
+  const dePrettifiedHTML = htmlSansPre.replace(/\n/g, ' ') as HTMLText;
+  return reInsertPres(dePrettifiedHTML, pres);
+};

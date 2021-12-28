@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Add `dePrettify` to textHelpers
 
 ## 0.5.75
 

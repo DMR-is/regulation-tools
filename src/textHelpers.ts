@@ -57,3 +57,7 @@ export const extractAppendixesAndComments = (
 
 export const eliminateComments = (text: HTMLText): HTMLText =>
   text.replace(/<section class="comments">[^]+?<\/section>/g, '') as HTMLText;
+
+// ===========================================================================
+
+export { dePrettify } from './_cleanup/text';
