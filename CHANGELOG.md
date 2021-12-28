@@ -4,6 +4,8 @@
 
 - ... <!-- Add new lines here. -->
 - feat: `Editor` now expects API to return "de-prettified" regulation texts
+- fix: `Editor` showing false positive diff on initialization — (Caused by a
+  breaking change in upstream TinyMCE MINOR-version update)
 
 ## 0.5.75
 

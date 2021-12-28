@@ -189,7 +189,8 @@ export const Editor = (
   let mediaFolder = name.replace(/\//g, '-').replace(/\.\.+/g, '.');
   mediaFolder = ensureNameSlug(mediaFolder) || mediaFolder;
 
-  const triggerOnChange = useRef(true); // Setting this one to false allows skipping ivoking props.onChange when setting initialText
+  // Setting this one to false allows skipping ivoking props.onChange when setting initialText
+  const editorStatus = useRef<'starting' | 'ready' | 'running'>('starting');
   const [baseText, setBaseText] = useState(() =>
     importText(props.baseText || EMPTY_HTML),
   );
@@ -237,7 +238,7 @@ export const Editor = (
                   setDiffText(baseTextEditorized);
                   setUpdating(undefined);
                   // once baseText has been established and editorized, then apply the actual initalText
-                  triggerOnChange.current = false;
+                  editorStatus.current = 'ready';
                   editor.setContent(initialText);
                 }}
                 initialValue={baseText || initialText}
@@ -246,10 +247,13 @@ export const Editor = (
                 aria-labelledby={props['aria-labelledby']}
                 aria-describedBy={props['aria-describedBy']}
                 onChange={(newText) => {
-                  if (triggerOnChange.current) {
+                  if (editorStatus.current === 'running') {
                     onChange && onChange();
+                  } else if (editorStatus.current === 'ready') {
+                    editorStatus.current = 'running';
                   } else {
-                    triggerOnChange.current = true;
+                    /* } else if (editorStatus.current === 'starting') { */
+                    return; // editor onReady has not run yet.
                   }
                   currentValue.current = newText;
                   autoDiffModeRef.current && setUpdating(true);
