@@ -11,7 +11,7 @@ import type { Editor } from 'tinymce';
 
 import dirtyClean from './dirtyClean-browser';
 import { HTMLText } from './types';
-import { asDiv, document_base_url } from './utils';
+import { document_base_url } from './utils';
 
 import tinymce from 'tinymce/tinymce';
 import 'tinymce/themes/silver';
@@ -431,9 +431,7 @@ export const EditorFrame = (props: EditorFrameProps) => {
                 );
               contentAreaContainer.classList.add(s.editor);
               props.containerRef.current = contentAreaContainer;
-              const editorizedText = asDiv(
-                editor.getContent(),
-              ).innerHTML.replace(/\n/g, ' ') as HTMLText;
+              const editorizedText = editor.getContent() as HTMLText;
               props.onReady(editorizedText, editor);
               clearInterval(retry);
             }
@@ -442,11 +440,7 @@ export const EditorFrame = (props: EditorFrameProps) => {
         onFocus={onFocus && (() => onFocus())}
         onBlur={onBlur && (() => onBlur())}
         onEditorChange={(content) => {
-          const newText = asDiv(content).innerHTML.replace(
-            /\n/g,
-            ' ',
-          ) as HTMLText;
-          props.onChange(newText);
+          props.onChange(content as HTMLText);
         }}
         // onChange={(event, editor) => {
         //   console.log('oncChange');
