@@ -3,8 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- feat: `Editor` now expects API to return `dePrettify`ed regulation texts
-- feat: Add `dePrettify` to textHelpers
+- feat: `Editor` now expects API to return "de-prettified" regulation texts
 
 ## 0.5.75
 

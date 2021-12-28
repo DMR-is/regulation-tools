@@ -1,6 +1,7 @@
 import qq from '@hugsmidjan/qj/qq';
 
 import { asDiv } from './_cleanup/serverDOM';
+import { dePrettify } from './_cleanup/text';
 import { HTMLText, Regulation, RegulationTextProps } from './types';
 
 // ===========================================================================
@@ -31,6 +32,7 @@ export const combineTextAppendixesComments = (
 export const extractAppendixesAndComments = (
   text: HTMLText,
 ): RegulationTextProps => {
+  text = dePrettify(text);
   const root = asDiv(text);
   const appendixElms = qq('.appendix', root);
   appendixElms.forEach((elm) => elm.remove());
@@ -57,7 +59,3 @@ export const extractAppendixesAndComments = (
 
 export const eliminateComments = (text: HTMLText): HTMLText =>
   text.replace(/<section class="comments">[^]+?<\/section>/g, '') as HTMLText;
-
-// ===========================================================================
-
-export { dePrettify } from './_cleanup/text';
