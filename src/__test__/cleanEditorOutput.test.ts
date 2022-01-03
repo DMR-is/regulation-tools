@@ -1,4 +1,6 @@
-import { CleanerFn, editorOutputCleaner } from '../cleanupEditorOutput';
+import { prettify } from '../_cleanup/text';
+import { cleanupSingleEditorOutput } from '../cleanupEditorOutput';
+import { HTMLText } from '../types';
 
 import {
   runCleanupFiletests,
@@ -6,9 +8,12 @@ import {
   universalTests,
 } from './cleanup-test-utils';
 
+export const _editorCleanup = (html: HTMLText) =>
+  prettify(cleanupSingleEditorOutput(html));
+
 // ---------------------------------------------------------------------------
 
-runCleanupFiletests(editorOutputCleaner, {
+runCleanupFiletests(_editorCleanup, {
   parentDir: __dirname + '/cleanEditorOutput',
   // filter: (fileNames) =>
   // 	fileNames
@@ -18,9 +23,7 @@ runCleanupFiletests(editorOutputCleaner, {
 
 // ---------------------------------------------------------------------------
 
-const cleanTwice: CleanerFn = (html) =>
-  editorOutputCleaner(editorOutputCleaner(html));
-cleanTwice.prettify = editorOutputCleaner.prettify;
+const cleanTwice = (html: HTMLText) => _editorCleanup(_editorCleanup(html));
 
 runCleanupFiletests(cleanTwice, {
   parentDir: __dirname + '/cleanEditorOutput',
@@ -32,7 +35,7 @@ runCleanupFiletests(cleanTwice, {
 
 // ---------------------------------------------------------------------------
 
-runCleanupMicroTests(editorOutputCleaner, {
+runCleanupMicroTests(_editorCleanup, {
   'Collapses spaces between block-level elements': {
     input: '<p>A\t&nbsp;</p> <br/> \t<p>B</p>\n\n <p>C</p>',
     expected: '<p>A</p><p>B</p><p>C</p>',

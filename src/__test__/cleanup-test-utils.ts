@@ -1,25 +1,24 @@
 import { readdirSync, readFileSync } from 'fs';
 
-import { CleanerFn } from '../_cleanup/cleanup-utils';
+import { prettify } from '../_cleanup/text';
 import { HTMLText } from '../types';
 
-type TestDescr<Options> = {
+type TestDescr = {
   input: string;
   skip?: true;
   only?: true;
-  options?: Options;
 } & (
   | { expected: string; throws?: undefined }
   | { expected?: undefined; throws: true }
 );
 
-export type TestDescriptions<T> = Record<string, TestDescr<T>>;
+export type TestDescriptions = Record<string, TestDescr>;
 
 // ---------------------------------------------------------------------------
 
-export const runCleanupMicroTests = <T>(
-  cleanerFn: CleanerFn<T>,
-  tests: TestDescriptions<T>,
+export const runCleanupMicroTests = (
+  cleanerFn: (html: HTMLText) => HTMLText,
+  tests: TestDescriptions,
 ) => {
   Object.entries(tests).forEach(([descr, t]) => {
     if (t.skip) {
@@ -27,11 +26,11 @@ export const runCleanupMicroTests = <T>(
     }
     const testFn = t.only ? test.only : test;
     testFn(descr, () => {
-      const attempt = () => cleanerFn(t.input as HTMLText, t.options);
+      const attempt = () => cleanerFn(t.input as HTMLText);
       if (t.throws) {
         expect(attempt).toThrow();
       } else {
-        expect(attempt()).toEqual(cleanerFn.prettify(t.expected as HTMLText));
+        expect(attempt()).toEqual(prettify(t.expected as HTMLText));
       }
     });
   });
@@ -73,7 +72,7 @@ export const runCleanupFiletests = (
 
 // ---------------------------------------------------------------------------
 
-export const universalTests: TestDescriptions<undefined> = {
+export const universalTests: TestDescriptions = {
   'Converts escaped text entities to unicode characters': {
     input: '<p>&Ouml;&#214;</p>',
     expected: '<p>ÖÖ</p>',

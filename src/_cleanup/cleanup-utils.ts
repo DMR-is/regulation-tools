@@ -5,7 +5,6 @@ import qq from '@hugsmidjan/qj/qq';
 import removeNode from '@hugsmidjan/qj/removeNode';
 import zapElm from '@hugsmidjan/qj/zapElm';
 
-import { HTMLText } from '../types';
 import { styleValueToTypeAttrMap } from '../utils';
 
 import {
@@ -20,7 +19,6 @@ import {
   unsafeElements,
 } from './cleanup-consts';
 import mappify from './mappify';
-import { makePrettify } from './text';
 
 declare global {
   // Override TypeScript's primitive Node definitions which say string|null
@@ -38,13 +36,6 @@ declare global {
   }
 }
 
-export type CleanerFn<
-  Options extends Record<string, any> | undefined = undefined,
-> = {
-  (input: HTMLText, opts?: Options): HTMLText;
-  prettify(html: HTMLText): HTMLText;
-};
-
 // ---------------------------------------------------------------------------
 
 export const makeMutators = (
@@ -52,10 +43,6 @@ export const makeMutators = (
   E: typeof hypertext,
   Node: typeof window.Node,
 ) => {
-  const prettify = makePrettify(asDiv);
-
-  // ---------------------------------------------------------------------------
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const __logOuterHTML =
     (msg = '') =>
@@ -956,8 +943,6 @@ export const makeMutators = (
   // ---------------------------------------------------------------------------
 
   return {
-    prettify,
-    //
     _splitElmOnCursor,
     __logOuterHTML,
     _transmogrifyInto,

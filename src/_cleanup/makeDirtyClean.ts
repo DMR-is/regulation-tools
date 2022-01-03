@@ -25,7 +25,7 @@ import {
   tableCells,
   /* eslint-enable @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports-ts */
 } from './cleanup-consts';
-import { CleanerFn, makeMutators } from './cleanup-utils';
+import { makeMutators } from './cleanup-utils';
 
 export const makeDirtyClean = (
   asDiv: (html: string) => HTMLDivElement,
@@ -887,13 +887,12 @@ export const makeDirtyClean = (
 
   // ===========================================================================
 
-  // NOTE: It is NOT SAFE to run multiple times on the same text.
-  // This function IS NOT idempotent. It's very aggressive and destructive.
-  // Only run it against a raw, dirty, nasty Word/PDF document export.
-  const dirtyClean: CleanerFn<{ skipPrettier?: boolean }> = (
-    html,
-    opts = {},
-  ) => {
+  /**
+   * NOTE: It is NOT SAFE to run multiple times on the same text.
+   * This function IS NOT idempotent. It's very aggressive and destructive.
+   * Only run it against a raw, dirty, nasty Word/PDF document export.
+   */
+  const dirtyClean = (html: HTMLText): HTMLText => {
     html = fixHtmlMistakesLol(html);
 
     const mutators: Array<(elm: HTMLElement) => void> = [
@@ -976,18 +975,8 @@ export const makeDirtyClean = (
     const root = asDiv(html);
     mutators.forEach((mutator) => mutator(root));
 
-    const innerHTML = root.innerHTML as HTMLText;
-
-    if (opts.skipPrettier === true) {
-      return innerHTML;
-    }
-
-    // Normalize formatting \ö/
-    return M.prettify(innerHTML);
+    return root.innerHTML as HTMLText;
   };
-
-  // for testing
-  dirtyClean.prettify = M.prettify;
 
   return dirtyClean;
 };

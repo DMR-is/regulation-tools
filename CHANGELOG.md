@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- refactor: Make `Editor` slimmer by decoupling from client-side dirtyClean
 
 ## 0.5.76 – 0.5.77
 

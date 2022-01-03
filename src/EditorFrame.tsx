@@ -272,7 +272,7 @@ const CONFIG: IAllProps['init'] = {
       !/<(?:p|div|ul|ol|li|table|tbody|thead|caption|tfoot|tr|td|th|blockquote|section|h[1-6])[ >]/i.test(
         e.content,
       );
-    e.content = dirtyClean(e.content as HTMLText, { skipPrettier: true });
+    e.content = dirtyClean(e.content as HTMLText);
     if (isInlineSnippet) {
       e.content = e.content.replace(/^<p>/, '').replace(/<\/p>$/, '');
     }
