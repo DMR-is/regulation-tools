@@ -265,7 +265,7 @@ export type RegulationTextProps = Pick<
 
 // ---------------------------------------------------------------------------
 
-/** List of regulations that the draft impacts (cancels or updates) */
+/** List of regulations that the `regulations-admin` UI uses while drafting impacts (cancels or updates) */
 export type RegulationOption = Pick<Regulation, 'name' | 'title'> & {
   /** True if the regulation has been fully migrated
    *
