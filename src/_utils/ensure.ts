@@ -12,7 +12,7 @@ import { newURL } from './urls';
 
 // ---------------------------------------------------------------------------
 
-const reRegQueryNameFlex = /^\d{1,4}-\d{4}$/;
+const reRegQueryNameFlex = /^\d{1,4}-(?:19|20)\d{2}$/;
 
 /** Returns a fully zero-padded RegQueryName.
  *
@@ -42,7 +42,7 @@ export const ensureNameSlug = (cand: unknown): RegQueryName | undefined => {
 export const ensureRegName = (cand: unknown): RegName | undefined => {
   const maybeName =
     !!cand && typeof cand === 'string' && cand.replace('-', '/');
-  if (maybeName && /^\d{1,4}\/\d{4}$/.test(maybeName)) {
+  if (maybeName && /^\d{1,4}\/(?:19|20)\d{2}$/.test(maybeName)) {
     return (
       maybeName.length === 9 ? maybeName : ('000' + maybeName).slice(-9)
     ) as RegName;
@@ -50,9 +50,6 @@ export const ensureRegName = (cand: unknown): RegName | undefined => {
 };
 
 // ---------------------------------------------------------------------------
-
-const smellsLikeISODate = (maybeISODate: string): maybeISODate is string =>
-  /^\d{4}-\d{2}-\d{2}$/.test(maybeISODate || '');
 
 /** Asserts that the incoming value is a valid ISODate.
  *
@@ -63,7 +60,7 @@ const smellsLikeISODate = (maybeISODate: string): maybeISODate is string =>
  *  * ``2012-09-31`` --> `undefined`
  */
 export const ensureISODate = (cand: unknown): ISODate | undefined => {
-  if (typeof cand === 'string' && smellsLikeISODate(cand)) {
+  if (typeof cand === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(cand || '')) {
     const date = new Date(cand).toISOString().slice(0, 10) as ISODate;
     if (date === cand) {
       return date;
