@@ -275,4 +275,4 @@ export type RegulationOption = Pick<Regulation, 'name' | 'title'> & {
   repealed?: true;
 };
 
-export type RegulationOptionsList = Array<RegulationOption>;
+export type RegulationOptionList = Array<RegulationOption>;
