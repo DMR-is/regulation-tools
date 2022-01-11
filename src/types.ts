@@ -265,18 +265,14 @@ export type RegulationTextProps = Pick<
 
 // ---------------------------------------------------------------------------
 
-/** List of regulations that the `regulations-admin` UI uses while drafting impacts (cancels or updates) */
+// ---------------------------------------------------------------------------
+
+/** List of regulations that the draft impacts (especially when registering useful for impacts) */
 export type RegulationOption = Pick<Regulation, 'name' | 'title'> & {
-  /** True if the regulation has been fully migrated
-   *
-   * Used to prevent any text-changes to be made (cancelling is OK)
-   */
+  /** True if the regulation has been fully migrated (and all changes/impacts saved) */
   migrated: boolean;
-  /** True if the regulation has already been cancelled/repealed (Brottfelld)
-   *
-   * Used to display warning
-   */
-  cancelled?: true;
+  /** True if the regulation has already been cancelled/repealed (Brottfelld) */
+  repealed?: true;
 };
 
 export type RegulationOptionsList = Array<RegulationOption>;
