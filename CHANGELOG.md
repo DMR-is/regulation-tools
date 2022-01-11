@@ -7,6 +7,7 @@
 - refactor: Make `Editor` slimmer by decoupling from client-side dirtyClean
 - fix: Tighten up `ensureNameSlug` and `ensureRegName` — to require 20th or 21st
   century years
+- fix: `cleanupEditorOutput` wasn't idempotent on `data-legacy-indenter` spacers
 
 ## 0.5.76 – 0.5.77
 

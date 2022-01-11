@@ -42,7 +42,7 @@ const flagIndents = (root: HTMLElement) => {
     // Decimate all non-space characters and HTML content!
     elm.textContent = elm.textContent
       // trim "normal-space" padding added by last run of M.rehydrateIndents()
-      .replace(/(?:^ | $)/g, '');
+      .replace(/(?:^[ \n]+|[ \n]+$)/g, '');
     elm.setAttribute('data-legacy-indenter', String(elm.textContent.length));
     elm.textContent = '🍌';
     elm.before(' ');
