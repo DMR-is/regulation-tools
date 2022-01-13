@@ -53,15 +53,17 @@ export const ensureRegName = (cand: unknown): RegName | undefined => {
 
 /** Asserts that the incoming value is a valid ISODate.
  *
- * Returns undefined otherwise.
+ * Returns `undefined` otherwise.
  *
  * Examples:
- *  * ``2012-09-30`` --> ``2012-09-30``
- *  * ``2012-09-31`` --> `undefined`
+ *  * `'2020-02-29'` --> `'2020-02-29'`
+ *  * `'2021-02-29'` --> `undefined`
  */
 export const ensureISODate = (cand: unknown): ISODate | undefined => {
-  if (typeof cand === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(cand || '')) {
-    const date = new Date(cand).toISOString().slice(0, 10) as ISODate;
+  if (typeof cand === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(cand)) {
+    const d = new Date(cand);
+    const date =
+      !isNaN(d.getTime()) && (d.toISOString().slice(0, 10) as ISODate);
     if (date === cand) {
       return date;
     }
