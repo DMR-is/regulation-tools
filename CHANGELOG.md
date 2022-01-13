@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.5.79
+
+_2022-01-13_
+
 - fix: Prevent `ensureISODate` from throwing on bogus calendar dates
 
 ## 0.5.78
