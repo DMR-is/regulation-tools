@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.5.80
+
+_2022-01-14_
+
 - fix: Make `Editor` collapse empty HTML to `""` on export
 
 ## 0.5.79
