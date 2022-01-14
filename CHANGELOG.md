@@ -3,12 +3,12 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- fix: `Editor` initialization edgecases missed some early change events.
 
-## 0.5.80
+## 0.5.80 – 0.5.81
 
 _2022-01-14_
 
+- fix: `Editor` initialization edgecases missed some early change events.
 - fix: Make `Editor` collapse empty HTML to `""` on export
 
 ## 0.5.79
