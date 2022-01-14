@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- fix: Make `Editor` collapse empty HTML to `""` on export
 
 ## 0.5.79
 
