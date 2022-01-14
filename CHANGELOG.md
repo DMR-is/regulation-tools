@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- fix: `Editor` initialization edgecases missed some early change events.
 
 ## 0.5.80
 

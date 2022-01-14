@@ -189,14 +189,19 @@ export const Editor = (
   let mediaFolder = name.replace(/\//g, '-').replace(/\.\.+/g, '.');
   mediaFolder = ensureNameSlug(mediaFolder) || mediaFolder;
 
-  // Setting this one to false allows skipping ivoking props.onChange when setting initialText
-  const editorStatus = useRef<'starting' | 'ready' | 'running'>('starting');
   const [baseText, setBaseText] = useState(() =>
     importText(props.baseText || EMPTY_HTML),
   );
   const initialText = useMemo(() => importText(valueRef.current()), []);
   const currentValue = useRef(initialText);
   valueRef.current = () => exportText(currentValue.current);
+
+  /*
+    A recent (late 2021) change in TinyMCE's initialization life-cycle
+    causes `onEditorChange` sometimes prematurely trigger during onInit
+    Thus we add a 'pre-init' status to capture + ignore that event.
+  */
+  const editorStatus = useRef<'pre-init' | 'ready' | 'running'>('pre-init');
 
   const [debouncedCurrentText, setDebouncedCurrentText] = useState(baseText);
   const [diffText, setDiffText] = useState(EMPTY_HTML);
@@ -238,7 +243,13 @@ export const Editor = (
                   setDiffText(baseTextEditorized);
                   setUpdating(undefined);
                   // once baseText has been established and editorized, then apply the actual initalText
-                  editorStatus.current = 'ready';
+                  editorStatus.current =
+                    // we're about to trigger a "false" change event because
+                    // we're applying an initialText that's different from the baseText
+                    props.baseText && props.baseText !== initialText
+                      ? 'ready'
+                      : 'running';
+
                   editor.setContent(initialText);
                 }}
                 initialValue={baseText || initialText}
@@ -252,7 +263,7 @@ export const Editor = (
                   } else if (editorStatus.current === 'ready') {
                     editorStatus.current = 'running';
                   } else {
-                    /* } else if (editorStatus.current === 'starting') { */
+                    /* } else if (editorStatus.current === 'pre-init') { */
                     return; // editor onReady has not run yet.
                   }
                   currentValue.current = newText;
