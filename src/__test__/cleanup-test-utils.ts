@@ -73,6 +73,12 @@ export const runCleanupFiletests = (
 // ---------------------------------------------------------------------------
 
 export const universalTests: TestDescriptions = {
+  'Accepts empty input without complaining': {
+    input: '',
+    expected: '',
+    only: true,
+  },
+
   'Converts escaped text entities to unicode characters': {
     input: '<p>&Ouml;&#214;</p>',
     expected: '<p>ÖÖ</p>',
