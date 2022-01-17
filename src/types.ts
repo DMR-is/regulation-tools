@@ -19,7 +19,7 @@ declare const _HTMLText__Brand: unique symbol;
 export type HTMLText = '' | (string & { [_HTMLText__Brand]: true });
 
 /** Plain-text string — e.g. `I <3 You ` */
-export type PlainText = string & { [_HTMLText__Brand]?: false };
+export type PlainText = '' | (string & { [_HTMLText__Brand]?: false });
 
 declare const _MinistrySlug__Brand: unique symbol;
 /** Slug identifier for Ministries — e.g. `hr`

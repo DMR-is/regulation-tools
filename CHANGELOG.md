@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat(ts): Explicitly allow `PlainText` to be the empty string
 
 ## 0.5.80 – 0.5.81
 
