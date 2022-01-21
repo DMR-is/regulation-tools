@@ -4,13 +4,13 @@
 import qq from '@hugsmidjan/qj/qq';
 
 import { asDiv } from './_cleanup/serverDOM';
-import { HTMLText } from './types';
+import { HTMLText, RegName } from './types';
 
 const { FILE_UPLOAD_KEY_PUBLISH, REGULATIONS_API_URL } = process.env;
 
 type SourcesMap = Array<{ oldUrl: string; newUrl: string }>;
 
-export const replaceImageUrls = async (html: HTMLText) => {
+export const replaceImageUrls = async (html: HTMLText, regName: RegName) => {
   if (!REGULATIONS_API_URL || !FILE_UPLOAD_KEY_PUBLISH) {
     throw new Error(
       'REGULATIONS_API_URL and/or FILE_UPLOAD_KEY_PUBLISH not configured',
@@ -20,11 +20,11 @@ export const replaceImageUrls = async (html: HTMLText) => {
   const root = asDiv(html);
 
   try {
-    const sources: Array<string> = [];
+    const urls: Array<string> = [];
 
     qq('img', root).forEach((img) => {
       const src = img.getAttribute('src');
-      src && sources.push(src);
+      src && urls.push(src);
     });
 
     const sourcesMap: SourcesMap = await fetch(
@@ -35,7 +35,7 @@ export const replaceImageUrls = async (html: HTMLText) => {
           'Content-Type': 'application/json',
           'X-APIKey': FILE_UPLOAD_KEY_PUBLISH,
         },
-        body: JSON.stringify({ urls: sources }),
+        body: JSON.stringify({ urls, regName }),
       },
     ).then((res) => res.json());
 

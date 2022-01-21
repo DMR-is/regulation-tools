@@ -216,7 +216,7 @@ const CONFIG: IAllProps['init'] = {
   document_base_url,
 
   image_dimensions: false,
-  images_upload_url: '/api/media-upload?folder=',
+  images_upload_url: '/api/media-upload?scope=',
   // automatic_uploads: true,
   images_reuse_filename: true,
   images_upload_credentials: true,

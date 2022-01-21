@@ -3,6 +3,8 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- **BREAKING** feat: `replaceImageUrls()` now requires a `regName` as parameter
+- feat: Update `<Editor/>`'s image upload path to match updated API endpoint
 - feat(ts): Explicitly allow `PlainText` to be the empty string
 
 ## 0.5.80 – 0.5.81
