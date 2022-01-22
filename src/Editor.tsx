@@ -163,7 +163,7 @@ export type EditorProps = {
    */
   baseText?: HTMLText;
 
-  fileUploader: EditorFileUploader;
+  fileUploader?: EditorFileUploader;
   /**
    * The name for the Regulation (e.g. zero-padded NNNN/YYYY, or some unique id)
    * to be used as folder-name when uploading files/images
@@ -193,6 +193,7 @@ export type EditorProps = {
 export const Editor = (
   props: EditorProps & {
     classes: EditorClasses;
+    fileUploader: EditorFileUploader; // required here
   },
 ) => {
   const s = props.classes;
