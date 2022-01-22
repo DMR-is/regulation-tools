@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.6.0
+
+_2022-01-22_
+
 - **BREAKING** feat: Add `fileUploader` prop to `<Editor />`
 - **BREAKING** feat: `replaceImageUrls()` now requires a `regName` as parameter
 - feat(ts): Explicitly allow `PlainText` to be the empty string
