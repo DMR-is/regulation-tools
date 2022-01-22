@@ -341,12 +341,16 @@ const make_images_upload_handler = (
     }
 
     fileUploader(formData, nameOrId)
-      .catch((error: Error): EditorUploadFail => ({ success: false, error }))
+      .catch((e: unknown): EditorUploadFail => {
+        const error =
+          e instanceof Error ? e : new Error(e ? String(e) : undefined);
+        return { success: false, error };
+      })
       .then((r) => {
         if (r.success) {
           success(r.location);
         } else {
-          failure('Upload Error: ' + r.error.message, { remove: false });
+          failure('Upload Error: ' + r.error.message, { remove: r.remove });
         }
         uploading = false;
       });
@@ -361,7 +365,11 @@ export type EditorFrameClasses = {
 };
 
 export type EditorUploadSuccess = { success: true; location: URLString };
-export type EditorUploadFail = { success: false; error: Error };
+export type EditorUploadFail = {
+  success: false;
+  error: Error;
+  remove?: boolean;
+};
 
 export type EditorFileUploader = (
   formData: FormData,
