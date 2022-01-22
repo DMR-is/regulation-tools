@@ -9,7 +9,7 @@ import React, {
 import debounce from '@hugsmidjan/qj/debounce';
 import { useIsBrowserSide } from '@hugsmidjan/react/hooks';
 
-import { EditorFrameClasses } from './EditorFrame';
+import { EditorFileUploader, EditorFrameClasses } from './EditorFrame';
 import { getDiff, HTMLDump } from './html';
 import { TextWarnings, TextWarningsClasses } from './TextWarnings';
 import { HTMLText } from './types';
@@ -17,10 +17,19 @@ import { useTextWarnings } from './useTextWarnings';
 import {
   asDiv,
   document_base_url,
-  ensureNameSlug,
   getTexts,
   typeAttrToStyleValueMap,
 } from './utils';
+
+// ---------------------------------------------------------------------------
+
+export type {
+  EditorFileUploader,
+  EditorUploadFail,
+  EditorUploadSuccess,
+} from './EditorFrame';
+
+// ---------------------------------------------------------------------------
 
 const EMPTY_HTML = '' as HTMLText;
 
@@ -39,6 +48,7 @@ const t = getTexts({
 // ---------------------------------------------------------------------------
 
 const EditorFrameInBrowser = React.lazy(() =>
+  // Lazy-loaded the editorframe itself to ensure code-splitting as TinyMCE is pretty massive.
   import('./EditorFrame').then(({ EditorFrame }) => ({ default: EditorFrame })),
 );
 
@@ -152,11 +162,14 @@ export type EditorProps = {
    * Default: ''
    */
   baseText?: HTMLText;
+
+  fileUploader: EditorFileUploader;
   /**
    * The name for the Regulation (e.g. zero-padded NNNN/YYYY, or some unique id)
    * to be used as folder-name when uploading files/images
    */
   name: string;
+
   /** Flags the type of editing being performed.
    *
    * Impacts on/edits of older texts are validated slightly differently,
@@ -183,11 +196,8 @@ export const Editor = (
   },
 ) => {
   const s = props.classes;
-  const { valueRef, elmRef, name, onChange } = props;
+  const { valueRef, elmRef, onChange } = props;
   const isBrowser = useIsBrowserSide();
-
-  let mediaFolder = name.replace(/\//g, '-').replace(/\.\.+/g, '.');
-  mediaFolder = ensureNameSlug(mediaFolder) || mediaFolder;
 
   const [baseText, setBaseText] = useState(() =>
     importText(props.baseText || EMPTY_HTML),
@@ -233,7 +243,6 @@ export const Editor = (
           {isBrowser && (
             <Suspense fallback={<div className={s.editorBooting} />}>
               <EditorFrameInBrowser
-                mediaFolder={mediaFolder}
                 containerRef={editorDivRef}
                 classes={s}
                 onReady={(baseTextEditorized, editor) => {
@@ -280,6 +289,8 @@ export const Editor = (
                     setUpdating(undefined);
                   });
                 }}
+                fileUploader={props.fileUploader}
+                name={props.name}
               />
             </Suspense>
           )}

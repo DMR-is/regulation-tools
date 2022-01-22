@@ -3,8 +3,8 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- **BREAKING** feat: Add `fileUploader` prop to `<Editor />`
 - **BREAKING** feat: `replaceImageUrls()` now requires a `regName` as parameter
-- feat: Update `<Editor/>`'s image upload path to match updated API endpoint
 - feat(ts): Explicitly allow `PlainText` to be the empty string
 - fix: `replaceImageUrls` now also collects linked resources that were uploaded
   to a temporary folder on the file-server while drafting a regulation

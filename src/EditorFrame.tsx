@@ -10,7 +10,7 @@ import { Editor as TinyMCE, IAllProps } from '@tinymce/tinymce-react';
 import type { Editor } from 'tinymce';
 
 import dirtyClean from './dirtyClean-browser';
-import { HTMLText } from './types';
+import { HTMLText, URLString } from './types';
 import { document_base_url } from './utils';
 
 import tinymce from 'tinymce/tinymce';
@@ -216,7 +216,6 @@ const CONFIG: IAllProps['init'] = {
   document_base_url,
 
   image_dimensions: false,
-  images_upload_url: '/api/media-upload?scope=',
   // automatic_uploads: true,
   images_reuse_filename: true,
   images_upload_credentials: true,
@@ -317,7 +316,8 @@ tinymce.PluginManager.add('_onInited_hack_', function (editor) {
 // ---------------------------------------------------------------------------
 
 const make_images_upload_handler = (
-  image_upload_url: string,
+  fileUploader: EditorFileUploader,
+  nameOrId: string,
 ): Exclude<typeof CONFIG.images_upload_handler, undefined> => {
   return (blobInfo, success, failure, progress) => {
     const formData = new FormData();
@@ -325,9 +325,6 @@ const make_images_upload_handler = (
       .filename()
       .replace(/^blobid\d+.png$/, 'pasted--image.png');
     formData.append('file', blobInfo.blob(), fileName);
-
-    type ULSuccess = { success: true; location: string };
-    type ULFail = { success: false; error: Error; remove?: boolean };
 
     let uploading = true;
     if (progress) {
@@ -343,30 +340,13 @@ const make_images_upload_handler = (
       }, 333);
     }
 
-    progress && progress(50);
-    fetch(image_upload_url, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    })
-      .then((res) => {
-        if (!res.ok) {
-          return {
-            success: false,
-            error: new Error(),
-            remove: res.status === 403,
-          } as ULFail;
-        }
-        return (res.json() as Promise<{ location: string }>)
-          .then(({ location }): ULSuccess => ({ success: true, location }))
-          .catch((error): ULFail => ({ success: false, error }));
-      })
-      .catch((error: Error): ULFail => ({ success: false, error }))
+    fileUploader(formData, nameOrId)
+      .catch((error: Error): EditorUploadFail => ({ success: false, error }))
       .then((r) => {
         if (r.success) {
           success(r.location);
         } else {
-          failure('Upload Error: ' + r.error.message, { remove: r.remove });
+          failure('Upload Error: ' + r.error.message, { remove: false });
         }
         uploading = false;
       });
@@ -380,6 +360,14 @@ export type EditorFrameClasses = {
   editor: string;
 };
 
+export type EditorUploadSuccess = { success: true; location: URLString };
+export type EditorUploadFail = { success: false; error: Error };
+
+export type EditorFileUploader = (
+  formData: FormData,
+  nameOrId: string,
+) => Promise<EditorUploadSuccess | EditorUploadFail>;
+
 export type EditorFrameProps = {
   initialValue: string;
   onReady: (content: HTMLText, editor: Editor) => void;
@@ -387,7 +375,8 @@ export type EditorFrameProps = {
   onFocus?: () => void;
   onBlur?: () => void;
   containerRef: MutableRefObject<HTMLElement | undefined>;
-  mediaFolder: string;
+  fileUploader: EditorFileUploader;
+  name: string;
   classes: EditorFrameClasses;
   'aria-labelledby'?: string;
   'aria-describedBy'?: string;
@@ -399,14 +388,16 @@ export const EditorFrame = (props: EditorFrameProps) => {
   const domid = 'toolbar' + useDomid();
 
   const config = useMemo(() => {
-    const images_upload_url = CONFIG.images_upload_url + props.mediaFolder;
     return {
       ...CONFIG,
       fixed_toolbar_container: '#' + domid,
       // images_upload_url,
-      images_upload_handler: make_images_upload_handler(images_upload_url),
+      images_upload_handler: make_images_upload_handler(
+        props.fileUploader,
+        props.name,
+      ),
     };
-  }, [domid, props.mediaFolder]);
+  }, [domid, props.fileUploader, props.name]);
 
   return (
     <>
