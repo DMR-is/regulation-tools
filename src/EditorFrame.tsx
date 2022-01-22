@@ -320,12 +320,7 @@ const make_images_upload_handler = (
   nameOrId: string,
 ): Exclude<typeof CONFIG.images_upload_handler, undefined> => {
   return (blobInfo, success, failure, progress) => {
-    const formData = new FormData();
-    const fileName = blobInfo
-      .filename()
-      .replace(/^blobid\d+.png$/, 'pasted--image.png');
-    formData.append('file', blobInfo.blob(), fileName);
-
+    // Start dumb progress meter checking blah
     let uploading = true;
     if (progress) {
       let left = 100;
@@ -339,6 +334,13 @@ const make_images_upload_handler = (
         progress(100 - left);
       }, 333);
     }
+    // End progress
+
+    const formData = new FormData();
+    const fileName = blobInfo
+      .filename()
+      .replace(/^blobid\d+.png$/, 'pasted--image.png');
+    formData.append('file', blobInfo.blob(), fileName);
 
     fileUploader(formData, nameOrId)
       .catch((e: unknown): EditorUploadFail => {
