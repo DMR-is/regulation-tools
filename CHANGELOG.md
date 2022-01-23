@@ -3,6 +3,10 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- **BREAKING** feat: Change signature of `EditorProps.fileUploader` to match
+  TinyMCE
+- **BREAKING** feat: Drop `EditorProps.name` …in favour of `fileUploader`
+  handling it
 
 ## 0.6.0 — 0.6.1
 

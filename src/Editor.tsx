@@ -23,11 +23,7 @@ import {
 
 // ---------------------------------------------------------------------------
 
-export type {
-  EditorFileUploader,
-  EditorUploadFail,
-  EditorUploadSuccess,
-} from './EditorFrame';
+export type { EditorFileUploader } from './EditorFrame';
 
 // ---------------------------------------------------------------------------
 
@@ -164,11 +160,6 @@ export type EditorProps = {
   baseText?: HTMLText;
 
   fileUploader?: EditorFileUploader;
-  /**
-   * The name for the Regulation (e.g. zero-padded NNNN/YYYY, or some unique id)
-   * to be used as folder-name when uploading files/images
-   */
-  name: string;
 
   /** Flags the type of editing being performed.
    *
@@ -291,7 +282,6 @@ export const Editor = (
                   });
                 }}
                 fileUploader={props.fileUploader}
-                name={props.name}
               />
             </Suspense>
           )}

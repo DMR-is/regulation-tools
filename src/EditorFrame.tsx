@@ -10,7 +10,7 @@ import { Editor as TinyMCE, IAllProps } from '@tinymce/tinymce-react';
 import type { Editor } from 'tinymce';
 
 import dirtyClean from './dirtyClean-browser';
-import { HTMLText, URLString } from './types';
+import { HTMLText } from './types';
 import { document_base_url } from './utils';
 
 import tinymce from 'tinymce/tinymce';
@@ -315,68 +315,17 @@ tinymce.PluginManager.add('_onInited_hack_', function (editor) {
 
 // ---------------------------------------------------------------------------
 
-const make_images_upload_handler = (
-  fileUploader: EditorFileUploader,
-  nameOrId: string,
-): Exclude<typeof CONFIG.images_upload_handler, undefined> => {
-  return (blobInfo, success, failure, progress) => {
-    // Start dumb progress meter checking blah
-    let uploading = true;
-    if (progress) {
-      let left = 100;
-      progress(0);
-      const ticker = setInterval(() => {
-        if (!uploading) {
-          progress(100);
-          clearInterval(ticker);
-        }
-        left = Math.ceil(left * 0.75);
-        progress(100 - left);
-      }, 333);
-    }
-    // End progress
-
-    const formData = new FormData();
-    const fileName = blobInfo
-      .filename()
-      .replace(/^blobid\d+.png$/, 'pasted--image.png');
-    formData.append('file', blobInfo.blob(), fileName);
-
-    fileUploader(formData, nameOrId)
-      .catch((e: unknown): EditorUploadFail => {
-        const error =
-          e instanceof Error ? e : new Error(e ? String(e) : undefined);
-        return { success: false, error };
-      })
-      .then((r) => {
-        if (r.success) {
-          success(r.location);
-        } else {
-          failure('Upload Error: ' + r.error.message, { remove: r.remove });
-        }
-        uploading = false;
-      });
-  };
-};
-
 // ---------------------------------------------------------------------------
+
+export type EditorFileUploader = Exclude<
+  typeof CONFIG.images_upload_handler,
+  undefined
+>;
 
 export type EditorFrameClasses = {
   toolbar: string;
   editor: string;
 };
-
-export type EditorUploadSuccess = { success: true; location: URLString };
-export type EditorUploadFail = {
-  success: false;
-  error: Error;
-  remove?: boolean;
-};
-
-export type EditorFileUploader = (
-  formData: FormData,
-  nameOrId: string,
-) => Promise<EditorUploadSuccess | EditorUploadFail>;
 
 export type EditorFrameProps = {
   initialValue: string;
@@ -386,7 +335,6 @@ export type EditorFrameProps = {
   onBlur?: () => void;
   containerRef: MutableRefObject<HTMLElement | undefined>;
   fileUploader: EditorFileUploader;
-  name: string;
   classes: EditorFrameClasses;
   'aria-labelledby'?: string;
   'aria-describedBy'?: string;
@@ -397,17 +345,14 @@ export const EditorFrame = (props: EditorFrameProps) => {
   const s = props.classes;
   const domid = 'toolbar' + useDomid();
 
-  const config = useMemo(() => {
+  const config: typeof CONFIG = useMemo(() => {
     return {
       ...CONFIG,
       fixed_toolbar_container: '#' + domid,
       // images_upload_url,
-      images_upload_handler: make_images_upload_handler(
-        props.fileUploader,
-        props.name,
-      ),
+      images_upload_handler: props.fileUploader,
     };
-  }, [domid, props.fileUploader, props.name]);
+  }, [domid, props.fileUploader]);
 
   return (
     <>
