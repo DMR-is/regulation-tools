@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.7.0
+
+_2022-01-23_
+
 - **BREAKING** feat: Change signature of `EditorProps.fileUploader` to match
   TinyMCE
 - **BREAKING** feat: Drop `EditorProps.name` …in favour of `fileUploader`
