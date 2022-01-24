@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.7.1
+
+_2022-01-24_
+
 - feat: Add prop `EditorProps.warningsAbove` (and change default to `false`)
 
 ## 0.7.0
