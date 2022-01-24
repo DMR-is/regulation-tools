@@ -159,6 +159,7 @@ export type EditorProps = {
    */
   baseText?: HTMLText;
 
+  /** Handler for uploading images/filers inserted into the editor. */
   fileUploader?: EditorFileUploader;
 
   /** Flags the type of editing being performed.
@@ -167,8 +168,15 @@ export type EditorProps = {
    * with certain warnings receiving different "angst" (severity) levels.
    */
   isImpact?: boolean;
+
   /** An element ref that eventually points to the editor's container Element. */
   elmRef?: MutableRefObject<HTMLElement | null>;
+
+  /**
+   * Also display validaiton warnings at the top of the editor.
+   */
+  warningsAbove?: boolean;
+
   /** A light-weight onChange callback that fires synchronously on EVERY
    * editor input/change event.
    *
@@ -224,11 +232,13 @@ export const Editor = (
 
   return (
     <>
-      <TextWarnings
-        warnings={warnings}
-        contentRoot={editorDivRef.current}
-        classes={s}
-      />
+      {props.warningsAbove && (
+        <TextWarnings
+          warnings={warnings}
+          contentRoot={editorDivRef.current}
+          classes={s}
+        />
+      )}
 
       <div className={s.wrapper}>
         <div className={s.editingpane}>

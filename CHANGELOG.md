@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Add prop `EditorProps.warningsAbove` (and change default to `false`)
 
 ## 0.7.0
 
