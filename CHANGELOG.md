@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Make `WarningList`'s `angst` values required
 
 ## 0.7.1 — 0.7.2
 
