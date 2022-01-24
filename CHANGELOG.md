@@ -3,12 +3,12 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- feat: Make `WarningList`'s `angst` values required
 
-## 0.7.1 — 0.7.2
+## 0.7.1 — 0.7.3
 
 _2022-01-24_
 
+- feat: Make `WarningList`'s `angst` values required
 - feat: Add `setStrictMode()` toggler for the TextWarnings generator
 - feat: Add prop `EditorProps.warningsAbove` (and change default to `false`)
 
