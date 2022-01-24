@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- fix: Make all `TextWarning`-related methods require `HTMLText` as input
 
 ## 0.7.1 — 0.7.3
 

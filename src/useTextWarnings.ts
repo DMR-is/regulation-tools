@@ -3,6 +3,7 @@ import q from '@hugsmidjan/qj/q';
 import qq from '@hugsmidjan/qj/qq';
 
 import { inlineSelfClosingElms } from './_cleanup/cleanup-consts';
+import { HTMLText } from './types';
 import { asDiv, getTexts, isNonNull } from './utils';
 
 let _strictMode = true;
@@ -112,7 +113,10 @@ type WIP_WarningData = Omit<WarningData, 'angst'> & {
 export type WarningList = Array<WarningData>;
 
 // eslint-disable-next-line complexity
-export const makeWarnings = (text: string, isImpact?: boolean): WarningList => {
+export const makeWarnings = (
+  text: HTMLText,
+  isImpact?: boolean,
+): WarningList => {
   const warnings: WarningList = [];
 
   const addWarning = (warning: WIP_WarningData) => {
@@ -362,13 +366,13 @@ export const makeWarnings = (text: string, isImpact?: boolean): WarningList => {
 
 // ---------------------------------------------------------------------------
 
-export const makeHighAngstWarnings = (baseText: string, isImpact?: boolean) =>
+export const makeHighAngstWarnings = (baseText: HTMLText, isImpact?: boolean) =>
   makeWarnings(baseText, isImpact).filter(({ angst }) => angst === 'high');
 
 // ===========================================================================
 
 export const useTextWarnings = (
-  baseText: string,
+  baseText: HTMLText,
   isImpact?: boolean,
 ): WarningList => {
   const [warnings, setWarnings] = useState<WarningList>([]);
