@@ -5,6 +5,19 @@ import qq from '@hugsmidjan/qj/qq';
 import { inlineSelfClosingElms } from './_cleanup/cleanup-consts';
 import { asDiv, getTexts, isNonNull } from './utils';
 
+let _strictMode = true;
+
+/** Run `setStrictMode(false)` to opt-in to more relaxed form of validations
+ *
+ * "Relaxed" mode is mainly useful when migrating older regulations
+ * that may potentially contain errors that can't easily be fixed.
+ */
+export const setStrictMode = (beStrict: boolean) => {
+  _strictMode = beStrict;
+};
+
+// ===========================================================================
+
 const t = getTexts({
   listTables: {
     s: '{n} tafla er í raun listi',
@@ -133,7 +146,6 @@ export const makeWarnings = (text: string, isImpact?: boolean): WarningList => {
       warnings.push({
         warning: t('insegureLinks', insegureLinks.length),
         find: (root) => qq(insegureLinkSelector, root),
-        angst: 'medium',
       });
     }
 
@@ -213,7 +225,7 @@ export const makeWarnings = (text: string, isImpact?: boolean): WarningList => {
             .map((idx) => titles[idx])
             .filter(isNonNull);
         },
-        angst: 'medium',
+        angst: _strictMode && !isImpact ? 'high' : 'medium',
       });
     }
 

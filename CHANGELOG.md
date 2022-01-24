@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Add `setStrictMode()` toggler for the TextWarnings generator
 
 ## 0.7.1
 
