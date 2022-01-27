@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Add `type` filed to `RegulationOption` type
 - fix: Make all `TextWarning`-related methods require `HTMLText` as input
 
 ## 0.7.1 — 0.7.3
