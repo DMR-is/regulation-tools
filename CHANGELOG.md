@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- fix: Bad/limited `_stripEmpty` html method
 
 ## 0.7.5
 

@@ -76,7 +76,15 @@ const stripLocalBaseUrlHost = (root: ReturnType<typeof asDiv>): string => {
 
 /* Replace empty HTML with empty string ('') */
 const _stripEmpty = (html: HTMLText) =>
-  html.replace(/(<(?!\/)[^>]+>)+(<\/[^>]+>)+/, '') as HTMLText;
+  html.length > 1000
+    ? html // assume large HTML is never empty
+    : (html
+        // check for any number of non-self-closing html open tags
+        // immediately followed by any number of closing html tags
+        // with only spaces between or around them.
+        // This pattern is the type of HTML typically leftover
+        // in TinyMCE when a user selects all and hits delete.
+        .replace(/^(<(?!\/)[^>]*[^/>]>)+(<\/[^>]+>)+$/, '') as HTMLText);
 
 const importText = (text: HTMLText): HTMLText => {
   if (typeof document === 'undefined') {
