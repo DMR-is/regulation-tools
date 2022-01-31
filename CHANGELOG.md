@@ -18,7 +18,7 @@ _2022-01-27_
 - feat: Add `type` filed to `RegulationOption` type
 - fix: Make all `TextWarning`-related methods require `HTMLText` as input
 
-## 0.7.1 — 0.7.3
+## 0.7.1 – 0.7.3
 
 _2022-01-24_
 
@@ -35,7 +35,7 @@ _2022-01-23_
 - **BREAKING** feat: Drop `EditorProps.name` …in favour of `fileUploader`
   handling it
 
-## 0.6.0 — 0.6.1
+## 0.6.0 – 0.6.1
 
 _2022-01-22_
 
@@ -106,9 +106,9 @@ _2021-12-16_
 _2021-12-15_
 
 - feat: Move `combine`-/`extractAppendixesAndComments` and `eliminateComments`
-  to `textHelpers` – deprecate importing them from `cleanupEditorOutputs`
+  to `textHelpers` — deprecate importing them from `cleanupEditorOutputs`
 - feat: Add type `RegulationTextProps`
-- fix(ts): Import `globals.d.ts` where `htmldiff-js` typings are required –
+- fix(ts): Import `globals.d.ts` where `htmldiff-js` typings are required —
   (helps local monorepo builds run)
 
 ## 0.5.68 – 0.5.69
