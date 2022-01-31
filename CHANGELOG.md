@@ -3,13 +3,13 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
-- fix: Bad/limited `_stripEmpty` html method
 
-## 0.7.5
+## 0.7.5 – 0.7.6
 
 _2022-01-31_
 
 - feat: Export browser-safe `combineTextAppendixesComments` from `utils`
+- fix: Bad/limited `_stripEmpty` html method
 
 ## 0.7.4
 
