@@ -3,6 +3,7 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Export browser-safe `combineTextAppendixesComments` from `utils`
 
 ## 0.7.4
 

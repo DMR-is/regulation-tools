@@ -2,30 +2,15 @@ import qq from '@hugsmidjan/qj/qq';
 
 import { asDiv } from './_cleanup/serverDOM';
 import { dePrettify } from './_cleanup/text';
-import { HTMLText, Regulation, RegulationTextProps } from './types';
+import { HTMLText, RegulationTextProps } from './types';
+
+if (typeof window !== 'undefined') {
+  console.error('This module does not run in the browser');
+}
 
 // ===========================================================================
 
-export const combineTextAppendixesComments = (
-  text: HTMLText,
-  appendixes: Regulation['appendixes'] | undefined,
-  comments: HTMLText | undefined,
-): HTMLText => {
-  const wrappedAppendixes = (appendixes || [])
-    .map(
-      ({ title, text }) =>
-        `<section class="appendix">` +
-        `  <h2 class="appendix__title">${title.replace(/</g, '&lt;')}</h2>` +
-        `  ${text}` +
-        `</section>`,
-    )
-    .join('');
-
-  const wrappedComments =
-    comments && `<section class="comments">${comments}</section>`;
-
-  return (text + wrappedAppendixes + wrappedComments) as HTMLText;
-};
+export { combineTextAppendixesComments } from './_utils/dom';
 
 // ===========================================================================
 
