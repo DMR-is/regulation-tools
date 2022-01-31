@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+
+## 0.7.5
+
+_2022-01-31_
+
 - feat: Export browser-safe `combineTextAppendixesComments` from `utils`
 
 ## 0.7.4
