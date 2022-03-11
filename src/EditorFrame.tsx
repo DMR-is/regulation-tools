@@ -333,6 +333,7 @@ export type EditorFrameProps = {
   onChange: (content: HTMLText) => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  disabled?: boolean;
   containerRef: MutableRefObject<HTMLElement | undefined>;
   fileUploader: EditorFileUploader;
   classes: EditorFrameClasses;
@@ -393,6 +394,7 @@ export const EditorFrame = (props: EditorFrameProps) => {
         //   editor.uploadImages();
         // }}
         init={config}
+        disabled={props.disabled}
       />
     </>
   );

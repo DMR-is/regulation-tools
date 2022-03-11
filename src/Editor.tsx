@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import classes from '@hugsmidjan/qj/classes';
 import debounce from '@hugsmidjan/qj/debounce';
 import { useIsBrowserSide } from '@hugsmidjan/react/hooks';
 
@@ -132,6 +133,8 @@ const exportText = (text: HTMLText): HTMLText => {
 
 export type EditorClasses = {
   wrapper: string;
+  wrapperDisabled?: string;
+  wrapperReadonly?: string;
   editingpane: string;
   editorBooting: string;
   toolbar: string;
@@ -185,6 +188,11 @@ export type EditorProps = {
    */
   warningsAbove?: boolean;
 
+  /**
+   * Hide warnings about malformed/suspicious regulation text content
+   */
+  hideWarnings?: boolean;
+
   /** A light-weight onChange callback that fires synchronously on EVERY
    * editor input/change event.
    *
@@ -195,6 +203,8 @@ export type EditorProps = {
   onBlur?: () => void;
   'aria-labelledby'?: string;
   'aria-describedBy'?: string;
+  readOnly?: boolean;
+  disabled?: boolean;
 };
 
 export const Editor = (
@@ -204,7 +214,8 @@ export const Editor = (
   },
 ) => {
   const s = props.classes;
-  const { valueRef, elmRef, onChange } = props;
+  const { valueRef, elmRef, onChange, readOnly, disabled, hideWarnings } =
+    props;
   const isBrowser = useIsBrowserSide();
 
   const [baseText, setBaseText] = useState(() =>
@@ -234,13 +245,17 @@ export const Editor = (
   );
 
   const editorDivRef = useRef<HTMLElement>();
-  const warnings = useTextWarnings(debouncedCurrentText, props.isImpact);
+  const warnings = useTextWarnings(
+    debouncedCurrentText,
+    props.isImpact,
+    hideWarnings,
+  );
 
   const showComparisonPane = props.baseText != null; // if _rawBaseText is non-empty then show comparison
 
   return (
     <>
-      {props.warningsAbove && (
+      {props.warningsAbove && !hideWarnings && (
         <TextWarnings
           warnings={warnings}
           contentRoot={editorDivRef.current}
@@ -248,7 +263,13 @@ export const Editor = (
         />
       )}
 
-      <div className={s.wrapper}>
+      <div
+        className={classes(
+          s.wrapper,
+          disabled && s.wrapperDisabled,
+          readOnly && s.wrapperReadonly,
+        )}
+      >
         <div className={s.editingpane}>
           {isBrowser && (
             <Suspense fallback={<div className={s.editorBooting} />}>
@@ -300,6 +321,7 @@ export const Editor = (
                   });
                 }}
                 fileUploader={props.fileUploader}
+                disabled={disabled || readOnly}
               />
             </Suspense>
           )}
@@ -370,11 +392,13 @@ export const Editor = (
         )}
       </div>
 
-      <TextWarnings
-        warnings={warnings}
-        contentRoot={editorDivRef.current}
-        classes={s}
-      />
+      {!hideWarnings && (
+        <TextWarnings
+          warnings={warnings}
+          contentRoot={editorDivRef.current}
+          classes={s}
+        />
+      )}
     </>
   );
 };

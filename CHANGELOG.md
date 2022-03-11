@@ -3,6 +3,8 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: Add props `readOnly` and `disabled` to `Editor`
+- feat: Add optional `wrapperDisabled`, `wrapperReadonly` to `EditorClasses`
 
 ## 0.7.5 – 0.7.6
 

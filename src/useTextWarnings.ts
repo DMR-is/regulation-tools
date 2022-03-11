@@ -374,11 +374,12 @@ export const makeHighAngstWarnings = (baseText: HTMLText, isImpact?: boolean) =>
 export const useTextWarnings = (
   baseText: HTMLText,
   isImpact?: boolean,
+  disable?: boolean,
 ): WarningList => {
   const [warnings, setWarnings] = useState<WarningList>([]);
 
   useEffect(() => {
-    setWarnings(makeWarnings(baseText, isImpact));
-  }, [baseText, isImpact]);
+    setWarnings(disable ? [] : makeWarnings(baseText, isImpact));
+  }, [baseText, isImpact, disable]);
   return warnings;
 };
