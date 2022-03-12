@@ -189,7 +189,10 @@ export type EditorProps = {
   warningsAbove?: boolean;
 
   /**
-   * Hide warnings about malformed/suspicious regulation text content
+   * Hide warnings about malformed/suspicious regulation text content.
+   *
+   * This option is mainly useful when coupled with `readOnly` and
+   * `disabled`. Use sparingly because warnings are often vital info.
    */
   hideWarnings?: boolean;
 

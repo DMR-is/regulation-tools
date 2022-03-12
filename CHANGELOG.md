@@ -8,7 +8,7 @@
 
 _2022-03-11_
 
-- feat: Add props `readOnly` and `disabled` to `Editor`
+- feat: Add props `readOnly`, `disabled` and `hideWarnings` to `Editor`
 - feat: Add optional `wrapperDisabled`, `wrapperReadonly` to `EditorClasses`
 
 ## 0.7.5 – 0.7.6
