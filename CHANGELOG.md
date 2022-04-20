@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+## 0.7.8
+
+_2022-04-20_
+
+- feat: Add `status` prop to `RegulationHistoryItem`
 
 ## 0.7.7
 
