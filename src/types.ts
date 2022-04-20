@@ -108,6 +108,8 @@ export type RegulationHistoryItem = {
   title: string;
   /** Type of effect */
   effect: 'amend' | 'repeal';
+  /** History item status */
+  status: 'pending' | 'published';
 };
 
 // ---------------------------------------------------------------------------
