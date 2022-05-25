@@ -3,6 +3,11 @@
 ## Upcoming...
 
 - ... <!-- Add new lines here. -->
+- feat: add `lawChapters` to `RegulationOption`
+- fix: incorrect `repealed` prop in `RegulationOption`
+- fix: more aggressive Title cleanup
+- fix: update pdf css to better match old regulations
+
 ## 0.7.8
 
 _2022-04-20_
