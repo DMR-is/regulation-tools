@@ -274,7 +274,9 @@ export type RegulationOption = Pick<Regulation, 'name' | 'title' | 'type'> & {
   /** True if the regulation has been fully migrated (and all changes/impacts saved) */
   migrated: boolean;
   /** True if the regulation has already been cancelled/repealed (Brottfelld) */
-  repealed?: true;
+  repealed?: boolean;
+  /** Law chapters that this regulation is linked to */
+  lawChapters?: Array<LawChapter>;
 };
 
 export type RegulationOptionList = Array<RegulationOption>;
