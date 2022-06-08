@@ -274,6 +274,16 @@ const CONFIG: IAllProps['init'] = {
     e.content = dirtyClean(e.content as HTMLText);
     if (isInlineSnippet) {
       e.content = e.content.replace(/^<p>/, '').replace(/<\/p>$/, '');
+    } else {
+      let content = e.content;
+      // Add 'Grein' to content
+      if (!/article__title/.test(content)) {
+        content = e.content.replace(
+          /<p>(\d+\.\s+gr\.(\s+)?)(<br\s+?\/>)?/g,
+          '<h3 class="article__title">$1</h3><p>',
+        );
+      }
+      e.content = content;
     }
   },
   paste_enable_default_filters: false, // disable TinyMCE’s default paste filters
