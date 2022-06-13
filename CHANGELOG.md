@@ -2,8 +2,13 @@
 
 ## Upcoming...
 
+## 0.7.9
+
+_2022-06-13_
+
 - ... <!-- Add new lines here. -->
 - feat: add `lawChapters` to `RegulationOption`
+- feat: add presigned file upload route
 - fix: incorrect `repealed` prop in `RegulationOption`
 - fix: more aggressive Title cleanup
 - fix: update pdf css to better match old regulations
