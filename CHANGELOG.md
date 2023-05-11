@@ -2,11 +2,16 @@
 
 ## Upcoming...
 
+## 0.7.10
+
+_2023-05-11_
+
+- feat: load `htmldiff-js` from npm
+
 ## 0.7.9
 
 _2022-06-13_
 
-- ... <!-- Add new lines here. -->
 - feat: add `lawChapters` to `RegulationOption`
 - feat: add presigned file upload route
 - fix: incorrect `repealed` prop in `RegulationOption`
