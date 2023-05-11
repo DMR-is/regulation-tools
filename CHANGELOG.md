@@ -2,11 +2,12 @@
 
 ## Upcoming...
 
-## 0.7.10
+## 0.7.10 - 0.7.11
 
 _2023-05-11_
 
 - feat: load `htmldiff-js` from npm
+- fix: rollback esbuild to 0.14 because of causing build errors with jsx
 
 ## 0.7.9
 
