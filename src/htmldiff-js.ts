@@ -1,5 +1,5 @@
 /// <reference types="./globals" />
-import htmldiff from 'htmldiff-js';
+import htmldiff from '@hugsmidjan/htmldiff-js';
 
 import { HTMLText } from './types';
 
