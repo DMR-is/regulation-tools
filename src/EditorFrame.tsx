@@ -359,7 +359,8 @@ export const EditorFrame = (props: EditorFrameProps) => {
   const config: typeof CONFIG = useMemo(() => {
     return {
       ...CONFIG,
-      fixed_toolbar_container: '#' + domid,
+      // react useId creates :XX: id's which causes invalid querySelector errors. Need to escape the ":"
+      fixed_toolbar_container: ('#' + domid).replace(/:/g, '\\:'),
       // images_upload_url,
       images_upload_handler: props.fileUploader,
     };

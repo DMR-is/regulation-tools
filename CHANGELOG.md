@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+## 0.7.12
+
+_2023-11-06_
+
+- fix: broken toolbar selector after react 18 upgrade
+
 ## 0.7.10 - 0.7.11
 
 _2023-05-11_
