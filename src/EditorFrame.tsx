@@ -338,6 +338,7 @@ export type EditorFrameClasses = {
 };
 
 export type EditorFrameProps = {
+  config?: IAllProps['init'];
   initialValue: string;
   onReady: (content: HTMLText, editor: Editor) => void;
   onChange: (content: HTMLText) => void;
@@ -356,14 +357,17 @@ export const EditorFrame = (props: EditorFrameProps) => {
   const s = props.classes;
   const domid = 'toolbar' + useDomid();
 
+  const currentConfig = props.config ? { ...CONFIG, ...props.config } : CONFIG;
+
   const config: typeof CONFIG = useMemo(() => {
     return {
-      ...CONFIG,
+      ...currentConfig,
       // react useId creates :XX: id's which causes invalid querySelector errors. Need to escape the ":"
       fixed_toolbar_container: ('#' + domid).replace(/:/g, '\\:'),
       // images_upload_url,
       images_upload_handler: props.fileUploader,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domid, props.fileUploader]);
 
   return (

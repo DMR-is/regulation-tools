@@ -9,6 +9,7 @@ import React, {
 import classes from '@hugsmidjan/qj/classes';
 import debounce from '@hugsmidjan/qj/debounce';
 import { useIsBrowserSide } from '@hugsmidjan/react/hooks';
+import { IAllProps } from '@tinymce/tinymce-react';
 
 import { EditorFileUploader, EditorFrameClasses } from './EditorFrame';
 import { getDiff, HTMLDump } from './html';
@@ -52,7 +53,7 @@ const EditorFrameInBrowser = React.lazy(() =>
 // ---------------------------------------------------------------------------
 
 const modes = ['diff', 'base'] as const;
-type DiffModes = typeof modes[number];
+type DiffModes = (typeof modes)[number];
 
 // ---------------------------------------------------------------------------
 
@@ -170,6 +171,11 @@ export type EditorProps = {
    */
   baseText?: HTMLText;
 
+  /** Overrides values of the original config in `EditorFrame.tsx`
+   * Only values that are provided will be overridden.
+   */
+  config?: IAllProps['init'];
+
   /** Handler for uploading images/filers inserted into the editor. */
   fileUploader?: EditorFileUploader;
 
@@ -277,6 +283,7 @@ export const Editor = (
           {isBrowser && (
             <Suspense fallback={<div className={s.editorBooting} />}>
               <EditorFrameInBrowser
+                config={props.config}
                 containerRef={editorDivRef}
                 classes={s}
                 onReady={(baseTextEditorized, editor) => {
