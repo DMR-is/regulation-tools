@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+## 0.7.13
+
+_2024-01-16_
+
+- fix: enable custom config in `EditorFrame`
+
 ## 0.7.12
 
 _2023-11-06_
