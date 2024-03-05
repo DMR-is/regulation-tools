@@ -70,6 +70,7 @@ const TextWarnings__item = (props: ItemProps) => {
           onClick={() => {
             const elms = find(contentRoot) || [];
             if (elms.length === 1) {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               show(elms[0]!);
             } else {
               setInstances(elms);

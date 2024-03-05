@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import A from '@hugsmidjan/qj/A';
 import hypertext from '@hugsmidjan/qj/E';
 import q from '@hugsmidjan/qj/q';
@@ -331,6 +333,7 @@ export const makeMutators = (
           }
         });
       });
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     removeEmptyElms(root);
   };
 

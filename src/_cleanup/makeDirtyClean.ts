@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable deprecation/deprecation */
 
 import A from '@hugsmidjan/qj/A';

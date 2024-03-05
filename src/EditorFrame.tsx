@@ -298,6 +298,7 @@ const CONFIG: IAllProps['init'] = {
   // paste_data_images: true,
 
   setup: (editor) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const uiRegistry = editor.ui.registry;
 
     // uiRegistry.addIcon(
@@ -378,6 +379,7 @@ export const EditorFrame = (props: EditorFrameProps) => {
         onInit={(event, editor) => {
           const retry = setInterval(() => {
             const contentAreaContainer = editor.getContentAreaContainer();
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (contentAreaContainer) {
               const labelledBy = props['aria-labelledby'];
               const describedBy = props['aria-describedBy'];

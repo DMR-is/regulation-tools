@@ -222,6 +222,7 @@ export const makeWarnings = (
 
     const surpriseArticleNumbers = numberArticleTitles.reduce<Array<number>>(
       (surprising, item, i, arr) => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const lastNum = i > 0 ? arr[i - 1]!.num : 0;
         const expected = lastNum + 1;
 

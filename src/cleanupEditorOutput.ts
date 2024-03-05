@@ -255,6 +255,7 @@ export const cleanupSingleEditorOutput = (html: HTMLText): HTMLText => {
     M.sortAttributes,
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   mutators.forEach((mutator) => mutator && mutator(root));
 
   return root.innerHTML as HTMLText;

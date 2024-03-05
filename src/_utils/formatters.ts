@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import translate, { Messages } from 'translate.js';
 import { plural_IS } from 'translate.js/pluralize';
 

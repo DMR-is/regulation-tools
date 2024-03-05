@@ -35,7 +35,8 @@ export const extractAppendixesAndComments = (
       };
     }),
     comments: (commentsElms.length
-      ? commentsElms[0]!.innerHTML.trim()
+      ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        commentsElms[0]!.innerHTML.trim()
       : '') as HTMLText,
   };
 };

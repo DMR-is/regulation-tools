@@ -230,6 +230,7 @@ export const Editor = (
   const [baseText, setBaseText] = useState(() =>
     importText(props.baseText || EMPTY_HTML),
   );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const initialText = useMemo(() => importText(valueRef.current()), []);
   const currentValue = useRef(initialText);
   valueRef.current = () => exportText(currentValue.current);
