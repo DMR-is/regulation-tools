@@ -300,8 +300,10 @@ export const Editor = (
                     props.baseText && props.baseText !== initialText
                       ? 'ready'
                       : 'running';
-
-                  editor.setContent(initialText);
+                  setTimeout(() => {
+                    // Needs updating after render
+                    editor.setContent(initialText);
+                  }, 100);
                 }}
                 initialValue={baseText || initialText}
                 onFocus={props.onFocus}
