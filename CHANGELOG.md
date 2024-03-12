@@ -4,7 +4,9 @@
 
 ## 0.7.14
 
-- Defer inital value for initalvalue different from base value rendering
+_2024-03-12_
+
+- Fix: Defer inital value for initalvalue different from base value rendering
 
 ## 0.7.13
 
