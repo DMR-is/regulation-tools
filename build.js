@@ -64,7 +64,7 @@ esbuild
     // ],
 
     // watch: opts.watch,
-    // minify: true,
+    minify: true,
 
     // plugins: opts.watch ? undefined : [dtsPlugin({ outDir: outdir })],
   })

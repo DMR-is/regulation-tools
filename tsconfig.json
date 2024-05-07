@@ -4,10 +4,9 @@
     "downlevelIteration": true,
     "jsx": "preserve",
     "lib": ["dom", "esnext", "dom.iterable"],
-    "declaration": true,
     "incremental": true,
     "outDir": "dist"
   },
-  "exclude": ["dist"],
+  "exclude": ["dist", "src/__test__", "tsconfig.tsbuildinfo"],
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
