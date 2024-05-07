@@ -1,10 +1,12 @@
 {
-  "target": "es6",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "downlevelIteration": true,
     "jsx": "preserve",
-    "lib": ["dom", "esnext", "dom.iterable"]
+    "lib": ["dom", "esnext", "dom.iterable"],
+    "declaration": true,
+    "incremental": true,
+    "outDir": "dist"
   },
   "exclude": ["dist"],
   "include": ["src/**/*.ts", "src/**/*.tsx"]

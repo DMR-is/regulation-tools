@@ -2,7 +2,7 @@ const esbuild = require('esbuild');
 const pkg = require('./package.json');
 const glob = require('glob').sync;
 const { writeFileSync } = require('fs');
-const { dtsPlugin } = require('esbuild-plugin-d.ts');
+// const { dtsPlugin } = require('esbuild-plugin-d.ts');
 const exec = require('child_process').execSync;
 
 // ---------------------------------------------------------------------------
@@ -63,9 +63,9 @@ esbuild
     //   ...Object.keys(pkg.peerDependencies || {}),
     // ],
 
-    watch: opts.watch,
+    // watch: opts.watch,
     // minify: true,
 
-    plugins: opts.watch ? undefined : [dtsPlugin({ outDir: outdir })],
+    // plugins: opts.watch ? undefined : [dtsPlugin({ outDir: outdir })],
   })
   .catch(() => process.exit(1));
