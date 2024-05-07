@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+## 0.8.0 - 0.8.1
+
+_2024-05-07_
+
+- Feat: Upgrade build (esbuild, react, and more)
+
 ## 0.7.16
 
 _2024-05-07_

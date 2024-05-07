@@ -1,6 +1,6 @@
 {
   "name": "@island.is/regulations-tools",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Editing tools for Reglugerðir",
   "author": "Hugsmiðjan ehf. (www.hugsmidjan.is)",
   "contributors": [
@@ -15,7 +15,7 @@
     "build:types": "tsc --emitDeclarationOnly --declaration --project tsconfig.json",
     "build": "tsc --noEmit  &&  node build.js && yarn build:types  &&  yarn run test",
     "prepublishOnly": "echo \"\nRun 'yarn run publishdist' to publish this package\n\n\"  && exit 1",
-    "publishdist": "yarn test  &&  yarn build  &&  cd dist  &&  npm publish --tag beta",
+    "publishdist": "yarn test  &&  yarn build  &&  cd dist  &&  npm publish",
     "test": "jest"
   },
   "publishConfig": {
