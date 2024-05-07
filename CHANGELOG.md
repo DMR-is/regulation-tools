@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+## 0.7.16
+
+_2024-05-07_
+
+- Fix: Update translations for `EditorFrame`
+
 ## 0.7.15
 
 _2024-03-25_
