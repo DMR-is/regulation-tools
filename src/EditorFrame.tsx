@@ -140,13 +140,6 @@ const CONFIG: IAllProps['init'] = {
       },
     },
     {
-      title: 'Tilvitnun',
-      block: 'blockquote',
-      attributes: { class: '' },
-      wrapper: true,
-      // merge_siblings: false,
-    },
-    {
       title: 'Inndregin málsgrein',
       block: 'p',
       attributes: { class: 'indented', style: '' },
@@ -180,30 +173,30 @@ const CONFIG: IAllProps['init'] = {
       title: 'Fyrirsagnir',
       items: [
         {
-          title: 'Heading 2',
+          title: 'Fyrirsögn 2',
           block: 'h2',
           attributes: { class: '', style: '' },
         },
         {
-          title: 'Heading 3',
+          title: 'Fyrirsögn 3',
           block: 'h3',
           attributes: { class: '', style: '' },
         },
         {
-          title: 'Heading 4',
+          title: 'Fyrirsögn 4',
           block: 'h4',
           attributes: { class: '', style: '' },
         },
-        {
-          title: 'Heading 5',
-          block: 'h5',
-          attributes: { class: '', style: '' },
-        },
-        {
-          title: 'Heading 6',
-          block: 'h6',
-          attributes: { class: '', style: '' },
-        },
+        // {
+        //   title: 'Millifyrirsögn 1',
+        //   block: 'strong',
+        //   attributes: { class: 'Mfyrirsogn1', style: 'text-align: left;' },
+        // },
+        // {
+        //   title: 'Millifyrirsögn 2',
+        //   block: 'em',
+        //   attributes: { class: 'Mfyrirsogn2', style: 'text-align: left;' },
+        // },
       ],
     },
   ],
@@ -261,31 +254,6 @@ const CONFIG: IAllProps['init'] = {
   },
 
   // https://www.tiny.cloud/docs/plugins/opensource/paste/
-  paste_preprocess: (plugin: unknown, e: PastePreProcessEvent) => {
-    // console.log({ internal: e.internal, wordContent: e.wordContent });
-    // console.log(e.content);
-    if (e.internal) {
-      return;
-    }
-    const isInlineSnippet =
-      !/<(?:p|div|ul|ol|li|table|tbody|thead|caption|tfoot|tr|td|th|blockquote|section|h[1-6])[ >]/i.test(
-        e.content,
-      );
-    e.content = dirtyClean(e.content as HTMLText);
-    if (isInlineSnippet) {
-      e.content = e.content.replace(/^<p>/, '').replace(/<\/p>$/, '');
-    } else {
-      let content = e.content;
-      // Add 'Grein' to content
-      if (!/article__title/.test(content)) {
-        content = e.content.replace(
-          /<p>(\d+\.\s+gr\.(\s+)?)(<br\s+?\/>)?/g,
-          '<h3 class="article__title">$1</h3><p>',
-        );
-      }
-      e.content = content;
-    }
-  },
   paste_enable_default_filters: false, // disable TinyMCE’s default paste filters
   // paste_block_drop: true, // Prevent the unfiltered content from being introduced
   // paste_merge_formats: true,
@@ -346,6 +314,7 @@ export type EditorFrameProps = {
   onFocus?: () => void;
   onBlur?: () => void;
   disabled?: boolean;
+  uploadUrl?: string;
   containerRef: MutableRefObject<HTMLElement | undefined>;
   fileUploader: EditorFileUploader;
   classes: EditorFrameClasses;
@@ -358,6 +327,135 @@ export const EditorFrame = (props: EditorFrameProps) => {
   const s = props.classes;
   const domid = 'toolbar' + useDomid();
 
+  const base64ToBlob = (
+    base64: string,
+  ): { file: File | null; filename: string } => {
+    const parts = base64.split(',');
+    if (parts.length === 2 && parts[1] && parts[0]) {
+      const byteString = atob(parts[1]);
+      const mimeString = parts[0].split(':')[1]?.split(';')[0];
+
+      if (mimeString) {
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const fileExtension = mimeString.split('/')[1]; // Extract the file extension from the MIME type
+        const name = Date.now();
+        const filename = `${name}.${fileExtension}`;
+        const file = new File([ab], filename, {
+          type: mimeString,
+        });
+        return { file, filename };
+      } else {
+        console.error('Invalid MIME type in base64 string');
+        return { file: null, filename: '' };
+      }
+    } else {
+      console.error('Invalid base64 string');
+      return { file: null, filename: '' };
+    }
+  };
+
+  const convertFileToBlobInfo = (file: File, reader?: FileReader): any => {
+    // Create a blob info object to pass to the upload handler
+    const blobInfo = {
+      filename: () => file.name,
+      blob: () => file,
+      blobUri: () => '',
+      base64: reader ? (reader.result as string).split(',')[1] : '',
+    };
+    return blobInfo;
+  };
+
+  const handlePaste = (plugin: unknown, e: PastePreProcessEvent) => {
+    if (e.internal) {
+      return;
+    }
+
+    // Capture the original content
+    let originalContent = e.content;
+
+    // Clear the content to prevent the default paste action
+    e.content = '';
+
+    // Clean the content
+    const isInlineSnippet =
+      !/<(?:p|div|ul|ol|li|table|tbody|thead|caption|tfoot|tr|td|th|blockquote|section|h[1-6])[ >]/i.test(
+        originalContent,
+      );
+    originalContent = dirtyClean(originalContent as HTMLText);
+    if (isInlineSnippet) {
+      originalContent = originalContent
+        .replace(/^<p>/, '')
+        .replace(/<\/p>$/, '');
+    } else {
+      let content = originalContent;
+      if (!/article__title/.test(content)) {
+        content = content.replace(
+          /<p>(\d+\.\s+gr\.(\s+)?)(<br\s+?\/>)?/g,
+          '<h3 class="article__title">$1</h3><p>',
+        );
+      }
+      originalContent = content;
+    }
+
+    if (originalContent.includes('data:image/')) {
+      const imgTagRegex =
+        /<img.*?src=["'](data:image\/(png|jpeg|svg\+xml);base64,.*?)["'].*?>/g;
+      let match;
+      const images: Array<{
+        base64: string;
+        match: string;
+        placeholder: string;
+      }> = [];
+      let contentWithPlaceholders = originalContent;
+
+      // Collect all base64 images from the content
+      while ((match = imgTagRegex.exec(originalContent)) !== null && match[1]) {
+        const placeholder = `__IMAGE_PLACEHOLDER_${images.length}__`;
+        images.push({ base64: match[1], match: match[0], placeholder });
+        contentWithPlaceholders = contentWithPlaceholders.replace(
+          match[0],
+          placeholder,
+        );
+      }
+
+      if (images.length > 0) {
+        let imagesProcessed = 0;
+        images.forEach(({ base64, placeholder }, index) => {
+          const { file, filename } = base64ToBlob(base64 ?? '');
+          if (file) {
+            const blobInfo = convertFileToBlobInfo(file);
+            props.fileUploader(
+              blobInfo,
+              (url: string) => {
+                // Replace the placeholder with the uploaded image URL
+                contentWithPlaceholders = contentWithPlaceholders.replace(
+                  placeholder,
+                  `<img src="${url}" alt="${filename}" />`,
+                );
+
+                imagesProcessed++;
+                // Insert the content once all images are processed
+                if (imagesProcessed === images.length) {
+                  tinymce.activeEditor.insertContent(contentWithPlaceholders);
+                }
+              },
+              (error: string) => {
+                console.error('Image upload failed:', error);
+              },
+            );
+          }
+        });
+      }
+    } else {
+      // Append the new content directly if there are no images
+      tinymce.activeEditor.insertContent(originalContent);
+    }
+  };
+
   const currentConfig = props.config ? { ...CONFIG, ...props.config } : CONFIG;
 
   const config: typeof CONFIG = useMemo(() => {
@@ -366,7 +464,39 @@ export const EditorFrame = (props: EditorFrameProps) => {
       // react useId creates :XX: id's which causes invalid querySelector errors. Need to escape the ":"
       fixed_toolbar_container: ('#' + domid).replace(/:/g, '\\:'),
       // images_upload_url,
+      file_picker_types: 'file',
+      file_picker_callback: (callback) => {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'application/pdf'); // Allow only PDFs
+
+        input.onchange = async () => {
+          const file = input.files ? input.files[0] : null;
+          if (!file) {
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const blobInfo = convertFileToBlobInfo(file, reader);
+            props.fileUploader(
+              blobInfo,
+              (fileUrl: string) => {
+                callback(fileUrl, { text: file.name });
+              },
+              (error: string) => {
+                console.error('Upload error:', error);
+              },
+            );
+          };
+
+          reader.readAsDataURL(file);
+        };
+
+        input.click();
+      },
       images_upload_handler: props.fileUploader,
+      paste_preprocess: handlePaste,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domid, props.fileUploader]);
@@ -406,11 +536,9 @@ export const EditorFrame = (props: EditorFrameProps) => {
         onEditorChange={(content) => {
           props.onChange(content as HTMLText);
         }}
-        // onChange={(event, editor) => {
-        //   console.log('oncChange');
-        //   editor.uploadImages();
-        // }}
-        init={config}
+        init={{
+          ...config,
+        }}
         disabled={props.disabled}
       />
     </>

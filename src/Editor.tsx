@@ -202,6 +202,13 @@ export type EditorProps = {
    */
   hideWarnings?: boolean;
 
+  /**
+   * Upload url for files.
+   * This will pre-set the upload url so there is no need to wait for fileUploaderResponse.
+   * As the TinyMCE paste is not async. There is no way to set the img url before file upload is finished
+   */
+  uploadUrl?: string;
+
   /** A light-weight onChange callback that fires synchronously on EVERY
    * editor input/change event.
    *
@@ -334,6 +341,7 @@ export const Editor = (
                   });
                 }}
                 fileUploader={props.fileUploader}
+                uploadUrl={props.uploadUrl}
                 disabled={disabled || readOnly}
               />
             </Suspense>
