@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+## 0.9.0
+
+_2024-06-11_
+
+- Feat: Paste images and text into regulation editor. Upload PDF's with file uploader.
+
 ## 0.8.0 - 0.8.1
 
 _2024-05-07_

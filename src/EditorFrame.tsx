@@ -11,7 +11,11 @@ import type { Editor } from 'tinymce';
 
 import dirtyClean from './dirtyClean-browser';
 import { HTMLText } from './types';
-import { document_base_url } from './utils';
+import {
+  document_base_url,
+  convertFileToBlobInfo,
+  base64ToBlob,
+} from './utils';
 
 import tinymce from 'tinymce/tinymce';
 import 'tinymce/themes/silver';
@@ -327,48 +331,6 @@ export const EditorFrame = (props: EditorFrameProps) => {
   const s = props.classes;
   const domid = 'toolbar' + useDomid();
 
-  const base64ToBlob = (
-    base64: string,
-  ): { file: File | null; filename: string } => {
-    const parts = base64.split(',');
-    if (parts.length === 2 && parts[1] && parts[0]) {
-      const byteString = atob(parts[1]);
-      const mimeString = parts[0].split(':')[1]?.split(';')[0];
-
-      if (mimeString) {
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i);
-        }
-        const fileExtension = mimeString.split('/')[1]; // Extract the file extension from the MIME type
-        const name = Date.now();
-        const filename = `${name}.${fileExtension}`;
-        const file = new File([ab], filename, {
-          type: mimeString,
-        });
-        return { file, filename };
-      } else {
-        console.error('Invalid MIME type in base64 string');
-        return { file: null, filename: '' };
-      }
-    } else {
-      console.error('Invalid base64 string');
-      return { file: null, filename: '' };
-    }
-  };
-
-  const convertFileToBlobInfo = (file: File, reader?: FileReader): any => {
-    // Create a blob info object to pass to the upload handler
-    const blobInfo = {
-      filename: () => file.name,
-      blob: () => file,
-      blobUri: () => '',
-      base64: reader ? (reader.result as string).split(',')[1] : '',
-    };
-    return blobInfo;
-  };
-
   const handlePaste = (plugin: unknown, e: PastePreProcessEvent) => {
     if (e.internal) {
       return;
@@ -445,6 +407,17 @@ export const EditorFrame = (props: EditorFrameProps) => {
               },
               (error: string) => {
                 console.error('Image upload failed:', error);
+                // Replace the placeholder with a failure message or icon
+                contentWithPlaceholders = contentWithPlaceholders.replace(
+                  placeholder,
+                  `<span class="image-upload-failed">[Image upload failed]</span>`,
+                );
+
+                imagesProcessed++;
+                // Insert the content once all images are processed or failed
+                if (imagesProcessed === images.length) {
+                  tinymce.activeEditor.insertContent(contentWithPlaceholders);
+                }
               },
             );
           }
