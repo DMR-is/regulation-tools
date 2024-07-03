@@ -121,9 +121,8 @@ const CONFIG: IAllProps['init'] = {
       attributes: { class: 'article__title', style: '' },
     },
     {
-      title: 'Undirkafli',
-      block: 'h2',
-      attributes: { class: 'subchapter__title', style: '' },
+      title: 'Grein m. heiti',
+      format: 'greinWithTitle',
     },
     {
       title: 'Kafli',
@@ -131,9 +130,13 @@ const CONFIG: IAllProps['init'] = {
       attributes: { class: 'chapter__title', style: '' },
     },
     {
-      title: 'Hluti',
+      title: 'Kafli m. heiti',
+      format: 'kafliWithTitle',
+    },
+    {
+      title: 'Undirkafli',
       block: 'h2',
-      attributes: { class: 'section__title', style: '' },
+      attributes: { class: 'subchapter__title', style: '' },
     },
     {
       title: 'Bráðabirgðaákvæði',
@@ -173,36 +176,36 @@ const CONFIG: IAllProps['init'] = {
         },
       ],
     },
-    {
-      title: 'Fyrirsagnir',
-      items: [
-        {
-          title: 'Fyrirsögn 2',
-          block: 'h2',
-          attributes: { class: '', style: '' },
-        },
-        {
-          title: 'Fyrirsögn 3',
-          block: 'h3',
-          attributes: { class: '', style: '' },
-        },
-        {
-          title: 'Fyrirsögn 4',
-          block: 'h4',
-          attributes: { class: '', style: '' },
-        },
-        // {
-        //   title: 'Millifyrirsögn 1',
-        //   block: 'strong',
-        //   attributes: { class: 'Mfyrirsogn1', style: 'text-align: left;' },
-        // },
-        // {
-        //   title: 'Millifyrirsögn 2',
-        //   block: 'em',
-        //   attributes: { class: 'Mfyrirsogn2', style: 'text-align: left;' },
-        // },
-      ],
-    },
+    // {
+    //   title: 'Fyrirsagnir',
+    //   items: [
+    //     {
+    //       title: 'Fyrirsögn 2',
+    //       block: 'h2',
+    //       attributes: { class: '', style: '' },
+    //     },
+    //     {
+    //       title: 'Fyrirsögn 3',
+    //       block: 'h3',
+    //       attributes: { class: '', style: '' },
+    //     },
+    //     {
+    //       title: 'Fyrirsögn 4',
+    //       block: 'h4',
+    //       attributes: { class: '', style: '' },
+    //     },
+    //     {
+    //       title: 'Millifyrirsögn 1',
+    //       block: 'strong',
+    //       attributes: { class: 'Mfyrirsogn1', style: 'text-align: left;' },
+    //     },
+    //     {
+    //       title: 'Millifyrirsögn 2',
+    //       block: 'em',
+    //       attributes: { class: 'Mfyrirsogn2', style: 'text-align: left;' },
+    //     },
+    //   ],
+    // },
   ],
   // visualblocks_default_state: true,
   end_container_on_empty_block: true,
@@ -272,6 +275,36 @@ const CONFIG: IAllProps['init'] = {
   setup: (editor) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const uiRegistry = editor.ui.registry;
+
+    tinymce.addI18n('en', {
+      'Insert/edit link': 'Setja inn/breyta hlekk',
+      URL: 'Hlekkur / Hlaða upp skjali ↑',
+      'Text to display': 'Texti til að birta',
+      Title: 'Titill',
+      'Open link in...': 'Opna hlekk í...',
+      'Current window': 'Núverandi glugga',
+      'New window': 'Nýjum glugga',
+    });
+
+    editor.on('init', () => {
+      editor.formatter.register('greinWithTitle', {
+        block: 'h3',
+        attributes: { class: 'article__title' },
+        onformat: (elm: Node) => {
+          const element = elm as HTMLElement;
+          element.innerHTML = 'gr. <em>Titill</em>';
+        },
+      });
+
+      editor.formatter.register('kafliWithTitle', {
+        block: 'h2',
+        attributes: { class: 'chapter__title' },
+        onformat: (elm: Node) => {
+          const element = elm as HTMLElement;
+          element.innerHTML = 'Kafli <em>Titill</em>';
+        },
+      });
+    });
 
     // uiRegistry.addIcon(
     //   'triangleUp',
