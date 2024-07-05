@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+## 0.9.1
+
+_2024-07-05_
+
+- Feat: Clean up tools dropdown in editor
+
 ## 0.9.0
 
 _2024-06-11_
