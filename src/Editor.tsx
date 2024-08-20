@@ -209,6 +209,12 @@ export type EditorProps = {
    */
   uploadUrl?: string;
 
+  /**
+   * React component.
+   * A loading spinner or similar. Is displayed when uploading Word documents through the Editor.
+   */
+  documentLoaderElement?: React.ReactNode;
+
   /** A light-weight onChange callback that fires synchronously on EVERY
    * editor input/change event.
    *
@@ -342,6 +348,7 @@ export const Editor = (
                 }}
                 fileUploader={props.fileUploader}
                 uploadUrl={props.uploadUrl}
+                documentLoaderElement={props.documentLoaderElement}
                 disabled={disabled || readOnly}
               />
             </Suspense>

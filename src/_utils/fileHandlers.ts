@@ -28,7 +28,7 @@ export const base64ToBlob = (
     }
 
     const fileExtension = mimeString.split('/')[1]; // Extract the file extension from the MIME type
-    const name = Date.now();
+    const name = Date.now() + Math.floor(Math.random() * 1000);
     const filename = `${name}.${fileExtension}`;
     const file = new File([ab], filename, {
       type: mimeString,

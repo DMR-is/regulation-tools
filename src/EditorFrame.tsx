@@ -4,7 +4,7 @@
 // on the tinymce/plugin side-effect imports have
 //  been properly tested
 
-import React, { MutableRefObject, useMemo } from 'react';
+import React, { MutableRefObject, useCallback, useMemo, useState } from 'react';
 import { useDomid } from '@hugsmidjan/react/hooks';
 import { Editor as TinyMCE, IAllProps } from '@tinymce/tinymce-react';
 import type { Editor } from 'tinymce';
@@ -40,6 +40,8 @@ import 'tinymce/plugins/table';
 import 'tinymce/plugins/paste';
 // import 'tinymce/plugins/help';
 // import 'tinymce/plugins/template';
+
+import mammoth from 'mammoth';
 
 // ---------------------------------------------------------------------------
 
@@ -238,7 +240,7 @@ const CONFIG: IAllProps['init'] = {
   toolbar: `
     undo redo | bold italic link inlineformat | styleselect alignment |
     bullist numlist ${'' /* outdent indent */} |
-    table image | insert
+    table image | insert | customInsertButton
   `,
 
   toolbar_groups: {
@@ -306,6 +308,12 @@ const CONFIG: IAllProps['init'] = {
       });
     });
 
+    editor.ui.registry.addButton('customInsertButton', {
+      icon: 'document-properties',
+      tooltip: 'Færa inn Word skjal',
+      onAction: (_) => document.getElementById('wordFileInput')?.click(),
+    });
+
     // uiRegistry.addIcon(
     //   'triangleUp',
     //   '<svg height="24" width="24"><path d="M12 0 L24 24 L0 24 Z" /></svg>',
@@ -343,6 +351,11 @@ export type EditorFrameClasses = {
   editor: string;
 };
 
+type ImageInfo = {
+  base64: string;
+  placeholder: string;
+};
+
 export type EditorFrameProps = {
   config?: IAllProps['init'];
   initialValue: string;
@@ -352,6 +365,7 @@ export type EditorFrameProps = {
   onBlur?: () => void;
   disabled?: boolean;
   uploadUrl?: string;
+  documentLoaderElement?: React.ReactNode;
   containerRef: MutableRefObject<HTMLElement | undefined>;
   fileUploader: EditorFileUploader;
   classes: EditorFrameClasses;
@@ -360,14 +374,172 @@ export type EditorFrameProps = {
 };
 
 export const EditorFrame = (props: EditorFrameProps) => {
-  const { onBlur, onFocus } = props;
+  const { onBlur, onFocus, documentLoaderElement } = props;
   const s = props.classes;
   const domid = 'toolbar' + useDomid();
+
+  const [isLoading, setIsLoading] = useState(() => false);
+
+  let isProcessing = false; // Guard to prevent reprocessing
+
+  function cleanAndStyleContent(content: string): string {
+    // Clean the content
+    const isInlineSnippet =
+      !/<(?:p|div|ul|ol|li|table|tbody|thead|caption|tfoot|tr|td|th|blockquote|section|h[1-6])[ >]/i.test(
+        content,
+      );
+    content = dirtyClean(content as HTMLText);
+
+    if (isInlineSnippet) {
+      content = content.replace(/^<p>/, '').replace(/<\/p>$/, '');
+    } else {
+      if (!/article__title/.test(content)) {
+        content = content.replace(
+          /<p>(\d+\.\s+gr\.(\s+)?)(<br\s+?\/>)?/g,
+          '<h3 class="article__title">$1</h3><p>',
+        );
+      }
+    }
+
+    return content;
+  }
+
+  async function processWordContent(content: string): Promise<void> {
+    if (isProcessing) {
+      console.log('Processing is already in progress, skipping...');
+      return;
+    }
+
+    setIsLoading(true);
+    isProcessing = true;
+
+    // Clean and style the content
+    content = cleanAndStyleContent(content);
+
+    const imgTagRegex =
+      /<img.*?src=["'](data:image\/(png|jpeg|svg\+xml);base64,.*?)["'].*?>/g;
+    let match: RegExpExecArray | null;
+    const images: Array<ImageInfo> = [];
+    let contentWithPlaceholders = content;
+
+    // Extract images from the content
+    while ((match = imgTagRegex.exec(content)) !== null) {
+      const placeholder = `__IMAGE_PLACEHOLDER_${images.length}__`;
+      if (match[1]) {
+        images.push({ base64: match[1], placeholder });
+      }
+      contentWithPlaceholders = contentWithPlaceholders.replace(
+        match[0],
+        placeholder,
+      );
+    }
+
+    // Upload single image
+    const uploadImage = async (image: ImageInfo): Promise<void> => {
+      const { base64, placeholder } = image;
+      const { file, filename } = base64ToBlob(base64);
+      if (file) {
+        const blobInfo = convertFileToBlobInfo(file);
+        return new Promise<void>((resolve, reject) => {
+          props.fileUploader(
+            blobInfo,
+            (url: string) => {
+              // Replace the placeholder with the uploaded image URL
+              contentWithPlaceholders = contentWithPlaceholders.replace(
+                placeholder,
+                `<img src="${url}" alt="${filename}" />`,
+              );
+              resolve();
+            },
+            (error: string) => {
+              console.error('Image upload failed:', error);
+              // Replace the placeholder with a failure message or icon
+              contentWithPlaceholders = contentWithPlaceholders.replace(
+                placeholder,
+                `<span class="image-upload-failed">[Image upload failed]</span>`,
+              );
+              resolve(); // Resolve even on error to ensure all promises complete
+            },
+          );
+        });
+      } else {
+        return Promise.resolve();
+      }
+    };
+
+    // Limit the number of concurrent uploads
+    const concurrencyLimit = 20;
+    const queue = [...images];
+    const activeUploads: Array<Promise<void>> = [];
+
+    while (queue.length > 0 || activeUploads.length > 0) {
+      while (queue.length > 0 && activeUploads.length < concurrencyLimit) {
+        const image = queue.shift();
+        if (image) {
+          const uploadPromise = uploadImage(image).finally(() => {
+            // Remove the promise from activeUploads once it completes
+            activeUploads.splice(activeUploads.indexOf(uploadPromise), 1);
+          });
+          activeUploads.push(uploadPromise);
+        }
+      }
+      // Wait for any of the active uploads to complete before adding more
+      await Promise.race(activeUploads);
+    }
+
+    // Insert the content once all images are processed
+    tinymce.activeEditor.insertContent(contentWithPlaceholders);
+
+    setIsLoading(false);
+    isProcessing = false;
+  }
+
+  const handleFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const inputElement = event.target;
+      const file = inputElement.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = async function (event) {
+          const arrayBuffer = event.target?.result as ArrayBuffer;
+          try {
+            const result = await mammoth.convertToHtml(
+              { arrayBuffer },
+              {
+                convertImage: mammoth.images.imgElement(async function (
+                  element,
+                ) {
+                  const imageBuffer = await element.read('base64');
+                  return {
+                    src:
+                      'data:' + element.contentType + ';base64,' + imageBuffer,
+                  };
+                }),
+              },
+            );
+
+            const docContent = result.value; // Extracted HTML content from the Word document
+            await processWordContent(docContent); // Process and insert content into TinyMCE
+          } catch (error) {
+            console.error('Error converting document:', error);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    },
+    [processWordContent], // Add dependencies to prevent unnecessary re-creation
+  );
 
   const handlePaste = (plugin: unknown, e: PastePreProcessEvent) => {
     if (e.internal) {
       return;
     }
+
+    if (isProcessing) {
+      return;
+    }
+
+    isProcessing = true;
 
     // Capture the original content
     let originalContent = e.content;
@@ -375,26 +547,8 @@ export const EditorFrame = (props: EditorFrameProps) => {
     // Clear the content to prevent the default paste action
     e.content = '';
 
-    // Clean the content
-    const isInlineSnippet =
-      !/<(?:p|div|ul|ol|li|table|tbody|thead|caption|tfoot|tr|td|th|blockquote|section|h[1-6])[ >]/i.test(
-        originalContent,
-      );
-    originalContent = dirtyClean(originalContent as HTMLText);
-    if (isInlineSnippet) {
-      originalContent = originalContent
-        .replace(/^<p>/, '')
-        .replace(/<\/p>$/, '');
-    } else {
-      let content = originalContent;
-      if (!/article__title/.test(content)) {
-        content = content.replace(
-          /<p>(\d+\.\s+gr\.(\s+)?)(<br\s+?\/>)?/g,
-          '<h3 class="article__title">$1</h3><p>',
-        );
-      }
-      originalContent = content;
-    }
+    // Clean and style the content
+    originalContent = cleanAndStyleContent(originalContent);
 
     if (originalContent.includes('data:image/')) {
       const imgTagRegex =
@@ -418,47 +572,48 @@ export const EditorFrame = (props: EditorFrameProps) => {
       }
 
       if (images.length > 0) {
-        let imagesProcessed = 0;
-        images.forEach(({ base64, placeholder }, index) => {
+        const uploadPromises = images.map(({ base64, placeholder }) => {
           const { file, filename } = base64ToBlob(base64 ?? '');
           if (file) {
             const blobInfo = convertFileToBlobInfo(file);
-            props.fileUploader(
-              blobInfo,
-              (url: string) => {
-                // Replace the placeholder with the uploaded image URL
-                contentWithPlaceholders = contentWithPlaceholders.replace(
-                  placeholder,
-                  `<img src="${url}" alt="${filename}" />`,
-                );
-
-                imagesProcessed++;
-                // Insert the content once all images are processed
-                if (imagesProcessed === images.length) {
-                  tinymce.activeEditor.insertContent(contentWithPlaceholders);
-                }
-              },
-              (error: string) => {
-                console.error('Image upload failed:', error);
-                // Replace the placeholder with a failure message or icon
-                contentWithPlaceholders = contentWithPlaceholders.replace(
-                  placeholder,
-                  `<span class="image-upload-failed">[Image upload failed]</span>`,
-                );
-
-                imagesProcessed++;
-                // Insert the content once all images are processed or failed
-                if (imagesProcessed === images.length) {
-                  tinymce.activeEditor.insertContent(contentWithPlaceholders);
-                }
-              },
-            );
+            return new Promise<void>((resolve, reject) => {
+              props.fileUploader(
+                blobInfo,
+                (url: string) => {
+                  contentWithPlaceholders = contentWithPlaceholders.replace(
+                    placeholder,
+                    `<img src="${url}" alt="${filename}" />`,
+                  );
+                  resolve();
+                },
+                (error: string) => {
+                  console.error('Image upload failed:', error);
+                  contentWithPlaceholders = contentWithPlaceholders.replace(
+                    placeholder,
+                    `<span class="image-upload-failed">[Image upload failed]</span>`,
+                  );
+                  resolve(); // Resolve even on error to ensure all promises complete
+                },
+              );
+            });
+          } else {
+            return Promise.resolve();
           }
         });
+
+        // Wait for all uploads to complete
+        Promise.all(uploadPromises).then(() => {
+          tinymce.activeEditor.insertContent(contentWithPlaceholders);
+          isProcessing = false;
+        });
+      } else {
+        tinymce.activeEditor.insertContent(originalContent);
+        isProcessing = false;
       }
     } else {
       // Append the new content directly if there are no images
       tinymce.activeEditor.insertContent(originalContent);
+      isProcessing = false;
     }
   };
 
@@ -510,6 +665,19 @@ export const EditorFrame = (props: EditorFrameProps) => {
   return (
     <>
       <div className={s.toolbar} id={domid} />
+      <input
+        type="file"
+        id="wordFileInput"
+        title="File tester"
+        accept=".docx"
+        onChange={handleFileChange} // Use React's onChange event handler
+        style={{ display: 'none' }}
+      />
+      {isLoading ? (
+        <div className="regulation_editor_loading_word_document">
+          {documentLoaderElement ?? 'Hleð inn Word skjali ...'}
+        </div>
+      ) : undefined}
       <TinyMCE
         initialValue={props.initialValue}
         onInit={(event, editor) => {
