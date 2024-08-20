@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+## 0.9.2
+
+_2024-08-20_
+
+- Feat: Add option to upload word documents to be resolved in the Editor.
+
 ## 0.9.1
 
 _2024-07-05_
