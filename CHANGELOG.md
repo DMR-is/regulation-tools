@@ -2,6 +2,13 @@
 
 ## Upcoming...
 
+## 0.10.0
+
+_2025-11-17_
+
+- Feat: Rename module to `@dmr.is/regulations-tools`
+- Feat: Update default styling for chapter names.
+
 ## 0.9.2
 
 _2024-08-20_
