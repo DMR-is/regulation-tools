@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "esnext"],
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": false,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "newLine": "LF",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "noImplicitThis": false,
+    "noUncheckedIndexedAccess": true,
+    "isolatedModules": true,
+    "paths": {
+      "@dmr.is/regulations-tools/*": ["./src/*"]
+    }
+  },
+
+  "exclude": ["node_modules"]
+}

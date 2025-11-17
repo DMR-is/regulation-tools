@@ -1,12 +1,15 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "downlevelIteration": true,
-    "jsx": "preserve",
     "lib": ["dom", "esnext", "dom.iterable"],
     "incremental": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "target": "es6",
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "preserve",
   },
-  "exclude": ["dist", "src/__test__", "tsconfig.tsbuildinfo"],
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "exclude": ["dist", "src/__test__", "tsconfig.tsbuildinfo", "node_modules"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "**/*.ts", "**/*.tsx"]
 }

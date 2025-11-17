@@ -303,7 +303,7 @@ const CONFIG: IAllProps['init'] = {
         attributes: { class: 'chapter__title' },
         onformat: (elm: Node) => {
           const element = elm as HTMLElement;
-          element.innerHTML = 'Kafli <em>Titill</em>';
+          element.innerHTML = 'Kafli <em class="chapter__name">Titill</em>';
         },
       });
     });

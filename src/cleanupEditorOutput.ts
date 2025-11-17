@@ -24,11 +24,11 @@ import { HTMLText, Regulation, RegulationTextProps } from './types';
 
 // ---------------------------------------------------------------------------
 
-/** @deprecated import this method from `@island.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
+/** @deprecated import this method from `@dmr.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
 export const extractAppendixesAndComments = _extractAppendixesAndComments;
-/** @deprecated import this method from `@island.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
+/** @deprecated import this method from `@dmr.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
 export const combineTextAppendixesComments = _combineTextAppendixesComments;
-/** @deprecated import this method from `@island.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
+/** @deprecated import this method from `@dmr.is/regulations-tools/textHelpers` instead  (Will be removed in v0.6) */
 export const eliminateComments = _eliminateComments;
 
 // ---------------------------------------------------------------------------
