@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+## 0.10.2
+
+_2026-02-10_
+
+- Chore: Update import for date-fns
+
 ## 0.10.1
 
 _2026-02-10_

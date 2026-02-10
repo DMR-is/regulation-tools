@@ -1,5 +1,7 @@
-import { format, parseISO } from 'date-fns';
-import { is } from 'date-fns/locale';
+import is from 'date-fns/locale/is';
+import format from 'date-fns/format';
+import parseISO from 'date-fns/parseISO';
+
 
 import { ISODate, ISODateTime } from '../types';
 
