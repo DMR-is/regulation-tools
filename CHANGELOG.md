@@ -2,6 +2,13 @@
 
 ## Upcoming...
 
+## 0.10.1
+
+_2026-02-10_
+
+- Feat: Add support for numbered and alphabetical lists in HTML import.
+- Feat: Add support for suppressing individual editor warnings.
+
 ## 0.10.0
 
 _2025-11-17_

@@ -15,7 +15,7 @@ import { EditorFileUploader, EditorFrameClasses } from './EditorFrame';
 import { getDiff, HTMLDump } from './html';
 import { TextWarnings, TextWarningsClasses } from './TextWarnings';
 import { HTMLText } from './types';
-import { useTextWarnings } from './useTextWarnings';
+import { useTextWarnings, WarningId } from './useTextWarnings';
 import {
   asDiv,
   document_base_url,
@@ -26,6 +26,8 @@ import {
 // ---------------------------------------------------------------------------
 
 export type { EditorFileUploader } from './EditorFrame';
+export type { WarningId } from './useTextWarnings';
+export { WarningIds } from './useTextWarnings';
 
 // ---------------------------------------------------------------------------
 
@@ -203,6 +205,12 @@ export type EditorProps = {
   hideWarnings?: boolean;
 
   /**
+   * Disable specific warnings by their ID.
+   * Can be an array or Set of warning IDs.
+   */
+  disabledWarnings?: Set<WarningId> | Array<WarningId>;
+
+  /**
    * Upload url for files.
    * This will pre-set the upload url so there is no need to wait for fileUploaderResponse.
    * As the TinyMCE paste is not async. There is no way to set the img url before file upload is finished
@@ -236,8 +244,15 @@ export const Editor = (
   },
 ) => {
   const s = props.classes;
-  const { valueRef, elmRef, onChange, readOnly, disabled, hideWarnings } =
-    props;
+  const {
+    valueRef,
+    elmRef,
+    onChange,
+    readOnly,
+    disabled,
+    hideWarnings,
+    disabledWarnings,
+  } = props;
   const isBrowser = useIsBrowserSide();
 
   const [baseText, setBaseText] = useState(() =>
@@ -272,6 +287,7 @@ export const Editor = (
     debouncedCurrentText,
     props.isImpact,
     hideWarnings,
+    disabledWarnings,
   );
 
   const showComparisonPane = props.baseText != null; // if _rawBaseText is non-empty then show comparison
