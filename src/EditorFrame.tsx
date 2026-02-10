@@ -339,6 +339,55 @@ tinymce.PluginManager.add('_onInited_hack_', function (editor) {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * Post-process HTML from mammoth to detect and fix alphabetical lists
+ * that were converted to numbered lists
+ */
+function fixAlphabeticalLists(html: string): string {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+
+  // Find all ordered lists
+  const orderedLists = div.querySelectorAll('ol');
+  
+  orderedLists.forEach((ol) => {
+    const listItems = ol.querySelectorAll('li');
+    if (listItems.length === 0) return;
+
+    // Check first item for alphabetical pattern
+    const firstItemText = listItems[0]?.textContent?.trim() || '';
+    
+    // Patterns: "a.", "a)", "A.", "A)", or just starting with a letter followed by punctuation
+    const lowerAlphaMatch = /^([a-z])[.)]\s/.exec(firstItemText);
+    const upperAlphaMatch = /^([A-Z])[.)]\s/.exec(firstItemText);
+    const lowerRomanMatch = /^(i{1,3}|iv|v|vi{1,3}|ix|x)[.)]\s/i.exec(firstItemText);
+    const upperRomanMatch = /^(I{1,3}|IV|V|VI{1,3}|IX|X)[.)]\s/.exec(firstItemText);
+    
+    if (lowerAlphaMatch) {
+      ol.setAttribute('type', 'a');
+    } else if (upperAlphaMatch) {
+      ol.setAttribute('type', 'A');
+    } else if (lowerRomanMatch && firstItemText === firstItemText.toLowerCase()) {
+      ol.setAttribute('type', 'i');
+    } else if (upperRomanMatch && /^[IVX]/.test(firstItemText)) {
+      ol.setAttribute('type', 'I');
+    }
+    
+    // Remove the letter/number prefix from list items if it exists
+    if (lowerAlphaMatch || upperAlphaMatch || lowerRomanMatch || upperRomanMatch) {
+      listItems.forEach((li) => {
+        const text = li.textContent?.trim() || '';
+        const cleanedText = text.replace(/^[a-zA-Z\d]+[.)]\s*/, '');
+        if (cleanedText !== text) {
+          li.textContent = cleanedText;
+        }
+      });
+    }
+  });
+
+  return div.innerHTML;
+}
+
 // ---------------------------------------------------------------------------
 
 export type EditorFileUploader = Exclude<
@@ -518,7 +567,8 @@ export const EditorFrame = (props: EditorFrameProps) => {
               },
             );
 
-            const docContent = result.value; // Extracted HTML content from the Word document
+            let docContent = result.value; // Extracted HTML content from the Word document
+            docContent = fixAlphabeticalLists(docContent); // Fix alphabetical lists
             await processWordContent(docContent); // Process and insert content into TinyMCE
           } catch (error) {
             console.error('Error converting document:', error);
@@ -546,6 +596,9 @@ export const EditorFrame = (props: EditorFrameProps) => {
 
     // Clear the content to prevent the default paste action
     e.content = '';
+
+    // Fix alphabetical lists that may have been converted
+    originalContent = fixAlphabeticalLists(originalContent);
 
     // Clean and style the content
     originalContent = cleanAndStyleContent(originalContent);
