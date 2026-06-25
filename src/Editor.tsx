@@ -78,10 +78,16 @@ const stripLocalBaseUrlHost = (root: ReturnType<typeof asDiv>): string => {
 
 // ---------------------------------------------------------------------------
 
+/** Replaced/void elements that constitute real content. HTML containing any
+ * of these is never "empty", regardless of whether void tags are serialized
+ * self-closed (`<img />`) or not (`<img>`) — a DOM round-trip drops the slash,
+ * which would otherwise make the open-tag regex below strip them away. */
+const NON_EMPTY_ELEMENTS = /<(?:img|hr|svg)[\s/>]/i;
+
 /* Replace empty HTML with empty string ('') */
 const _stripEmpty = (html: HTMLText) =>
-  html.length > 1000
-    ? html // assume large HTML is never empty
+  html.length > 1000 || NON_EMPTY_ELEMENTS.test(html)
+    ? html // assume large HTML (or HTML with real content elements) is never empty
     : (html
         // check for any number of non-self-closing html open tags
         // immediately followed by any number of closing html tags
