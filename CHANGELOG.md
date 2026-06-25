@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+## 0.10.3
+
+_2026-06-25_
+
+- Fix: Keep image-only (and `hr`/`svg`) editor content from being stripped as "empty" on save.
+
 ## 0.10.2
 
 _2026-02-10_
