@@ -1,0 +1,68 @@
+/*
+  Default styling for diff markup — from getStructuredDiff, and from getDiff,
+  which uses the same classes.
+
+    import '@dmr.is/regulations-tools/diff.css';
+
+  Every selector is wrapped in :where(), so it has zero specificity: any rule
+  of your own wins without !important. To change the colours, set the custom
+  properties below on any ancestor of the diff (or on :root).
+
+  Classes (see DIFF_CLASSES in @dmr.is/regulations-tools/diffClasses):
+    ins.diffins / del.diffdel   text added / removed
+    del.diffmod + ins.diffmod   a word replaced: old, then new
+    ins.mod                     formatting changed, text did not
+    ins.diffmove / del.diffmove a block moved: new position / old position
+*/
+
+:where(:root) {
+  --regulation-diff-ins: #c7efdb;
+  --regulation-diff-del: #f7cfcf;
+  --regulation-diff-del-line: rgb(0 0 0 / 0.5);
+  --regulation-diff-format: #d39200;
+  --regulation-diff-move: #d6e2f7;
+}
+
+:where(ins, del):where(.diffins, .diffdel, .diffmod, .diffmove) {
+  padding: 0 0.125em;
+}
+
+/*
+  Every mark has a cue besides colour (WCAG 1.4.1), following redlining
+  convention: added is underlined, removed struck through, formatting-only
+  dotted, moved double-underlined.
+*/
+
+/* Added */
+:where(ins.diffins, ins.diffmod) {
+  background-color: var(--regulation-diff-ins);
+  text-decoration: underline solid;
+  text-underline-offset: 0.15em;
+}
+
+/* Removed */
+:where(del.diffdel, del.diffmod) {
+  background-color: var(--regulation-diff-del);
+  text-decoration: line-through;
+  text-decoration-color: var(--regulation-diff-del-line);
+}
+
+/* Formatting changed, text did not — so not shown as added text. */
+:where(ins.mod) {
+  background-color: transparent;
+  text-decoration: underline dotted 2px var(--regulation-diff-format);
+  text-underline-offset: 0.2em;
+}
+
+/* Moved: highlighted where it arrived, struck through where it left. */
+:where(ins.diffmove) {
+  background-color: var(--regulation-diff-move);
+  text-decoration: underline double;
+  text-underline-offset: 0.15em;
+}
+:where(del.diffmove) {
+  background-color: var(--regulation-diff-move);
+  text-decoration: line-through;
+  text-decoration-color: var(--regulation-diff-del-line);
+  opacity: 0.7;
+}

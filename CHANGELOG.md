@@ -2,6 +2,27 @@
 
 ## Upcoming...
 
+## 0.11.0
+
+_2026-10-06_
+
+- Feat: Add `getStructuredDiff` (experimental) — diffs regulation texts by
+  article, paragraph, list item and sentence, word-diffing only inside paired
+  paragraphs, so a new paragraph is one insertion and untouched neighbours
+  stay untouched. Returns the diff HTML plus what changed — inserted,
+  deleted, modified, replaced, split, merged, moved and renumbered — with
+  each change's word-level edits. Import from `structuredDiff-browser` or
+  `structuredDiff-server` (or `structuredDiff` with your own `asDiv`).
+  `getDiff` is unchanged.
+- Feat: The structured diff's HTML carries its changes as `data-diff-*`
+  attributes (see README), for consumers that keep only the HTML, such as an
+  amending-text generator.
+- Feat: Ship default diff styles as `diff.css` — plain CSS, its own palette as
+  `--regulation-diff-*` custom properties, zero-specificity selectors. Styles
+  `ins.mod` (formatting changed) distinctly instead of as added text. Works
+  for `getDiff` output too.
+- Feat: Export diff class names as `DIFF_CLASSES` (`diffClasses`).
+
 ## 0.10.3
 
 _2026-06-25_

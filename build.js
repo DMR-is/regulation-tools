@@ -40,7 +40,7 @@ const entryPoints = glob(srcdir + '**/*.{ts,tsx}', {
 // ---------------------------------------------------------------------------
 
 exec('rm -rf ' + outdir + ' && mkdir ' + outdir);
-exec('cp README.md CHANGELOG.md ' + outdir);
+exec('cp README.md CHANGELOG.md src/diff.css ' + outdir);
 makePackageJson(outdir);
 
 esbuild
