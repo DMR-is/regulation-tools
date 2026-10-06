@@ -10,6 +10,6 @@
     "allowSyntheticDefaultImports": true,
     "jsx": "preserve",
   },
-  "exclude": ["dist", "src/__test__", "tsconfig.tsbuildinfo", "node_modules"],
+  "exclude": ["dist", "src/__test__", "scripts", "tsconfig.tsbuildinfo", "node_modules"],
   "include": ["src/**/*.ts", "src/**/*.tsx", "**/*.ts", "**/*.tsx"]
 }
