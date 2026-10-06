@@ -48,6 +48,22 @@ export type {
   WordEdit,
 } from './_structuredDiff/types';
 
+/** Section similarity, remembered per pair: alignment asks for the same pair repeatedly. */
+const memoSimilarity = () => {
+  const memo = new Map<Section, Map<Section, number>>();
+  return (x: Section, y: Section) => {
+    let row = memo.get(x);
+    if (!row) {
+      memo.set(x, (row = new Map()));
+    }
+    let v = row.get(y);
+    if (v == null) {
+      row.set(y, (v = similarity(sectionText(x), sectionText(y))));
+    }
+    return v;
+  };
+};
+
 /** `gr`, `sub`, `h2`, `h3`, `sig` or `pre` — only like pairs with like. */
 const sectionKind = (s: Section) => s.key.split(':')[0];
 
@@ -69,19 +85,41 @@ export const getStructuredDiff = (
   const oldSections = parseSections(older, asDiv);
   const newSections = parseSections(newer, asDiv);
 
-  // A section is the same section when its title matches — so a
-  // renumbered article still pairs with itself — or, when either is
-  // untitled, when its number does. Same-numbered leftovers pair last.
+  // A section is the same section when its heading says so: the same title
+  // (so a renumbered article still pairs with itself), or the same number
+  // when neither has a title. When the heading is ambiguous — the title
+  // recurs ("Almennt." in every chapter), or one side has a title and the
+  // other not — the bodies must also be similar, or a new 3.1 "Almennt."
+  // would take the place of the old 3.1 "Almennt." now numbered 4.1.
+  const sectionSim = memoSimilarity();
+  const titles = (sections: Array<Section>) => {
+    const counts = new Map<string, number>();
+    sections.forEach((x) => {
+      const k = sectionKind(x) + '\0' + x.title;
+      counts.set(k, (counts.get(k) || 0) + 1);
+    });
+    return (x: Section) => counts.get(sectionKind(x) + '\0' + x.title) || 0;
+  };
+  const oldTitles = titles(oldSections);
+  const newTitles = titles(newSections);
+  const sameSection = (x: Section, y: Section) => {
+    if (sectionKind(x) !== sectionKind(y)) {
+      return false;
+    }
+    const byTitle = !!(x.title && y.title);
+    if (byTitle ? x.title !== y.title : x.key !== y.key) {
+      return false;
+    }
+    const ambiguous = byTitle
+      ? oldTitles(x) > 1 || newTitles(y) > 1
+      : !!(x.title || y.title);
+    return !ambiguous || sectionSim(x, y) >= sectionCutoff;
+  };
   const pairs = align(
     oldSections,
     newSections,
-    (x, y) =>
-      sectionKind(x) === sectionKind(y) &&
-      (x.title && y.title ? x.title === y.title : x.key === y.key),
-    (x, y) =>
-      sectionKind(x) === sectionKind(y)
-        ? similarity(sectionText(x), sectionText(y))
-        : 0,
+    sameSection,
+    (x, y) => (sectionKind(x) === sectionKind(y) ? sectionSim(x, y) : 0),
     sectionCutoff,
     { pairLast: (x, y) => x.key === y.key },
   );

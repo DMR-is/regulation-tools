@@ -27,7 +27,10 @@ export const SIGNATURE_DATE_RE = /ráðuneyti\S*,\s*\d{1,2}\.\s+\S+\s+\d{4}\.?$/
 /** The editor marks the closing date line `<p class="Dags">`; older texts may not. */
 export const isSignatureStart = (el: Element, text: string) =>
   el.tagName === 'P' &&
-  (el.classList.contains('Dags') || SIGNATURE_DATE_RE.test(text));
+  (el.classList.contains('Dags') ||
+    // Without the class, only a short line: a body paragraph can end
+    // "… staðfest af ráðuneytinu, 1. janúar 2020." too.
+    (SIGNATURE_DATE_RE.test(text) && text.split(' ').length <= 12));
 
 /** `<p><em>11.2 Lágspennuvirki.</em></p>` — a numbered paragraph that is entirely one em/strong. */
 export const subheadingNumber = (el: Element): string | undefined => {

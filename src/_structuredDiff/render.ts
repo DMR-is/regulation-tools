@@ -152,14 +152,20 @@ export const opAttrs = (op: BlockOp, afterItem?: number): Attrs => {
   return {
     'data-diff': op.type,
     'data-diff-change': op.change,
-    'data-diff-mgr': isItem
-      ? undefined
-      : op.oldBlocks
-      ? op.oldBlocks.map((b) => b.mgr).join(',')
-      : op.old?.mgr,
+    // Old numbering, in the section the element sits in. The arriving end of
+    // a move has none here: its old number is in another section, given by
+    // data-diff-from; like an insert, it gets data-diff-after-mgr instead.
+    'data-diff-mgr':
+      isItem || op.type === 'move'
+        ? undefined
+        : op.oldBlocks
+        ? op.oldBlocks.map((b) => b.mgr).join(',')
+        : op.old?.mgr,
     'data-diff-item': isItem ? op.old?.item : undefined,
     'data-diff-after-mgr':
-      !isItem && op.type === 'insert' ? op.afterOldMgr : undefined,
+      !isItem && (op.type === 'insert' || op.type === 'move')
+        ? op.afterOldMgr
+        : undefined,
     'data-diff-after-item':
       isItem && op.type === 'insert' ? afterItem ?? 0 : undefined,
     'data-diff-from': moveEnd(op.movedFrom),
@@ -204,16 +210,15 @@ export const renderDiff = (
         annotate(
           html,
           {
-            'data-diff-section': sec.label,
+            // Old label, as amending text cites it; the new one only for a new section.
+            'data-diff-section': (s.old || s.new)!.label,
             'data-diff':
               s.type === 'insert' || s.type === 'delete'
                 ? s.type
                 : s.headingChanged
                 ? 'modify'
                 : undefined,
-            'data-diff-renumbered-from': s.renumbered
-              ? s.old!.label
-              : undefined,
+            'data-diff-renumbered-to': s.renumbered ? s.new!.label : undefined,
           },
           asDiv,
         ),

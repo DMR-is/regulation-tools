@@ -27,10 +27,17 @@
   padding: 0 0.125em;
 }
 
+/*
+  Every mark has a cue besides colour (WCAG 1.4.1), following redlining
+  convention: added is underlined, removed struck through, formatting-only
+  dotted, moved double-underlined.
+*/
+
 /* Added */
 :where(ins.diffins, ins.diffmod) {
   background-color: var(--regulation-diff-ins);
-  text-decoration: none;
+  text-decoration: underline solid;
+  text-underline-offset: 0.15em;
 }
 
 /* Removed */
@@ -50,7 +57,8 @@
 /* Moved: highlighted where it arrived, struck through where it left. */
 :where(ins.diffmove) {
   background-color: var(--regulation-diff-move);
-  text-decoration: none;
+  text-decoration: underline double;
+  text-underline-offset: 0.15em;
 }
 :where(del.diffmove) {
   background-color: var(--regulation-diff-move);

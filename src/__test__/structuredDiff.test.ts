@@ -443,6 +443,61 @@ describe('renumbering', () => {
     ]);
   });
 
+  // A heading is ambiguous when its title recurs, or when one side has a
+  // title and the other not; then the bodies must match too.
+  it('pairs a recurring title by body, not by first match', () => {
+    const sub = (n: string, t: string, body: string) =>
+      `<p><em>${n} ${t}</em></p><p>${body}</p>`;
+    const B =
+      'Reglugerð þessi gildir um öll raforkuvirki og neysluveitur á landinu.';
+    const C =
+      'Í þessum kafla eru almenn ákvæði um nýjar hleðslustöðvar fyrir ökutæki.';
+    const d = diff(
+      sub('3.1', 'Almennt.', B) + sub('3.2', 'Y.', 'Texti greinar Y um efnið.'),
+      sub('3.1', 'Almennt.', C) +
+        sub('3.2', 'Z.', 'Texti greinar Z um annað.') +
+        sub('4.1', 'Almennt.', B) +
+        sub('4.2', 'Y.', 'Texti greinar Y um efnið.'),
+    );
+    expect(d.sections.map((s) => [s.type, s.old?.label, s.new?.label])).toEqual(
+      [
+        ['insert', undefined, '3.1. gr.'],
+        ['insert', undefined, '3.2. gr.'],
+        ['modify', '3.1. gr.', '4.1. gr.'],
+        ['modify', '3.2. gr.', '4.2. gr.'],
+      ],
+    );
+    expect(d.sections.filter((s) => s.renumbered)).toHaveLength(2);
+  });
+
+  it('does not pair a titled article with an untitled new one by number', () => {
+    const d = diff(
+      '<h3>5. gr. <em>Gildistaka.</em></h3><p>Reglugerð þessi öðlast þegar gildi.</p>',
+      '<h3>5. gr.</h3><p>Ný grein um eftirlit með framkvæmd.</p><h3>6. gr. <em>Gildistaka.</em></h3><p>Reglugerð þessi öðlast þegar gildi.</p>',
+    );
+    expect(
+      d.sections.map((s) => [
+        s.type,
+        s.old?.label,
+        s.new?.label,
+        !!s.renumbered,
+      ]),
+    ).toEqual([
+      ['insert', undefined, '5. gr.', false],
+      ['modify', '5. gr.', '6. gr.', true],
+    ]);
+  });
+
+  it('still pairs a heading that only lost its title', () => {
+    const d = diff(
+      '<h3>5. gr. <em>Gildistaka.</em></h3><p>Reglugerð þessi öðlast þegar gildi.</p>',
+      '<h3>5. gr.</h3><p>Reglugerð þessi öðlast þegar gildi.</p>',
+    );
+    expect(d.sections.map((s) => [s.type, s.headingChanged])).toEqual([
+      ['modify', true],
+    ]);
+  });
+
   it('still pairs a same-numbered article whose title and body were both rewritten', () => {
     const d = diff(
       '<h3>1. gr. <em>Gildissvið.</em></h3><p>Reglugerðin gildir um rafföng.</p>',
@@ -492,6 +547,18 @@ describe('signature block', () => {
       '<p class="Dags" align="center" data-diff="delete" data-diff-mgr="1" data-diff-signature="true" data-diff-side="old"><del class="diffdel"><em>Fjármála- og efnahagsráðuneytinu, 27. október 2017.</em></del></p>',
     );
     expect(describeChanges(d)).toEqual([]);
+  });
+
+  it('does not take a long body paragraph ending in a ministry date for the signature', () => {
+    const sections = parseSections(
+      body +
+        '<p>Reglugerð þessi var send til umsagnar og staðfest eftir þá umsögn af ráðuneytinu, 1. janúar 2020.</p>' +
+        '<p>Ákvæði hennar gilda áfram.</p>',
+      asDiv,
+    );
+    expect(
+      sections.map((s) => [s.label, s.signature, s.blocks.length]),
+    ).toEqual([['47. gr.', undefined, 3]]);
   });
 
   it('recognises an unclassed date line by its text', () => {
@@ -658,7 +725,8 @@ describe('annotations: the operations in the diff HTML', () => {
     expect(headings).toEqual([
       { 'd-section': '7.5. gr.' },
       { 'd-section': '7.6. gr.', d: 'insert', 'd-side': 'new' },
-      { 'd-section': '7.7. gr.', 'd-renumbered-from': '7.6. gr.' },
+      // Old label, as amending text cites it; the new one named as such.
+      { 'd-section': '7.6. gr.', 'd-renumbered-to': '7.7. gr.' },
     ]);
   });
 
@@ -671,7 +739,13 @@ describe('annotations: the operations in the diff HTML', () => {
     );
     expect(read(d.diff).filter((a) => a.d)).toEqual([
       { d: 'moved', 'd-mgr': '2', 'd-to': '2. gr., 2. mgr.', 'd-side': 'old' },
-      { d: 'move', 'd-mgr': '2', 'd-from': '1. gr., 2. mgr.', 'd-side': 'new' },
+      // Arrived after old 1. mgr. of 2. gr. — not "2. mgr.", its number back in 1. gr.
+      {
+        d: 'move',
+        'd-after-mgr': '1',
+        'd-from': '1. gr., 2. mgr.',
+        'd-side': 'new',
+      },
     ]);
   });
 
