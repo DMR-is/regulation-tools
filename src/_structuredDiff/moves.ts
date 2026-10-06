@@ -5,7 +5,7 @@
 
 import { DIFF_CLASSES } from '../diffClasses';
 
-import { blockSim, modifyDiff } from './blocks';
+import { blockSim, changeOf, modifyDiff } from './blocks';
 import { markWhole } from './render';
 import { words } from './similarity';
 import { AsDiv, Block, BlockOp, SectionOp } from './types';
@@ -65,7 +65,7 @@ export const detectMoves = (
   const pair = (ins: Ref, del: Ref) => {
     const o = del.op.old!;
     const n = ins.op.new!;
-    const edited = o.text !== n.text || o.shape !== n.shape;
+    const change = changeOf(o, n);
     Object.assign(del.op, {
       type: 'moved',
       movedTo: { label: ins.label, mgr: n.mgr },
@@ -75,14 +75,8 @@ export const detectMoves = (
       type: 'move',
       old: o,
       movedFrom: { label: del.label, mgr: o.mgr },
-      change: !edited
-        ? undefined
-        : o.shape === n.shape
-        ? 'text'
-        : o.text === n.text
-        ? 'format'
-        : 'both',
-      diff: edited
+      change,
+      diff: change
         ? modifyDiff(o, n, asDiv)
         : markWhole(n.html, 'ins', asDiv, DIFF_CLASSES.move),
     });
@@ -92,7 +86,7 @@ export const detectMoves = (
   // one's match. A lookup, not a scan: a wholesale rewrite leaves hundreds
   // of each.
   const byContent = new Map<string, Array<Ref>>();
-  const contentKey = (b: Block) => b.shape + '\0' + b.text;
+  const contentKey = (b: Block) => b.canon + '\0' + b.content;
   deletes.forEach((d) => {
     const k = contentKey(d.op.old!);
     byContent.set(k, [...(byContent.get(k) || []), d]);

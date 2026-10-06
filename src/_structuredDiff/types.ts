@@ -17,8 +17,19 @@ export type BlockKind =
 export type Block = {
   kind: BlockKind;
   html: string;
-  /** Normalized text, used for equality. */
+  /** Normalized text, for similarity and phrasing. Flattened: cell and item boundaries are lost. */
   text: string;
+  /**
+   * The text with cell, item and paragraph boundaries kept, so `[1, 23]` and
+   * `[12, 3]` differ. Decides whether the *text* changed.
+   */
+  content: string;
+  /**
+   * The block canonicalised: tags, where formatting sits, the meaningful
+   * attributes (SHAPE_ATTRS), and text, with incidental whitespace removed.
+   * Two blocks are equal only if `content` and `canon` both match.
+   */
+  canon: string;
   /**
    * The element tree with the text removed, e.g. `ol[type=a](li(em),li)`.
    * Equal text with a different shape is a format change: a list going from

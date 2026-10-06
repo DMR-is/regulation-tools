@@ -777,6 +777,133 @@ describe('moves', () => {
 // Format changes: same text, different markup. getDiff misses all but the
 // inline one, and on ol → ul emits mis-nested `<ol><ul>…</ol></ul>`.
 
+// ---------------------------------------------------------------------------
+// Changes that the flattened text and the text-free shape both miss. Each
+// must be detected *and* visibly marked in the rendered diff.
+
+describe('changes hidden from flattened text', () => {
+  const only = (a: string, b: string) => {
+    const d = diff(a, b);
+    const ops = d.sections
+      .flatMap((s) => s.blocks)
+      .filter((o) => o.type !== 'equal');
+    return { ops: ops.map((o) => [o.type, o.change]), diff: d.diff };
+  };
+  const marked = (html: string) => /<(ins|del)\b/.test(html);
+
+  it('sees a value move between table cells: [1, 23] → [12, 3]', () => {
+    const r = only(
+      '<table><tbody><tr><td>1</td><td>23</td></tr></tbody></table>',
+      '<table><tbody><tr><td>12</td><td>3</td></tr></tbody></table>',
+    );
+    expect(r.ops).toEqual([['modify', 'text']]);
+    expect(r.diff).toContain(
+      '<del class="diffmod">1</del><ins class="diffmod">12</ins>',
+    );
+    expect(r.diff).toContain(
+      '<del class="diffmod">23</del><ins class="diffmod">3</ins>',
+    );
+  });
+
+  it('sees words move between list items', () => {
+    const r = only(
+      '<ol>\n<li>a b</li>\n<li>c</li>\n</ol>',
+      '<ol>\n<li>a</li>\n<li>b c</li>\n</ol>',
+    );
+    expect(r.ops).toEqual([['modify', 'text']]);
+    expect(marked(r.diff)).toBe(true);
+  });
+
+  it('sees emphasis move to another word', () => {
+    const r = only(
+      '<p><em>Fyrsta</em> orð hér.</p>',
+      '<p>Fyrsta <em>orð</em> hér.</p>',
+    );
+    expect(r.ops).toEqual([['modify', 'format']]);
+    expect(marked(r.diff)).toBe(true);
+  });
+
+  it.each([
+    [
+      'a link target',
+      '<p>Sjá <a href="/a">reglugerð</a>.</p>',
+      '<p>Sjá <a href="/b">reglugerð</a>.</p>',
+    ],
+    [
+      'an image source',
+      '<p><img src="/x.png"></p>',
+      '<p><img src="/y.png"></p>',
+    ],
+    [
+      'a table span',
+      '<table><tbody><tr><td colspan="2">A</td></tr></tbody></table>',
+      '<table><tbody><tr><td>A</td></tr></tbody></table>',
+    ],
+  ])('sees %s change, marked and annotated', (_, a, b) => {
+    const r = only(a, b);
+    expect(r.ops).toEqual([['modify', 'format']]);
+    expect(marked(r.diff)).toBe(true);
+    expect(r.diff).toContain('data-diff="modify"');
+  });
+
+  it.each([
+    [
+      'a standalone image',
+      '<p>Texti.</p>',
+      '<p>Texti.</p><p><img src="/x.png"></p>',
+    ],
+    [
+      'a loose top-level image',
+      '<p>Texti.</p>',
+      '<p>Texti.</p><img src="/x.png">',
+    ],
+  ])('marks %s inserted, and deleted', (_, a, b) => {
+    const added = only(a, b);
+    expect(added.ops).toEqual([['insert', undefined]]);
+    expect(added.diff).toMatch(
+      /<ins class="diffins"><img src="\/x\.png"><\/ins>/,
+    );
+    const removed = only(b, a);
+    expect(removed.ops).toEqual([['delete', undefined]]);
+    expect(removed.diff).toMatch(
+      /<del class="diffdel"><img src="\/x\.png"><\/del>/,
+    );
+    expect(isWellNested(added.diff) && isWellNested(removed.diff)).toBe(true);
+  });
+
+  it('marks an image added inside a paragraph', () => {
+    const r = only('<p>Texti hér.</p>', '<p>Texti <img src="/x.png"> hér.</p>');
+    expect(r.ops[0]![0]).toBe('modify');
+    expect(r.diff).toMatch(/<ins[^>]*><img src="\/x\.png">\s*<\/ins>/);
+  });
+
+  // Guardrails: whitespace and incidental attributes are not amendments.
+  it.each([
+    [
+      'whitespace between tags',
+      '<p>Texti <em>hér</em>.</p>',
+      '<p>Texti  <em>hér</em>.</p>',
+    ],
+    [
+      'whitespace inside a cell',
+      '<table><tbody><tr><td> 1 </td><td>23</td></tr></tbody></table>',
+      '<table><tbody><tr><td>1</td><td>23</td></tr></tbody></table>',
+    ],
+    [
+      'newlines between items',
+      '<ol><li>a</li><li>b</li></ol>',
+      '<ol>\n<li>a</li>\n<li>b</li>\n</ol>',
+    ],
+    [
+      'an id or a style',
+      '<p><a href="/a" id="x" style="color:red">Sjá</a></p>',
+      '<p><a href="/a">Sjá</a></p>',
+    ],
+  ])('ignores %s', (_, a, b) => {
+    expect(only(a, b).ops).toEqual([]);
+  });
+});
+
 describe('format changes', () => {
   const changeOf = (a: string, b: string) =>
     diff(a, b)

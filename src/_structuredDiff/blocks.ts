@@ -5,7 +5,7 @@
 
 import { splitSentences } from './sentences';
 import { align } from './align';
-import { normalize, shapeOf } from './parse';
+import { canonOf, contentOf, normalize, shapeOf } from './parse';
 import {
   annotate,
   opAttrs,
@@ -35,6 +35,8 @@ export const itemsOf = (
     kind: 'item',
     html: li.outerHTML,
     text: normalize(li.textContent || ''),
+    content: contentOf(li),
+    canon: canonOf(li),
     shape: shapeOf(li),
     blockShape: shapeOf(li, false),
     mgr: list.mgr,
@@ -77,7 +79,12 @@ export const modifyResult = (
       return { diff: list.outerHTML, items };
     }
   }
-  return { diff: safeHtmldiff(o.html, n.html, asDiv) };
+  const diff = safeHtmldiff(o.html, n.html, asDiv);
+  // A change htmldiff cannot mark — an attribute (href, src), an image —
+  // must still show: the old block deleted, the new inserted.
+  return {
+    diff: /<(ins|del)\b/.test(diff) ? diff : replaceDiff(o.html, n.html, asDiv),
+  };
 };
 
 export const modifyDiff = (o: Block, n: Block, asDiv: AsDiv): string =>
@@ -193,16 +200,38 @@ export const extractEdits = (
 };
 
 /** A `modify` op, with its item, sentence and word-level detail. */
+/** Two blocks are the same block, unchanged. */
+export const sameBlock = (x: Block, y: Block) =>
+  x.content === y.content && x.canon === y.canon;
+
+/**
+ * What changed between two blocks: the text (`content`, boundaries
+ * included), the formatting (`shape`, or where formatting and attributes
+ * sit when the text did not change), or both. Undefined if nothing.
+ */
+export const changeOf = (o: Block, n: Block): BlockOp['change'] | undefined => {
+  const textChanged = o.content !== n.content;
+  const formatChanged =
+    o.shape !== n.shape || (!textChanged && o.canon !== n.canon);
+  return textChanged && formatChanged
+    ? 'both'
+    : textChanged
+    ? 'text'
+    : formatChanged
+    ? 'format'
+    : undefined;
+};
+
 export const modifyOp = (o: Block, n: Block, asDiv: AsDiv): BlockOp => {
-  const textChanged = o.text !== n.text;
-  const formatChanged = o.shape !== n.shape;
+  const change = changeOf(o, n);
+  const textChanged = change === 'text' || change === 'both';
   const { diff, items } = modifyResult(o, n, asDiv);
   const prose = !items && textChanged && o.kind !== 'table';
   return {
     type: 'modify',
     old: o,
     new: n,
-    change: !formatChanged ? 'text' : textChanged ? 'both' : 'format',
+    change,
     diff,
     items,
     sentences: prose ? diffSentences(o.text, n.text) : undefined,
@@ -234,19 +263,12 @@ export const diffBlocks = (
   replaceFloor: number,
   asDiv: AsDiv,
 ): Array<BlockOp> => {
-  const pairs = align(
-    oldBlocks,
-    newBlocks,
-    (x, y) => x.text === y.text && x.shape === y.shape,
-    blockSim,
-    cutoff,
-    {
-      joinSim: joinedSim,
-      positionalReplace: true,
-      replaceable: (x, y) => !x.term || !y.term || x.term === y.term,
-      pairFirst: (x, y) => !!x.term && x.term === y.term,
-    },
-  );
+  const pairs = align(oldBlocks, newBlocks, sameBlock, blockSim, cutoff, {
+    joinSim: joinedSim,
+    positionalReplace: true,
+    replaceable: (x, y) => !x.term || !y.term || x.term === y.term,
+    pairFirst: (x, y) => !!x.term && x.term === y.term,
+  });
   let afterOldMgr = 0;
   return pairs.map(({ type, a, b, aEnd, bEnd }): BlockOp => {
     const o = a != null ? oldBlocks[a] : undefined;

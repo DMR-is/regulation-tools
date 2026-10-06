@@ -46,7 +46,17 @@ export const subheadingNumber = (el: Element): string | undefined => {
 };
 
 /** Attributes that change what a block means or how it reads. */
-export const SHAPE_ATTRS = ['type', 'start', 'class'];
+export const SHAPE_ATTRS = [
+  'type',
+  'start',
+  'class',
+  // Change what a link points to, which image shows, or a table's layout.
+  // Ids and styles are deliberately left out: incidental, not meaning.
+  'href',
+  'src',
+  'colspan',
+  'rowspan',
+];
 
 /** Inline formatting. Left out of `blockShape`. */
 export const INLINE_TAGS = new Set([
@@ -67,6 +77,9 @@ export const INLINE_TAGS = new Set([
   'sub',
   'sup',
   'u',
+  // An image sits in running text like a word; whole-block marking wraps it
+  // with the text around it, so an inserted or deleted image is marked.
+  'img',
 ]);
 
 export const isInline = (node: ChildNode) =>
@@ -100,8 +113,9 @@ export const childShapes = (el: Element, inline: boolean): Array<string> => {
     : shapes;
 };
 
-export const shapeOf = (el: Element, inline = true): string => {
-  const attrs = SHAPE_ATTRS.map((name) => {
+/** An element's meaningful attributes as `[name=value]…`; class names sorted. */
+const attrsOf = (el: Element) =>
+  SHAPE_ATTRS.map((name) => {
     let value = el.getAttribute(name);
     if (value == null) {
       return '';
@@ -114,9 +128,67 @@ export const shapeOf = (el: Element, inline = true): string => {
     }
     return `[${name}=${value}]`;
   }).join('');
+
+export const shapeOf = (el: Element, inline = true): string => {
   const children = childShapes(el, inline).join(',');
-  return el.tagName.toLowerCase() + attrs + (children ? `(${children})` : '');
+  return (
+    el.tagName.toLowerCase() + attrsOf(el) + (children ? `(${children})` : '')
+  );
 };
+
+const canonNode = (node: Node): string => {
+  if (node.nodeType === 3) {
+    return (node.textContent || '').replace(/\s+/g, ' ');
+  }
+  if (node.nodeType !== 1) {
+    return '';
+  }
+  const el = node as Element;
+  const tag = el.tagName.toLowerCase();
+  const inner = Array.from(el.childNodes).map(canonNode).join('');
+  return `<${tag}${attrsOf(el)}>${inner}</${tag}>`;
+};
+
+/**
+ * The block canonicalised for equality: where every tag and text sits, with
+ * the meaningful attributes. Whitespace next to a tag is dropped as
+ * incidental — a word joined or split there still shows in `contentOf`.
+ */
+export const canonOf = (el: Element) =>
+  canonNode(el)
+    .replace(/ ?(<[^>]+>) ?/g, '$1')
+    .trim();
+
+/** Marks a cell, item or paragraph boundary inside `contentOf`. */
+const BOUNDARY = '\u241f';
+
+const contentNode = (node: Node): string => {
+  if (node.nodeType === 3) {
+    return node.textContent || '';
+  }
+  if (node.nodeType !== 1) {
+    return '';
+  }
+  const el = node as Element;
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'br') {
+    return ' ';
+  }
+  if (tag === 'img') {
+    return '\ufffc'; // an image is content, like a word
+  }
+  const inner = Array.from(el.childNodes).map(contentNode).join('');
+  return INLINE_TAGS.has(tag) ? inner : BOUNDARY + inner + BOUNDARY;
+};
+
+/** The text with cell, item and paragraph boundaries kept. */
+export const contentOf = (el: Element) =>
+  contentNode(el)
+    .replace(/\s+/g, ' ')
+    // A run of boundaries with whitespace between them is one boundary.
+    .replace(new RegExp(`(?: ?${BOUNDARY})+ ?`, 'g'), BOUNDARY)
+    .replace(new RegExp(`^${BOUNDARY}|${BOUNDARY}$`, 'g'), '')
+    .trim();
 
 /** "Seljandi" from `<p><em>Seljandi:</em> Framleiðandi …</p>`. */
 export const definedTerm = (el: Element, text: string): string | undefined => {
@@ -167,6 +239,7 @@ export const parseSections = (
 
   const pushBlock = (
     kind: BlockKind,
+    el: Element,
     html: string,
     text: string,
     shape: string,
@@ -176,7 +249,17 @@ export const parseSections = (
     if (kind === 'paragraph' || kind === 'text' || mgr === 0) {
       mgr++;
     }
-    current.blocks.push({ kind, html, text, shape, blockShape, term, mgr });
+    current.blocks.push({
+      kind,
+      html,
+      text,
+      content: contentOf(el),
+      canon: canonOf(el).replace(/^<div>|<\/div>$/g, ''),
+      shape,
+      blockShape,
+      term,
+      mgr,
+    });
   };
 
   const root = asDiv(html);
@@ -188,9 +271,11 @@ export const parseSections = (
     run.forEach((node) => wrap.appendChild(node.cloneNode(true)));
     run = [];
     const text = normalize(wrap.textContent || '');
-    if (text) {
+    // An image is content too: a run of only an image is still a block.
+    if (text || wrap.querySelector('img')) {
       pushBlock(
         'text',
+        wrap,
         wrap.innerHTML,
         text,
         shapeOf(wrap).replace(/^div/, '#text'),
@@ -260,6 +345,7 @@ export const parseSections = (
     }
     pushBlock(
       blockKind(el),
+      el,
       el.outerHTML,
       text,
       shapeOf(el),

@@ -70,7 +70,13 @@ export const markWhole = (
   const wrapRuns = (el: Element) => {
     let run: Array<ChildNode> = [];
     const flush = () => {
-      if (run.some((node) => (node.textContent || '').trim())) {
+      // Visible content: text, or an image — which has no text of its own.
+      const visible = (node: ChildNode) =>
+        !!(node.textContent || '').trim() ||
+        (node.nodeType === 1 &&
+          ((node as Element).tagName === 'IMG' ||
+            !!(node as Element).querySelector('img')));
+      if (run.some(visible)) {
         const mark = doc.createElement(tag);
         mark.className = className;
         el.insertBefore(mark, run[0]!);
