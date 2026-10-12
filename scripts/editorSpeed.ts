@@ -7,7 +7,8 @@
     npx esbuild scripts/editorSpeed.ts --bundle --platform=node \
       --packages=external --outfile=/tmp/editorSpeed.js
     NODE_PATH=$PWD/node_modules node /tmp/editorSpeed.js \
-      [--docs=0112-2012/current/text,…] [--runs=3] [--cpu=4] [--out=file.json]
+      [--docs=0112-2012/current/text,…] [--runs=3] [--cpu=4] [--react=18]
+      [--out=file.json]
 
   Texts come from the corpus cache (scripts/editorCorpus.ts); with no
   `--docs`, the five longest in .cache/editor-corpus/census.json. No API
@@ -29,6 +30,11 @@
     took over 1.5 s) and now waits for "Endurreikna breytingar". When it is
     off, a short pause freeze only means the diff did not run.
 
+  Every run also checks that the editor works: the typed text lands in the
+  paragraph, and while auto-diff is on, the diff pane shows it as inserted.
+  `--react=18` bundles the page with React 18 (the `react-18` alias in
+  devDependencies) instead of 19, so the same run is a smoke test on both.
+
   `--cpu` slows the CPU down (Chrome's throttling) to stand in for the
   office laptops the editors use; 1 is this machine at full speed.
 */
@@ -45,6 +51,7 @@ const argStr = (name: string) =>
 const RUNS = Number(argStr('runs') ?? 3);
 const CPU = Number(argStr('cpu') ?? 4);
 const OUT = argStr('out');
+const REACT = argStr('react') ?? '19';
 const ROUNDS = 3;
 const KEYS_PER_ROUND = 20;
 const KEYS = ROUNDS * KEYS_PER_ROUND;
@@ -93,6 +100,8 @@ const bundle = async () => {
     platform: 'browser',
     format: 'iife',
     minify: true,
+    alias:
+      REACT === '18' ? { react: 'react-18', 'react-dom': 'react-dom-18' } : {},
     define: {
       'process.env.NODE_ENV': '"production"',
       // As build.js does for the package.
@@ -100,7 +109,7 @@ const bundle = async () => {
     },
     logLevel: 'warning',
   });
-  return result.outputFiles[0]!.text;
+  return result.outputFiles![0]!.text; // set with `write: false`
 };
 
 const serve = (js: string, docs: Map<string, string>) => {
@@ -215,6 +224,16 @@ const measure = async (page: Page, url: string): Promise<Measure> => {
   const autoDiffOff = await page.evaluate(
     () => !!document.querySelector('[data-needs-updating]'),
   );
+  if (!autoDiffOff) {
+    const shown = await page.evaluate(() =>
+      [...document.querySelectorAll('.result ins')].some((ins) =>
+        ins.textContent!.includes('fleira'),
+      ),
+    );
+    if (!shown) {
+      throw new Error(`the diff pane does not show the typed text: ${url}`);
+    }
+  }
 
   const { events, longtasks } = await timings(page);
   const maxIn = (from: number, to: number) =>
@@ -256,8 +275,14 @@ const run = async () => {
   const results: Array<
     { id: string; chars: number } & Measure & { runs: Array<Measure> }
   > = [];
+  const probe = await browser.newPage();
+  await probe.goto(`${base}/?doc=${encodeURIComponent(ids[0]!)}`);
+  const reactVersion = await probe.evaluate(
+    () => (window as any).__reactVersion as string,
+  );
+  await probe.close();
   console.log(
-    `CPU throttling ${CPU}×, ${RUNS} runs each, ${ROUNDS}×${KEYS_PER_ROUND} keys at ${KEY_DELAY_MS} ms\n`,
+    `React ${reactVersion}, CPU throttling ${CPU}×, ${RUNS} runs each, ${ROUNDS}×${KEYS_PER_ROUND} keys at ${KEY_DELAY_MS} ms\n`,
   );
   for (const id of ids) {
     const runs: Array<Measure> = [];
@@ -293,7 +318,10 @@ const run = async () => {
   await browser.close();
   close();
   if (OUT) {
-    writeFileSync(OUT, JSON.stringify({ cpu: CPU, results }, null, 1));
+    writeFileSync(
+      OUT,
+      JSON.stringify({ cpu: CPU, react: reactVersion, results }, null, 1),
+    );
   }
 };
 

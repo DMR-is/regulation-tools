@@ -15,6 +15,7 @@ declare global {
   interface Window {
     __html: HTMLText;
     __readyAt?: number;
+    __reactVersion: string;
   }
 }
 
@@ -37,6 +38,7 @@ const App = () => (
   />
 );
 
+window.__reactVersion = React.version;
 createRoot(document.getElementById('root')!).render(<App />);
 
 // The editor is ready when TinyMCE has marked its content area.

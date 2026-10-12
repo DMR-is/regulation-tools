@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useOnUpdate } from '@hugsmidjan/react/hooks';
 
+import { useOnUpdate } from './_utils/hooks';
 import { Angsts, WarningList } from './useTextWarnings';
 import { getTexts } from './utils';
 

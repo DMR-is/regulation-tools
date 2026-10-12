@@ -409,6 +409,16 @@ change):**
    runs on React 19 in production; the checks below make sure it keeps
    doing so.
 
+**Found while testing:** on React 19 the current editor takes about 300 ms
+longer to appear (0340/2017: 0.70 s against 0.40 s on 18; 0112/2012: 1.3 s
+against 1.0 s). It is React 19's `Suspense` behaviour: once a fallback has
+been shown, React holds the content back for up to 300 ms. `Editor` loads
+`EditorFrame` with `React.lazy` inside `Suspense`; without the lazy loading,
+both versions load in about 0.5 s. It is not caused by this change: island.is
+and official-journal-web already run the current editor on React 19. v2
+loads its editor code without a `Suspense` fallback (a dynamic import in an
+effect, or a preloaded chunk) to avoid it.
+
 **Making sure nothing else stops working:**
 
 - `tsc` and the Jest suite pass with React 19 types.

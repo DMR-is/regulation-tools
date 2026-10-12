@@ -5,7 +5,7 @@
 //  been properly tested
 
 import React, { MutableRefObject, useCallback, useMemo, useState } from 'react';
-import { useDomid } from '@hugsmidjan/react/hooks';
+import { useDomid } from './_utils/hooks';
 import { Editor as TinyMCE, IAllProps } from '@tinymce/tinymce-react';
 import type { Editor } from 'tinymce';
 

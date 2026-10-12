@@ -8,9 +8,9 @@ import React, {
 } from 'react';
 import classes from '@hugsmidjan/qj/classes';
 import debounce from '@hugsmidjan/qj/debounce';
-import { useIsBrowserSide } from '@hugsmidjan/react/hooks';
 import { IAllProps } from '@tinymce/tinymce-react';
 
+import { useIsBrowserSide } from './_utils/hooks';
 import { EditorFileUploader, EditorFrameClasses } from './EditorFrame';
 import { getDiff, HTMLDump } from './html';
 import { TextWarnings, TextWarningsClasses } from './TextWarnings';
@@ -288,7 +288,7 @@ export const Editor = (
     [],
   );
 
-  const editorDivRef = useRef<HTMLElement>();
+  const editorDivRef = useRef<HTMLElement>(undefined);
   const warnings = useTextWarnings(
     debouncedCurrentText,
     props.isImpact,
