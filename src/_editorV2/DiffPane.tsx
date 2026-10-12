@@ -78,14 +78,65 @@ export const DiffPane = (props: { parts: Array<DiffPart> }) => {
       old.every((r, i) => r.key === parts[i]!.key);
 
     if (!sameKeys) {
-      // Sections were added, removed or re-paired: build the pane anew,
-      // remembering which nodes belong to which part.
-      container.textContent = '';
-      rendered.current = parts.map((p, i) => {
-        const nodes = nodesOf(p.html, i);
-        container.append(...nodes);
-        return { key: p.key, html: p.html, nodes };
+      // Sections were added, removed or re-paired. Keep the parts that are
+      // unchanged at the start and the end where they are, and rebuild the
+      // middle: adding an article then lays out that article, not the
+      // whole regulation again.
+      const same = (r: Rendered | undefined, p: DiffPart | undefined) =>
+        !!r && !!p && r.key === p.key && r.html === p.html;
+      let head = 0;
+      while (same(old[head], parts[head])) {
+        head++;
+      }
+      let tail = 0;
+      while (
+        tail < old.length - head &&
+        tail < parts.length - head &&
+        same(old[old.length - 1 - tail], parts[parts.length - 1 - tail])
+      ) {
+        tail++;
+      }
+      const removed = old.slice(head, old.length - tail);
+      const added = parts.slice(head, parts.length - tail).map((p, j) => ({
+        key: p.key,
+        html: p.html,
+        nodes: nodesOf(p.html, head + j),
+      }));
+      const before = old[head - 1]?.nodes.at(-1);
+      const after =
+        removed.flatMap((r) => r.nodes)[0] ?? old[old.length - tail]?.nodes[0];
+      const newNodes = added.flatMap((r) => r.nodes);
+      if (after) {
+        after.before(...newNodes);
+      } else if (before) {
+        before.after(...newNodes);
+      } else {
+        container.append(...newNodes);
+      }
+      removed.forEach((r) => r.nodes.forEach((n) => n.remove()));
+      const next = [
+        ...old.slice(0, head),
+        ...added,
+        ...old.slice(old.length - tail),
+      ];
+      // Each part but the first starts with the separator; a part kept from
+      // the end may have become the first, or the first may have moved on.
+      next.forEach((r, i) => {
+        const first = r.nodes[0];
+        const hasSeparator =
+          !!first && first.nodeType === 3 && first.textContent === SEPARATOR;
+        if (i === 0 && hasSeparator) {
+          first.remove();
+          r.nodes = r.nodes.slice(1);
+        } else if (i > 0 && !hasSeparator) {
+          const separator = document.createTextNode(SEPARATOR);
+          first
+            ? first.before(separator)
+            : next[i - 1]!.nodes.at(-1)!.after(separator);
+          r.nodes = [separator, ...r.nodes];
+        }
       });
+      rendered.current = next;
       return;
     }
     rendered.current = parts.map((p, i) => {

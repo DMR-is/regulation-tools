@@ -93,6 +93,36 @@ describe('DiffPane', () => {
     unmount();
   });
 
+  test("an added section leaves the other sections' nodes in place", () => {
+    const { host, render, unmount } = mount();
+    render(v1);
+    const pane = host.firstElementChild!;
+    const [h1, , h3] = Array.from(pane.querySelectorAll('h3'));
+    const v2 = [
+      v1[0]!,
+      part('gr:1a', '<h3>1. gr. a</h3><p>Ný.</p>'),
+      v1[1]!,
+      v1[2]!,
+    ];
+    render(v2);
+    expect(pane.innerHTML).toBe(v2.map((p) => p.html).join('\n'));
+    const now = Array.from(pane.querySelectorAll('h3'));
+    expect(now[0]).toBe(h1);
+    expect(now[3]).toBe(h3);
+    unmount();
+  });
+
+  test('removing the first or the last section keeps the separators right', () => {
+    const { host, render, unmount } = mount();
+    render(v1);
+    const pane = host.firstElementChild!;
+    for (const parts of [v1.slice(1), v1, v1.slice(0, 2), [v1[1]!], v1, []]) {
+      render(parts);
+      expect(pane.innerHTML).toBe(parts.map((p) => p.html).join('\n'));
+    }
+    unmount();
+  });
+
   test('rebuilds when sections are added or removed', () => {
     const { host, render, unmount } = mount();
     render(v1);
