@@ -36,13 +36,29 @@ const angstClasses: Record<keyof typeof Angsts, keyof TextWarningsClasses> = {
 type ItemProps = WarningList[0] & {
   contentRoot: HTMLElement;
   classes: TextWarningsClasses;
+  highlight?: (elm: Element) => void;
+};
+
+/** Marks the element for a second. EditorV2 passes its own `highlight`:
+ * ProseMirror reverts attributes set on its DOM from outside. */
+const highlightByAttribute = (elm: Element) => {
+  elm.setAttribute('data-highighted', '');
+  setTimeout(() => {
+    elm.removeAttribute('data-highighted');
+  }, 1000);
 };
 
 const MAX_INSTANCES = 25;
 
 const TextWarnings__item = (props: ItemProps) => {
   const s = props.classes;
-  const { warning, angst = Angsts.medium, find, contentRoot } = props;
+  const {
+    warning,
+    angst = Angsts.medium,
+    find,
+    contentRoot,
+    highlight = highlightByAttribute,
+  } = props;
   const [instances, setInstances] = useState<Array<Element>>();
 
   const notToggled = instances?.length == null;
@@ -54,10 +70,7 @@ const TextWarnings__item = (props: ItemProps) => {
   const show = (elm: Element) => {
     setInstances(undefined);
     elm.scrollIntoView({ block: 'center' });
-    elm.setAttribute('data-highighted', '');
-    setTimeout(() => {
-      elm.removeAttribute('data-highighted');
-    }, 1000);
+    highlight(elm);
   };
 
   return (
@@ -109,6 +122,9 @@ export type TextWarningsProps = {
   warnings: WarningList;
   contentRoot?: HTMLElement;
   classes: TextWarningsClasses;
+  /** How a found element is pointed out. Default: a `data-highighted`
+   * attribute for a second. */
+  highlight?: (elm: Element) => void;
 };
 
 export const TextWarnings = (props: TextWarningsProps) => {
@@ -131,6 +147,7 @@ export const TextWarnings = (props: TextWarningsProps) => {
             find={find}
             contentRoot={contentRoot}
             classes={s}
+            highlight={props.highlight}
           />
         ))}
       </ul>

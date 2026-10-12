@@ -420,7 +420,8 @@ export const regulationSchemaExtensions = [
   // outermost.
   Link.extend({ priority: 50 }).configure({
     openOnClick: false,
-    autolink: false,
+    // As TinyMCE's autolink plugin: a URL typed into the text becomes a link.
+    autolink: true,
     linkOnPaste: false,
     HTMLAttributes: { target: null, rel: null, class: null },
   }),

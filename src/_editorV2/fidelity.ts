@@ -14,7 +14,8 @@
   `document` (see src/__test__/editorV2-dom.ts).
 */
 
-import { createDocument, getSchema } from '@tiptap/core';
+import { createDocument, elementFromString, getSchema } from '@tiptap/core';
+import { DOMParser, Schema } from '@tiptap/pm/model';
 
 import { HTMLText } from '../types';
 
@@ -73,4 +74,59 @@ export const checkFidelity = (
     idempotent: cleanup(roundTrip(once)) === cleanup(once as HTMLText),
     difference: ok ? undefined : firstDifference(expected, once),
   };
+};
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Elements ProseMirror passes over without loss: wrappers whose content it
+ * reads (`tbody`), and the allowed changes in docs/plan-tiptap-editor.md
+ * ("Schema"): empty `colgroup`/`col`, and `font`, whose text is kept.
+ */
+const PASSED_OVER = new Set([
+  'TBODY',
+  'THEAD',
+  'TFOOT',
+  'COLGROUP',
+  'COL',
+  'FONT',
+]);
+
+/**
+ * The schema plus a catch-all node that records every element no rule of
+ * the schema takes, as Tiptap's own content check does.
+ */
+let unsupported: Array<string> = [];
+const checkSchema = new Schema({
+  topNode: schema.spec.topNode,
+  marks: schema.spec.marks,
+  nodes: schema.spec.nodes.append({
+    __unsupported: {
+      content: 'inline*',
+      group: 'block',
+      parseDOM: [
+        {
+          tag: '*',
+          priority: 0,
+          getAttrs: (elm) => {
+            if (!PASSED_OVER.has(elm.tagName)) {
+              unsupported.push(elm.outerHTML.slice(0, 200));
+            }
+            return false; // never actually matches
+          },
+        },
+      ],
+    },
+  }),
+});
+
+/**
+ * Elements in `html` the editor would drop on load, as short HTML snippets;
+ * empty when the text loads whole. For the warning in the browser, where
+ * the full check (which needs cleanup, and so jsdom) cannot run.
+ */
+export const findUnsupportedElements = (html: string): Array<string> => {
+  unsupported = [];
+  DOMParser.fromSchema(checkSchema).parse(elementFromString(html));
+  return unsupported;
 };

@@ -4,7 +4,12 @@
 */
 
 import { getHTMLFromFragment } from '@tiptap/core';
-import { Fragment, Schema } from '@tiptap/pm/model';
+import {
+  DOMSerializer,
+  Fragment,
+  Node as PMNode,
+  Schema,
+} from '@tiptap/pm/model';
 
 import { HTMLText } from '../types';
 
@@ -32,4 +37,33 @@ export const toRegulationHTML = (
   container.innerHTML = getHTMLFromFragment(fragment, schema);
   unwrapLoneParagraphs(container);
   return container.innerHTML as HTMLText;
+};
+
+/**
+ * The same output as `toRegulationHTML`, written one top-level node at a
+ * time and remembered per node. ProseMirror documents are immutable: a
+ * top-level node a change did not touch is the same object afterwards, so
+ * after a keystroke only the edited article's paragraph is written again.
+ */
+export const createRegulationSerializer = (schema: Schema) => {
+  const serializer = DOMSerializer.fromSchema(schema);
+  const cache = new WeakMap<PMNode, string>();
+  const nodeHTML = (node: PMNode) => {
+    let html = cache.get(node);
+    if (html == null) {
+      const container = document.createElement('div');
+      container.appendChild(serializer.serializeNode(node));
+      unwrapLoneParagraphs(container);
+      html = container.innerHTML;
+      cache.set(node, html);
+    }
+    return html;
+  };
+  return (doc: PMNode): HTMLText => {
+    let html = '';
+    doc.forEach((node) => {
+      html += nodeHTML(node);
+    });
+    return html as HTMLText;
+  };
 };
