@@ -591,10 +591,11 @@ npm releases are kept to a minimum, since each one is work for three
 consuming apps.
 
 - **One branch, `feat/editor-v2`, one PR.** Work that one phase needs from
-  another stays on the same branch. A draft PR into `main` is opened early so
-  people can follow and comment as it grows; it is marked ready at release
-  time. Commits are kept per logical step, so the PR can be read commit by
-  commit.
+  another stays on the same branch. The PR into `main` (#7) was a draft while
+  phases 0–3 were built, and was marked ready for review before the first
+  pre-release, so it is reviewed before the apps try it. It is merged after
+  the trial; pre-releases are published from the branch. Commits are kept
+  per logical step, so the PR can be read commit by commit.
 - **1.0.0:** React 19 baseline (React 16/17 dropped) + `EditorV2` (with
   `createStructuredDiffer` in its pane), beside the unchanged `Editor`.
   Decided: 1.0, not 0.12 — dropping React versions is breaking, and from
