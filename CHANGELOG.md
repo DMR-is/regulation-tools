@@ -27,7 +27,16 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
   text; lettered and roman lists keep their items' formatting, links and
   nested lists; "N. gr." detection handles `<br>` and leaves no empty
   paragraph.
+- **Security:** Pasted HTML could run script in both editors
+  (`<img src=x onerror=…>` ran when the paste pipeline parsed it with the
+  page's own document). Clipboard HTML and imported Word documents are now
+  sanitised in an inert document first: active elements, `on*` handlers and
+  `javascript:` URLs are removed. Applies to `Editor` too.
 - Feat: `TextWarnings` takes an optional `highlight` function.
+- Note: `Editor` still uses `@tinymce/tinymce-react` 3.x, whose peer range
+  stops at React 18, so installing on React 19 gives a peer-dependency
+  warning. It works (two of the apps already run it on 19); it goes away
+  with `Editor` in 2.0.0.
 
 ## 0.11.0
 

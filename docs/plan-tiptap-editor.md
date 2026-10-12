@@ -1,6 +1,7 @@
 # Editor v2 on Tiptap
 
-Status: **planning**. Nothing built yet.
+Status: **phases 0–3 done**; `1.0.0-next.1` prepared for the trial in the
+apps (phase 4). PR #7, reviewed; see *Review of PR #7* below.
 
 The goal is to replace the TinyMCE 5 editor (end-of-life since April 2023) with
 one built on Tiptap/ProseMirror, losing no functionality and no content. The
@@ -616,6 +617,38 @@ consuming apps.
   tests pass unchanged, and the corpus run's "untouched save" check covers
   it on real texts.
 - **2.0.0:** removes TinyMCE and the old `Editor`, once no app uses them.
+
+## Review of PR #7
+
+A review before the trial found 18 issues; each was checked against the
+code before anything changed.
+
+- **Fixed, must:** pasted HTML ran script in both editors (the pipeline
+  parsed it with the page's document); now sanitised first, in an inert
+  document. Read-only editors could still be changed from the alignment,
+  numbering and table dropdowns and by replace; those are now disabled.
+- **Fixed, should:** a paste with images now lands where it was pasted
+  even if the text changes during the upload, and is inserted at once when
+  there are no images; HTML from other ProseMirror editors (Confluence,
+  other Tiptap) is no longer mistaken for this editor's own copies; the
+  dropdowns follow the disclosure pattern (Escape, focus, `aria-pressed`)
+  and the format menu is one of them instead of a `<select>` (on Windows a
+  closed `<select>` applied each format arrowed past); accessible names for
+  the toolbar, dialogs and the source box; a visible focus ring; borders
+  at 3.66:1 and active buttons marked by more than colour; Escape and focus
+  return for the search panel; Word and image failures shown in an alert.
+- **Fixed, optional:** non-base64 `data:` images are left alone again;
+  Enter in the link dialog waits for an upload; no `useLayoutEffect`
+  warning when server-rendered on React 18; the React 19 peer warning from
+  `@tinymce/tinymce-react` noted in the changelog.
+- **Not changed:** Tiptap stays pinned to an exact version. The fidelity
+  results (1,214 of 1,234 lossless) are for that version: a Tiptap update
+  can change how HTML is parsed (its whitespace handling already needed a
+  workaround), so updates should be deliberate and rerun the corpus.
+  The parity tests' fixed waits stay: they wait out `Editor`'s own
+  delayed `setContent`, and have been stable.
+- **Follow-up before 1.0.0:** the image button sets alt text from the file
+  name with no way to edit it; TinyMCE's image dialog had an alt field.
 
 ## Phases
 
