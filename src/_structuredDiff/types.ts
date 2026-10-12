@@ -208,3 +208,25 @@ export type StructuredDiffOptions = {
 };
 
 export type AsDiv = StructuredDiffOptions['asDiv'];
+
+/** One section's diff HTML, for updating a diff pane one section at a time. */
+export type DiffPart = {
+  /** Unique within the diff, and the same from run to run while the section pairs the same. */
+  key: string;
+  html: HTMLText;
+};
+
+export type IncrementalDiff = StructuredDiff & {
+  /** `diff` is these parts' `html`, joined with "\n". */
+  parts: Array<DiffPart>;
+};
+
+/**
+ * Diffs one base text against successive versions of a new one, redoing only
+ * what changed since the last call. Results share objects with each other
+ * and with the differ's caches: read them, never mutate them.
+ */
+export type StructuredDiffer = {
+  /** Equals `getStructuredDiff(older, newer, opts)`, plus `parts`. */
+  diff: (newer: HTMLText) => IncrementalDiff;
+};

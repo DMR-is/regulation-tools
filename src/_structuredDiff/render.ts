@@ -186,12 +186,31 @@ export const renderOp = (op: BlockOp, asDiv: AsDiv): string =>
     ? markWhole(op.new!.html, 'ins', asDiv)
     : markWhole(op.old!.html, 'del', asDiv);
 
-export const renderDiff = (
+/**
+ * Remembers a rendered piece by a key that names everything it depends on.
+ * The incremental differ passes one; everything rendered here is a pure
+ * function of strings, so a hit is always the same HTML.
+ */
+export type RenderMemo = (key: string, make: () => string) => string;
+
+const noMemo: RenderMemo = (_key, make) => make();
+
+/** `annotate` sets attributes as strings, so 1 and "1" are the same key. */
+const attrsKey = (attrs: Attrs) =>
+  JSON.stringify(attrs, (_k, v) => (typeof v === 'number' ? String(v) : v));
+
+/** Each section's diff HTML, as the pieces `renderDiff` joins. */
+export const renderSections = (
   sections: Array<SectionOp>,
   asDiv: AsDiv,
-): HTMLText => {
-  const out: Array<string> = [];
-  for (const s of sections) {
+  memo: RenderMemo = noMemo,
+): Array<Array<string>> => {
+  const annotated = (html: string, attrs: Attrs) =>
+    memo('a\0' + attrsKey(attrs) + '\0' + html, () =>
+      annotate(html, attrs, asDiv),
+    );
+  return sections.map((s) => {
+    const out: Array<string> = [];
     const sec = (s.new || s.old)!;
     const signature = sec.signature ? 'true' : undefined;
     const oh = s.old?.heading?.html || '';
@@ -201,44 +220,51 @@ export const renderDiff = (
       const html =
         oh === nh
           ? nh
-          : !oh
-          ? markWhole(nh, 'ins', asDiv)
-          : !nh
-          ? markWhole(oh, 'del', asDiv)
-          : safeHtmldiff(oh, nh, asDiv);
+          : memo('h\0' + oh + '\0' + nh, () =>
+              !oh
+                ? markWhole(nh, 'ins', asDiv)
+                : !nh
+                ? markWhole(oh, 'del', asDiv)
+                : safeHtmldiff(oh, nh, asDiv),
+            );
       out.push(
-        annotate(
-          html,
-          {
-            // Old label, as amending text cites it; the new one only for a new section.
-            'data-diff-section': (s.old || s.new)!.label,
-            'data-diff':
-              s.type === 'insert' || s.type === 'delete'
-                ? s.type
-                : s.headingChanged
-                ? 'modify'
-                : undefined,
-            'data-diff-renumbered-to': s.renumbered ? s.new!.label : undefined,
-          },
-          asDiv,
-        ),
+        annotated(html, {
+          // Old label, as amending text cites it; the new one only for a new section.
+          'data-diff-section': (s.old || s.new)!.label,
+          'data-diff':
+            s.type === 'insert' || s.type === 'delete'
+              ? s.type
+              : s.headingChanged
+              ? 'modify'
+              : undefined,
+          'data-diff-renumbered-to': s.renumbered ? s.new!.label : undefined,
+        }),
       );
     }
     for (const b of s.blocks) {
-      const html = renderOp(b, asDiv);
+      const html =
+        b.type === 'equal' || b.diff != null
+          ? renderOp(b, asDiv)
+          : memo(
+              b.type === 'insert' ? 'i\0' + b.new!.html : 'd\0' + b.old!.html,
+              () => renderOp(b, asDiv),
+            );
       out.push(
         b.type === 'equal' && !signature
           ? html
-          : annotate(
-              html,
-              {
-                ...(b.type === 'equal' ? {} : opAttrs(b)),
-                'data-diff-signature': signature,
-              },
-              asDiv,
-            ),
+          : annotated(html, {
+              ...(b.type === 'equal' ? {} : opAttrs(b)),
+              'data-diff-signature': signature,
+            }),
       );
     }
-  }
-  return out.join('\n') as HTMLText;
+    return out;
+  });
 };
+
+export const renderDiff = (
+  sections: Array<SectionOp>,
+  asDiv: AsDiv,
+  memo?: RenderMemo,
+): HTMLText =>
+  renderSections(sections, asDiv, memo).flat().join('\n') as HTMLText;
