@@ -439,9 +439,11 @@ effect, or a preloaded chunk) to avoid it.
 npm releases are kept to a minimum, since each one is work for three
 consuming apps.
 
-- **One feature branch, one PR per phase into it.** Each phase is reviewed
-  and merged into the branch on its own; the branch goes to `main` as one PR
-  and one release.
+- **One branch, `feat/editor-v2`, one PR.** Work that one phase needs from
+  another stays on the same branch. A draft PR into `main` is opened early so
+  people can follow and comment as it grows; it is marked ready at release
+  time. Commits are kept per logical step, so the PR can be read commit by
+  commit.
 - **0.12.0:** React 19 baseline + `EditorV2` (with `getStructuredDiff` in its
   pane), beside the unchanged `Editor`.
 - **Pre-releases for trying it in the apps:** `0.12.0-next.N` under the
@@ -476,8 +478,7 @@ consuming apps.
   `toolbar` prop accepts `align` as a name.
 - Decide Tiptap major version and React peer range. **Done:** Tiptap 3
   (3.31.4 at the time of writing); React `^18 || ^19` (see *React version*).
-- React 19 baseline (see *React version*), before phase 1, as its own PR into
-  the feature branch.
+- React 19 baseline (see *React version*), before phase 1. **Done.**
 - Performance baseline for v1 on the longest texts (see *Long texts: speed*).
   **Done** (see *v1 baseline*).
 - Exit: schema list and allowed normalizations written into this document.
