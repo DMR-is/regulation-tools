@@ -4,7 +4,7 @@
 
 ## 1.0.0
 
-_Not yet released. Pre-releases: `1.0.0-next.N` on the `next` tag._
+_Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.

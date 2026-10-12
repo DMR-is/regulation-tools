@@ -385,6 +385,27 @@ articles and table work are for the phase 3 browser tests); the five texts
 are the heaviest in the corpus. Load on the largest text (2.5 s at 4×) is
 mostly loading 520 KB into ProseMirror and was not a target.
 
+### More scenarios (phase 3)
+
+`scripts/editorSpeed.ts --scenario=paste|article|table`, 4× CPU slowdown,
+median of 3, the same five texts (tables only where the text has one).
+Results in `.cache/editor-speed/{paste,article,table}-{v1,v2}-cpu4.json`.
+
+| Scenario | Editor | EditorV2 |
+|---|---|---|
+| Paste four articles (HTML) or text with "3. gr." | blocks 256–807 ms while it goes in; freezes 0.8–14.9 s after; auto-diff turned off on 0112, 0544, 1205 | 0–98 ms while it goes in; no freeze after on four texts, ~480 ms on the 0801/2022 appendix; auto-diff stays on |
+| Add an article ("99. gr.", Grein format, a sentence) | every key slow (up to 760 ms); 0.8–14.3 s freeze after; auto-diff off on three texts | 0–3 slow keys (≤136 ms); no freeze after on four texts (≤61 ms), 445 ms on the appendix; auto-diff on |
+| Type in a table, add a row | every key slow (up to 824 ms); 0.9–3.4 s after; auto-diff off on 0112 | 1–3 keys just over 50 ms (≤104 ms); ≤53 ms after; auto-diff on |
+
+**The one miss, by design for now:** the 0801/2022 appendix has no
+articles, so it is one section. A pasted or new article splits it, and the
+half after the split is redrawn in the comparison pane (~480 ms at 4×;
+`Editor`: ~850 ms). Adding articles inside an article-less appendix is
+unusual; making it cheaper means moving DOM nodes between sections.
+
+Before the pane kept unchanged sections in place (commit 088d09d), the
+freeze after a paste or a new article was 250–470 ms on every text.
+
 ## Incremental work: only what changed
 
 A keystroke changes one paragraph in one article. Today, every step after it
@@ -610,14 +631,17 @@ consuming apps.
   **Done** (see *v1 baseline*).
 - Exit: schema list and allowed normalizations written into this document.
 
-**Phase 3 (so far):** the browser suite and the parity test above; five
+**Phase 3:** the browser suite and the parity test above; five
 bugs they found, fixed (onChange on load; nbsp-only text in prettified
 texts; heading classes cleanup does not keep; ids on links; highlighting a
 link). Stored texts are prettified in the database (newlines between
 words), while the public API returns them with the newlines turned into
 spaces, so the corpus check now runs in both forms
 (`scripts/editorFidelity.ts --prettified`): 1,214 of 1,234 lossless in
-each, the rest allowed changes.
+each, the rest allowed changes. Speed scenarios for paste, adding an
+article and tables (see *More scenarios*); the comparison pane keeps
+unchanged sections in place when sections are added. Pre-release
+`1.0.0-next.1` prepared; publishing and the trial in the apps are next.
 
 **1. Schema and fidelity guard**
 - Extensions for every census item; `fidelity`; unit fixtures; corpus script.

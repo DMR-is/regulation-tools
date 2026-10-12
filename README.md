@@ -55,6 +55,9 @@ the text with the CPU slowed 4× (`scripts/editorSpeed.ts`):
 | 0544/2015 (410 KB) | 264 ms → 40 ms | 13.0 s → none | turned off → on |
 | 1205/2021 (396 KB) | 248 ms → 72 ms | 12.7 s → none | turned off → on |
 
+Pasting articles or adding one freezes `Editor` for 0.8–15 s afterwards
+on these texts; `EditorV2` for none.
+
 `Editor` → `EditorV2`; "none" means no main-thread task over 50 ms. These
 are lab numbers from a page holding only the editor; the full results and
 their caveats are in `docs/plan-tiptap-editor.md`.
