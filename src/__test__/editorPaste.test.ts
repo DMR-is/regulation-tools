@@ -19,6 +19,8 @@ const win = g.window as Record<string, unknown>;
 g.Node ??= win.Node;
 g.Text ??= win.Text;
 g.DocumentFragment ??= win.DocumentFragment;
+// `sanitizeClipboardHtml` parses with the browser's DOMParser.
+g.DOMParser ??= win.DOMParser;
 
 const {
   cleanPastedHtml,
@@ -27,6 +29,7 @@ const {
   prepareWordDocument,
   preparePastedHtml,
   plainTextToHtml,
+  sanitizeClipboardHtml,
   prepareWordHtml,
   uploadInlineImages,
   WORD_IMAGE_UPLOAD_CONCURRENCY,
@@ -476,4 +479,42 @@ describe('fixed pipeline problems', () => {
       '<h3 class="article__title">3. gr.</h3><p>Texti.</p><p>Meira.</p>',
     );
   });
+});
+
+describe('sanitizeClipboardHtml', () => {
+  test('removes handlers, active elements and javascript: URLs', () => {
+    expect(
+      sanitizeClipboardHtml(
+        '<p onclick="x()">a<img src="x" onerror="alert(1)">' +
+          '<a href="javascript:alert(1)">b</a><a href="/ok">c</a></p>' +
+          '<script>alert(1)</script><iframe src="https://x"></iframe>' +
+          '<object data="x"></object><style>p{}</style>',
+      ),
+    ).toBe('<p>a<img src="x"><a>b</a><a href="/ok">c</a></p>');
+  });
+
+  test('keeps ordinary content, Word classes and styles as they are', () => {
+    const word =
+      '<p class="MsoNormal" style="text-align:center"><b>1. gr.</b></p>';
+    expect(sanitizeClipboardHtml(word)).toBe(word);
+  });
+
+  test('a pasted handler never runs, even though the pipeline parses with the page', async () => {
+    (globalThis as Record<string, unknown>).__ran = 0;
+    const html = await preparePastedHtml(
+      '<p>a<img src="x" onerror="globalThis.__ran++"></p>',
+      jest.fn(),
+    );
+    expect(html).not.toContain('onerror');
+  });
+});
+
+test('a non-base64 data URI is left alone, not replaced by the failure marker', async () => {
+  const svg = 'data:image/svg+xml,%3Csvg%3E%3C/svg%3E';
+  const uploader = jest.fn();
+  expect(hasInlineImages(`<p><img src="${svg}"></p>`)).toBe(false);
+  expect(await uploadInlineImages(`<p><img src="${svg}"></p>`, uploader)).toBe(
+    `<p><img src="${svg}"></p>`,
+  );
+  expect(uploader).not.toHaveBeenCalled();
 });

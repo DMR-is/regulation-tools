@@ -16,6 +16,7 @@ import {
   fixAlphabeticalLists,
   hasInlineImages,
   prepareWordDocument,
+  sanitizeClipboardHtml,
   uploadInlineImages,
   WORD_IMAGE_UPLOAD_CONCURRENCY,
 } from './_editorPaste';
@@ -436,8 +437,8 @@ export const EditorFrame = (props: EditorFrameProps) => {
 
     isProcessing = true;
 
-    // Capture the original content
-    let originalContent = e.content;
+    // Capture the original content, made safe before anything parses it
+    let originalContent = sanitizeClipboardHtml(e.content);
 
     // Clear the content to prevent the default paste action
     e.content = '';

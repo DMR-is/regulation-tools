@@ -44,6 +44,35 @@ export const WORD_IMAGE_UPLOAD_CONCURRENCY = 20;
 
 // ---------------------------------------------------------------------------
 
+/** Elements that load or run something; never part of a regulation text. */
+const ACTIVE_ELEMENTS =
+  'script, style, iframe, frame, frameset, object, embed, applet, link, meta, base, form, noscript, template';
+
+/**
+ * Clipboard HTML made safe to touch. It comes from anywhere, and the rest of
+ * the pipeline parses it with the page's own document (`innerHTML`), where
+ * `<img src=x onerror=…>` would run. So it is parsed here in an inert
+ * document (`DOMParser`: nothing loads, nothing runs), and active elements,
+ * `on*` handlers and `javascript:` URLs are removed before anything else
+ * sees it. The rest of the pipeline is unchanged.
+ */
+export function sanitizeClipboardHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll(ACTIVE_ELEMENTS).forEach((elm) => elm.remove());
+  doc.body.querySelectorAll('*').forEach((elm) => {
+    Array.from(elm.attributes).forEach(({ name, value }) => {
+      if (
+        /^on/i.test(name) ||
+        (/^(href|src|xlink:href|action|formaction)$/i.test(name) &&
+          /^\s*(javascript|vbscript):/i.test(value))
+      ) {
+        elm.removeAttribute(name);
+      }
+    });
+  });
+  return doc.body.innerHTML;
+}
+
 /** List numbering written as text at the start of an item, by type. */
 const MARKERS: Record<'a' | 'A' | 'i' | 'I', RegExp> = {
   a: /^\s*[a-z][.)]\s*/,
@@ -156,7 +185,8 @@ export function cleanPastedHtml(content: string): string {
 
 // ---------------------------------------------------------------------------
 
-const INLINE_IMAGES = 'img[src^="data:image/"]';
+/** Inline images to upload: base64 data URIs only, as before. */
+const INLINE_IMAGES = 'img[src^="data:image/"][src*=";base64,"]';
 
 /**
  * Whether `uploadInlineImages` would find any base64 images to upload.
@@ -199,7 +229,13 @@ export async function uploadInlineImages(
 
   // Upload single image
   const uploadImage = async (img: HTMLImageElement): Promise<void> => {
-    const { file, filename } = base64ToBlob(img.getAttribute('src') || '');
+    let blob: ReturnType<typeof base64ToBlob>;
+    try {
+      blob = base64ToBlob(img.getAttribute('src') || '');
+    } catch {
+      blob = { file: null, filename: '' };
+    }
+    const { file, filename } = blob;
     if (!file) {
       // Not data we can upload: a marker, never the raw data or a placeholder.
       img.replaceWith(failureMarker(container.ownerDocument));
@@ -268,6 +304,8 @@ export async function prepareWordDocument(
   );
 
   let docContent = result.value; // Extracted HTML content from the Word document
+  // A .docx is as untrusted as the clipboard (mammoth keeps hyperlinks).
+  docContent = sanitizeClipboardHtml(docContent);
   docContent = fixAlphabeticalLists(docContent); // Fix alphabetical lists
   return docContent;
 }
@@ -326,7 +364,10 @@ export const preparePastedHtml = (
   html: string,
   fileUploader: PasteImageUploader,
 ): Promise<string> =>
-  uploadInlineImages(cleanPastedHtml(fixAlphabeticalLists(html)), fileUploader);
+  uploadInlineImages(
+    cleanPastedHtml(fixAlphabeticalLists(sanitizeClipboardHtml(html))),
+    fileUploader,
+  );
 
 /**
  * The full Word import pipeline, after `prepareWordDocument`: returns the
