@@ -27,8 +27,17 @@ export const tool = (page: Page, label: string) =>
     exact: true,
   });
 
+/** A choice in an open toolbar dropdown. */
 export const menuItem = (page: Page, label: string) =>
-  page.getByRole('menuitem', { name: label, exact: true });
+  page
+    .locator('.regtools-toolbar__menu')
+    .getByRole('button', { name: label, exact: true });
+
+/** Applies a block format from the "Snið" dropdown. */
+export const setFormat = async (page: Page, label: string) => {
+  await tool(page, 'Snið').click();
+  await menuItem(page, label).click();
+};
 
 /** Puts the cursor at the end of the first element containing `text`. */
 export const clickEnd = async (page: Page, text: string) => {

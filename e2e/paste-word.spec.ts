@@ -70,6 +70,58 @@ test.describe('paste', () => {
     expect(await page.evaluate(() => window.__uploads.length)).toBe(1);
   });
 
+  test('pasted HTML cannot run script, in either editor', async ({ page }) => {
+    for (const editor of ['v2', 'v1'] as const) {
+      await openEditor(page, { editor, html: TEXT });
+      if (editor === 'v1') {
+        await page.waitForTimeout(500); // Editor sets its text again on load
+      }
+      await clickEnd(page, 'Fyrir.');
+      await page.evaluate(() => ((window as any).__ran = 0));
+      await paste(page, {
+        html: '<p>a<img src="x" onerror="window.__ran++"><svg onload="window.__ran++"></svg></p>',
+      });
+      await page.waitForTimeout(500);
+      expect(await page.evaluate(() => (window as any).__ran)).toBe(0);
+    }
+  });
+
+  test('HTML from another ProseMirror editor goes through the pipeline', async ({
+    page,
+  }) => {
+    await openEditor(page, { html: TEXT, uploads: 'ok' });
+    await clickEnd(page, 'Fyrir.');
+    const png =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    // As copied out of, say, Confluence: marked with data-pm-slice.
+    await paste(page, {
+      html: `<p data-pm-slice="1 1 []">Mynd <img src="${png}"></p>`,
+      text: 'Mynd',
+    });
+    await expect.poll(() => value(page)).toMatch(/src="\/files\/\d+\.png"/);
+    expect(await value(page)).not.toContain('base64');
+  });
+
+  test('a paste with images lands where it was pasted, even after typing meanwhile', async ({
+    page,
+  }) => {
+    await openEditor(page, {
+      html: '<p>Fyrsta.</p><p>Önnur.</p>',
+      uploads: 'ok',
+    });
+    await clickEnd(page, 'Önnur.');
+    const png =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    await paste(page, { html: `<p>Límt <img src="${png}" alt="m"></p>` });
+    // Type before the upload finishes, earlier in the text.
+    await clickEnd(page, 'Fyrsta.');
+    await page.keyboard.type(' Viðbót.');
+    await expect.poll(() => value(page)).toContain('Límt');
+    expect(await value(page)).toMatch(
+      /^<p>Fyrsta\. Viðbót\.<\/p><p>Önnur\.<\/p><p>Límt <img src="\/files\/[^"]+" alt="m"><\/p>$/,
+    );
+  });
+
   test.describe('copying within the editor', () => {
     test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
 

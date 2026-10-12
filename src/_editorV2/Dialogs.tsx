@@ -4,7 +4,7 @@
   and search and replace. Native `<dialog>` elements.
 */
 
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { Editor, useEditorState } from '@tiptap/react';
 
 import { HTMLText } from '../types';
@@ -19,18 +19,28 @@ const Dialog = (props: {
   title: string;
   onClose: () => void;
   modal?: boolean;
+  /** Where focus goes when a non-modal dialog closes. */
+  returnFocus?: () => void;
   children: ReactNode;
 }) => {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const returnFocus = useRef(props.returnFocus);
+  returnFocus.current = props.returnFocus;
   useEffect(() => {
     const dialog = ref.current!;
     props.modal === false ? dialog.show() : dialog.showModal();
-    return () => dialog.close();
+    return () => {
+      dialog.close();
+      // A modal dialog gives focus back itself; a non-modal one does not.
+      props.modal === false && returnFocus.current?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       className={
         'regtools-dialog' +
         (props.modal === false ? ' regtools-dialog--panel' : '')
@@ -39,8 +49,17 @@ const Dialog = (props: {
         e.preventDefault();
         props.onClose();
       }}
+      onKeyDown={(e) => {
+        // Escape only fires `cancel` on modal dialogs.
+        if (props.modal === false && e.key === 'Escape') {
+          e.preventDefault();
+          props.onClose();
+        }
+      }}
     >
-      <h2 className="regtools-dialog__title">{props.title}</h2>
+      <h2 className="regtools-dialog__title" id={titleId}>
+        {props.title}
+      </h2>
       {props.children}
     </dialog>
   );
@@ -123,7 +142,7 @@ const LinkDialog = (props: {
             value={href}
             autoFocus
             onChange={(e) => setHref(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && save()}
+            onKeyDown={(e) => e.key === 'Enter' && !uploading && save()}
           />
           <button type="button" onClick={upload} disabled={uploading}>
             {uploading ? 'Hleð upp…' : 'Hlaða upp skjali ↑'}
@@ -245,6 +264,7 @@ const CodeDialog = (props: {
     <Dialog title="HTML kóði" onClose={props.onClose}>
       <textarea
         className="regtools-dialog__code"
+        aria-label="HTML kóði"
         value={html}
         spellCheck={false}
         onChange={(e) => {
@@ -305,7 +325,12 @@ const SearchDialog = (props: { editor: Editor; onClose: () => void }) => {
   useEffect(() => () => void editor.commands.clearSearch(), [editor]);
 
   return (
-    <Dialog title="Leita og skipta út" onClose={props.onClose} modal={false}>
+    <Dialog
+      title="Leita og skipta út"
+      onClose={props.onClose}
+      modal={false}
+      returnFocus={() => editor.commands.focus()}
+    >
       <label className="regtools-dialog__field">
         Leita að
         <input
@@ -358,14 +383,14 @@ const SearchDialog = (props: { editor: Editor; onClose: () => void }) => {
         <button
           type="button"
           onClick={() => editor.commands.replaceCurrent(replacement)}
-          disabled={!count}
+          disabled={!count || !editor.isEditable}
         >
           Skipta út
         </button>
         <button
           type="button"
           onClick={() => editor.commands.replaceAll(replacement)}
-          disabled={!count}
+          disabled={!count || !editor.isEditable}
         >
           Skipta út öllum
         </button>

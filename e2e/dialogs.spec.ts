@@ -107,6 +107,8 @@ test.describe('images', () => {
     });
     await expect.poll(() => errors.length).toBeGreaterThan(0);
     expect(await value(page)).toBe(TEXT);
+    // Shown to the person editing, not only logged.
+    await expect(page.getByRole('alert')).toContainText('myndinni');
   });
 });
 

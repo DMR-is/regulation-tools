@@ -22,6 +22,47 @@ test.describe('read-only and disabled', () => {
   }
 });
 
+test('read-only: no dropdown can change the text; search works, replacing does not', async ({
+  page,
+}) => {
+  await openEditor(page, {
+    html: '<ol><li>Texti greinar.</li></ol><table><tbody><tr><td>a</td></tr></tbody></table>',
+    readOnly: true,
+    toolbar: 'align numlist table styleselect alignment searchreplace',
+  });
+  for (const label of ['Jöfnun', 'Tafla', 'Snið']) {
+    await expect(tool(page, label).first()).toBeDisabled();
+  }
+  await tool(page, 'Leita og skipta út').click();
+  const panel = page.locator('dialog[open]');
+  await panel.getByLabel('Leita að').fill('Texti');
+  await expect(panel).toContainText('1 af 1');
+  await panel.getByLabel('Skipta út fyrir').fill('X');
+  await expect(
+    panel.getByRole('button', { name: 'Skipta út öllum' }),
+  ).toBeDisabled();
+  await expect(
+    panel.getByRole('button', { name: 'Skipta út', exact: true }),
+  ).toBeDisabled();
+  // Escape closes the non-modal panel.
+  await panel.getByLabel('Leita að').press('Escape');
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+  expect(await value(page)).toContain('Texti greinar.');
+});
+
+test('accessible names: the toolbar, dialogs, the HTML source box', async ({
+  page,
+}) => {
+  await openEditor(page, { html: TEXT });
+  await expect(
+    page.getByRole('toolbar', { name: 'Verkfæri ritils' }),
+  ).toBeVisible();
+  await tool(page, 'Annað').click();
+  await tool(page, 'HTML kóði').click();
+  await expect(page.getByRole('dialog', { name: 'HTML kóði' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'HTML kóði' })).toBeVisible();
+});
+
 test('aria-labelledby, onChange, onFocus, onBlur', async ({ page }) => {
   const editor = await openEditor(page, { html: TEXT, labelledBy: 'merki' });
   await expect(editor).toHaveAttribute('aria-labelledby', 'merki');

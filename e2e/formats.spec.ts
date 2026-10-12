@@ -11,6 +11,7 @@ import {
   menuItem,
   openEditor,
   selectText,
+  setFormat,
   tool,
   value,
 } from './helpers';
@@ -67,25 +68,28 @@ test.describe('inline formatting', () => {
 });
 
 test.describe('block formats', () => {
-  const format = (page: import('@playwright/test').Page) =>
-    page.getByRole('combobox', { name: 'Snið' });
-
   test('Grein, Kafli m. heiti, Dags from the format menu', async ({ page }) => {
     await openEditor(page, {
       html: '<p>I. KAFLI</p><p>2. gr.</p><p>Reykjavík, 1. janúar 2026.</p>',
     });
     await clickEnd(page, 'I. KAFLI');
-    await format(page).selectOption('chapterTitleWithName');
+    await setFormat(page, 'Kafli m. heiti');
     await clickEnd(page, '2. gr.');
-    await format(page).selectOption('articleTitle');
+    await setFormat(page, 'Grein');
     await clickEnd(page, 'Reykjavík');
-    await format(page).selectOption('Dags');
+    await setFormat(page, 'Dags');
     expect(await value(page)).toBe(
       '<h2 class="chapter__title">I. KAFLI <em>Titill</em></h2>' +
         '<h3 class="article__title">2. gr.</h3>' +
         '<p class="Dags">Reykjavík, 1. janúar 2026.</p>',
     );
-    await expect(format(page)).toHaveValue('Dags');
+    // The dropdown shows the current format, and marks it as pressed.
+    await expect(tool(page, 'Snið')).toContainText('Dags');
+    await tool(page, 'Snið').click();
+    await expect(menuItem(page, 'Dags')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   test('structure is not offered inside a list', async ({ page }) => {
@@ -93,16 +97,30 @@ test.describe('block formats', () => {
       html: '<ol><li>liður</li></ol><p>Málsgrein.</p>',
     });
     await clickEnd(page, 'liður');
-    await expect(
-      format(page).locator('option[value="articleTitle"]'),
-    ).toBeDisabled();
-    await expect(
-      format(page).locator('option[value="indented"]'),
-    ).toBeEnabled();
+    await tool(page, 'Snið').click();
+    await expect(menuItem(page, 'Grein')).toBeDisabled();
+    await expect(menuItem(page, 'Inndregin málsgrein')).toBeEnabled();
+    await page.keyboard.press('Escape');
     await clickEnd(page, 'Málsgrein.');
-    await expect(
-      format(page).locator('option[value="articleTitle"]'),
-    ).toBeEnabled();
+    await tool(page, 'Snið').click();
+    await expect(menuItem(page, 'Grein')).toBeEnabled();
+  });
+
+  test('keyboard: Tab into the dropdown, Escape closes it and returns focus', async ({
+    page,
+  }) => {
+    await openEditor(page, { html: '<p>Texti.</p>' });
+    await clickEnd(page, 'Texti.');
+    const trigger = tool(page, 'Snið');
+    await trigger.focus();
+    await page.keyboard.press('Enter');
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Tab');
+    await expect(menuItem(page, 'Málsgrein')).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.regtools-toolbar__menu')).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 });
 

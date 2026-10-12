@@ -11,7 +11,8 @@
 */
 
 :where(:root) {
-  --regtools-editor-border: #ccd3db;
+  /* 3.66:1 on white: borders that identify controls need 3:1 (WCAG 1.4.11). */
+  --regtools-editor-border: #7b8794;
   --regtools-editor-hover: #eef1f5;
   --regtools-editor-active: #dde6f3;
   --regtools-editor-accent: #0061ff;
@@ -71,6 +72,8 @@
 }
 :where(.regtools-toolbar__button--active) {
   background: var(--regtools-editor-active);
+  /* Not by colour alone: an underline in the accent colour (5:1). */
+  box-shadow: inset 0 -2px 0 var(--regtools-editor-accent);
 }
 :where(.regtools-toolbar__button:disabled) {
   opacity: 0.4;
@@ -138,6 +141,7 @@
 }
 :where(.regtools-toolbar__menuitem--active) {
   font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--regtools-editor-accent);
 }
 :where(.regtools-toolbar__menuitem:disabled) {
   opacity: 0.4;
@@ -271,6 +275,11 @@
   outline: none;
   white-space: pre-wrap;
 }
+/* The outline above is replaced, not removed: a visible focus ring. */
+:where(.ProseMirror:focus-visible) {
+  outline: 2px solid var(--regtools-editor-accent);
+  outline-offset: 2px;
+}
 :where(.ProseMirror .regtools-search-match) {
   background: var(--regtools-search-match);
 }
@@ -319,4 +328,24 @@
 }
 :where(.ProseMirror-focused .ProseMirror-gapcursor) {
   display: block;
+}
+
+/* Failures the person editing should see (Word import, image upload) ---- */
+
+:where(.regtools-editor__error) {
+  margin: 4px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--regtools-editor-danger);
+  border-radius: 4px;
+  color: var(--regtools-editor-danger);
+  font-size: 0.875rem;
+}
+:where(.regtools-editor__error > button) {
+  margin-left: 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }

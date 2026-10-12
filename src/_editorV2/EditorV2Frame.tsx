@@ -21,14 +21,20 @@ import React, {
   useState,
 } from 'react';
 import { createDocument, Editor as TiptapEditor } from '@tiptap/core';
+import { Transaction } from '@tiptap/pm/state';
+import { Mapping } from '@tiptap/pm/transform';
 import { EditorContent, useEditor } from '@tiptap/react';
 
 import {
+  cleanPastedHtml,
+  fixAlphabeticalLists,
+  hasInlineImages,
   PasteImageUploader,
   plainTextToHtml,
   prepareWordDocument,
   prepareWordHtml,
-  preparePastedHtml,
+  sanitizeClipboardHtml,
+  uploadInlineImages,
 } from '../_editorPaste';
 import { HTMLText } from '../types';
 import { convertFileToBlobInfo } from '../utils';
@@ -69,9 +75,14 @@ export type EditorV2FrameApi = {
   normalize: (html: HTMLText) => HTMLText;
 };
 
+const normalizeText = (text: string) => text.replace(/\s+/g, ' ').trim();
+
 const EditorV2FrameInner = (props: EditorV2FrameProps) => {
   const [dialog, setDialog] = useState<DialogName>();
   const [loadingWord, setLoadingWord] = useState(false);
+  /** A failure the person editing should see (Word import, image upload). */
+  const [error, setError] = useState<string>();
+  const lastCopied = useRef<string>(undefined);
   const wordInput = useRef<HTMLInputElement>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const propsRef = useRef(props);
@@ -115,34 +126,75 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
           'aria-describedby': props['aria-describedBy'],
         }),
       },
+      // Remembers what this editor copied, so pasting it back can be told
+      // apart from HTML copied out of another ProseMirror editor, which
+      // carries the same `data-pm-slice` mark.
+      transformCopied: (slice) => {
+        lastCopied.current = normalizeText(
+          slice.content.textBetween(0, slice.content.size, '\n\n'),
+        );
+        return slice;
+      },
       handlePaste: (view, event) => {
         let html = event.clipboardData?.getData('text/html');
-        // Copying within the editor is left to ProseMirror, which marks its
-        // own clipboard HTML.
-        if (html && /data-pm-slice/.test(html)) {
+        const text = event.clipboardData?.getData('text/plain') || '';
+        // Copying within this editor is left to ProseMirror.
+        if (
+          html &&
+          /data-pm-slice/.test(html) &&
+          normalizeText(text) === lastCopied.current
+        ) {
           return false;
         }
         // Plain text (copied from a PDF, say) goes through the same pipeline
         // as HTML, as in the current editor: dirtyClean is what makes
         // "3. gr." lines article titles and lettered lines lists.
         if (!html) {
-          const text = event.clipboardData?.getData('text/plain');
           if (!text) {
             return false;
           }
           html = plainTextToHtml(text);
         }
         event.preventDefault();
-        const { from, to } = view.state.selection;
-        void preparePastedHtml(html, propsRef.current.fileUploader).then(
-          (content) => {
-            editorRef.current
-              ?.chain()
-              .focus()
-              .insertContentAt({ from, to }, content)
-              .run();
-          },
-        );
+        const editor = editorRef.current;
+        if (!editor) {
+          return true;
+        }
+        let prepared: string;
+        try {
+          prepared = cleanPastedHtml(
+            fixAlphabeticalLists(sanitizeClipboardHtml(html)),
+          );
+        } catch (error) {
+          console.error('Paste failed:', error);
+          return true;
+        }
+        if (!hasInlineImages(prepared)) {
+          // Nothing to wait for: in at once, where the cursor is.
+          editor.chain().focus().insertContent(prepared).run();
+          return true;
+        }
+        // Images are uploaded first. Keep the pasted range mapped through
+        // any edits made meanwhile, so it lands where it was pasted.
+        let { from, to } = view.state.selection;
+        const mapping = new Mapping();
+        const track = ({ transaction }: { transaction: Transaction }) =>
+          mapping.appendMapping(transaction.mapping);
+        editor.on('transaction', track);
+        uploadInlineImages(prepared, propsRef.current.fileUploader)
+          .then((content) => {
+            from = mapping.map(from, -1);
+            to = mapping.map(to, 1);
+            if (!editor.isDestroyed) {
+              editor
+                .chain()
+                .focus()
+                .insertContentAt({ from, to }, content)
+                .run();
+            }
+          })
+          .catch((error) => console.error('Paste failed:', error))
+          .finally(() => editor.off('transaction', track));
         return true;
       },
     },
@@ -189,12 +241,14 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
       return;
     }
     setLoadingWord(true);
+    setError(undefined);
     try {
       const raw = await prepareWordDocument(await file.arrayBuffer());
       const content = await prepareWordHtml(raw, propsRef.current.fileUploader);
       editor.chain().focus().insertContent(content).run();
     } catch (error) {
       console.error('Error converting document:', error);
+      setError('Ekki tókst að lesa Word skjalið.');
     } finally {
       setLoadingWord(false);
     }
@@ -204,6 +258,7 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
     if (!editor) {
       return;
     }
+    setError(undefined);
     try {
       const src = await uploadFile(file);
       editor
@@ -213,6 +268,7 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
         .run();
     } catch (error) {
       console.error('Image upload failed:', error);
+      setError('Ekki tókst að hlaða upp myndinni.');
     }
   };
 
@@ -221,6 +277,7 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
       <div
         className={props.classes.toolbar + ' regtools-toolbar'}
         role="toolbar"
+        aria-label="Verkfæri ritils"
       >
         {editor && (
           <Toolbar
@@ -257,8 +314,16 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
         }}
       />
       {loadingWord && (
-        <div className="regulation_editor_loading_word_document">
+        <div className="regulation_editor_loading_word_document" role="status">
           {props.documentLoaderElement ?? 'Hleð inn Word skjali ...'}
+        </div>
+      )}
+      {error && (
+        <div className="regtools-editor__error" role="alert">
+          {error}{' '}
+          <button type="button" onClick={() => setError(undefined)}>
+            Loka
+          </button>
         </div>
       )}
       <EditorContent editor={editor} />

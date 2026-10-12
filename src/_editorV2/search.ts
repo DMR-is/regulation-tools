@@ -160,7 +160,12 @@ export const Search = Extension.create({
         },
       replaceCurrent:
         (replacement) =>
-        ({ state, tr, dispatch }) => {
+        ({ editor, state, tr, dispatch }) => {
+          // Commands do not check this themselves; searching stays possible
+          // in a read-only editor, replacing does not.
+          if (!editor.isEditable) {
+            return false;
+          }
           const { matches, current } = searchKey.getState(state)!;
           const match = matches[current];
           if (!match) {
@@ -173,7 +178,12 @@ export const Search = Extension.create({
         },
       replaceAll:
         (replacement) =>
-        ({ state, tr, dispatch }) => {
+        ({ editor, state, tr, dispatch }) => {
+          // Commands do not check this themselves; searching stays possible
+          // in a read-only editor, replacing does not.
+          if (!editor.isEditable) {
+            return false;
+          }
           const { matches } = searchKey.getState(state)!;
           if (!matches.length) {
             return false;

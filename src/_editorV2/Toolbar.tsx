@@ -4,7 +4,7 @@
   table), so typing does not re-render it on every keystroke.
 */
 
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useId, useRef, useState } from 'react';
 import { Editor, useEditorState } from '@tiptap/react';
 import {
   AlignCenter,
@@ -81,15 +81,22 @@ const Button = (props: {
   </button>
 );
 
-/** A button opening a list of buttons or menu items below it. */
+/**
+ * A button showing a list of buttons below it (the disclosure pattern: plain
+ * buttons, reached with Tab). Escape closes it and returns focus to the
+ * button; so does moving focus or clicking elsewhere.
+ */
 const Dropdown = (props: {
   label: string;
   icon: ReactNode;
   active?: boolean;
+  disabled?: boolean;
   children: ReactNode;
 }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const id = useId();
   useEffect(() => {
     if (!open) {
       return;
@@ -102,9 +109,28 @@ const Dropdown = (props: {
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
+  useEffect(() => {
+    props.disabled && setOpen(false);
+  }, [props.disabled]);
   return (
-    <div className="regtools-toolbar__dropdown" ref={ref}>
+    <div
+      className="regtools-toolbar__dropdown"
+      ref={ref}
+      onKeyDown={(e) => {
+        if (open && e.key === 'Escape') {
+          e.stopPropagation();
+          setOpen(false);
+          trigger.current?.focus();
+        }
+      }}
+      onBlur={(e) => {
+        if (open && !ref.current?.contains(e.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
       <button
+        ref={trigger}
         type="button"
         className={
           'regtools-toolbar__button' +
@@ -112,8 +138,9 @@ const Dropdown = (props: {
         }
         title={props.label}
         aria-label={props.label}
-        aria-haspopup="true"
         aria-expanded={open}
+        aria-controls={id}
+        disabled={props.disabled}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen(!open)}
       >
@@ -122,8 +149,8 @@ const Dropdown = (props: {
       </button>
       {open && (
         <div
+          id={id}
           className="regtools-toolbar__menu"
-          role="menu"
           onClick={() => setOpen(false)}
         >
           {props.children}
@@ -133,6 +160,8 @@ const Dropdown = (props: {
   );
 };
 
+/** A choice in a dropdown. `active` (a state, like the current format) is
+ * announced with `aria-pressed`; actions leave it out. */
 const MenuItem = (props: {
   label: string;
   disabled?: boolean;
@@ -141,11 +170,11 @@ const MenuItem = (props: {
 }) => (
   <button
     type="button"
-    role="menuitem"
     className={
       'regtools-toolbar__menuitem' +
       (props.active ? ' regtools-toolbar__menuitem--active' : '')
     }
+    aria-pressed={props.active}
     disabled={props.disabled}
     onMouseDown={(e) => e.preventDefault()}
     onClick={props.onClick}
@@ -361,6 +390,7 @@ export const Toolbar = (props: {
           <Dropdown
             key={key}
             label="Jöfnun"
+            disabled={disabled}
             icon={
               s.align === 'center' ? (
                 <AlignCenter size={ICON_SIZE} />
@@ -412,6 +442,7 @@ export const Toolbar = (props: {
             {s.orderedList && (
               <Dropdown
                 label="Tegund númera"
+                disabled={disabled}
                 icon={
                   <span className="regtools-toolbar__text">
                     {LIST_STYLES.find(
@@ -439,31 +470,32 @@ export const Toolbar = (props: {
       case 'styleselect':
         return (
           <span key={key} className="regtools-toolbar__group">
-            <select
-              key={key}
-              className="regtools-toolbar__select"
-              aria-label="Snið"
+            {/* A dropdown, not a <select>: a closed <select> changes
+                value on every arrow key on Windows, which would apply each
+                format passed over ("m. heiti" inserts text). */}
+            <Dropdown
+              label="Snið"
               disabled={disabled}
-              value={s.blockFormat ?? ''}
-              onChange={(e) =>
-                setBlockFormat(editor, e.target.value as BlockFormat)
+              icon={
+                <span className="regtools-toolbar__text">
+                  {s.blockFormat ? BLOCK_FORMATS[s.blockFormat].label : 'Snið'}
+                </span>
               }
             >
-              {!s.blockFormat && <option value="">Snið</option>}
               {(Object.keys(BLOCK_FORMATS) as Array<BlockFormat>).map((f) => {
                 const format = BLOCK_FORMATS[f];
                 const structural = 'structural' in format;
                 return (
-                  <option
+                  <MenuItem
                     key={f}
-                    value={f}
+                    label={format.label}
+                    active={s.blockFormat === f}
                     disabled={structural && !s.topLevel}
-                  >
-                    {format.label}
-                  </option>
+                    onClick={() => setBlockFormat(editor, f)}
+                  />
                 );
               })}
-            </select>
+            </Dropdown>
             {s.autogenerated && (
               <Button
                 label="Sjálfvirkt myndað: merkja yfirfarið"
@@ -479,6 +511,7 @@ export const Toolbar = (props: {
           <Dropdown
             key={key}
             label="Tafla"
+            disabled={disabled}
             icon={<Table size={ICON_SIZE} />}
             active={s.inTable}
           >
@@ -619,7 +652,12 @@ export const Toolbar = (props: {
           insert: 'Annað',
         };
         return (
-          <Dropdown key={key} label={labels[item]} icon={icons[item]}>
+          <Dropdown
+            key={key}
+            label={labels[item]}
+            icon={icons[item]}
+            disabled={disabled}
+          >
             <span className="regtools-toolbar__menurow">
               {GROUPS[item]!.map((sub, i) => render(sub, i))}
             </span>

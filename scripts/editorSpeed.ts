@@ -49,11 +49,10 @@
     the time until the pasted text is in the document, "freeze" the longest
     block until then, "pause freeze" the longest in the PAUSE_MS after.
   - article: at the end of the middle paragraph, Enter, "99. gr.", the
-    "Grein" format from the toolbar (EditorV2's "Snið" select, TinyMCE's
+    "Grein" format from the toolbar (EditorV2's "Snið" dropdown, TinyMCE's
     Formats menu), Enter and a sentence. "Format freeze" is the longest
-    block from choosing the format until the title is there (not Event
-    Timing: Playwright's selectOption fires untrusted events, which it does
-    not report); "freeze while editing" the longest block from the first
+    block from choosing the format until the title is there; "freeze while
+    editing" the longest block from the first
     Enter to the last key. Checks that the article title is there.
   - table: 2 rounds of typing at the end of a cell in the middle row of the
     largest table, then a row added below (EditorV2's "Tafla" menu;
@@ -540,7 +539,12 @@ const ARTICLE_KEYS = 1 + ARTICLE_TITLE.length + 1 + ARTICLE_TEXT.length;
 /** Makes the current paragraph an article title, from the toolbar. */
 const applyArticleTitle = async (page: Page) => {
   if (EDITOR === 'v2') {
-    await page.selectOption('select[aria-label="Snið"]', 'articleTitle');
+    // EditorV2's "Snið" dropdown, item "Grein".
+    await page.click('.regtools-toolbar button[aria-label="Snið"]');
+    await page
+      .locator('.regtools-toolbar__menu')
+      .getByRole('button', { name: 'Grein', exact: true })
+      .click();
     return;
   }
   // TinyMCE's "Formats" (styleselect) menu, item "Grein".

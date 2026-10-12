@@ -7,7 +7,12 @@
   `getStructuredDiff` returns.
 */
 
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
+
+/** useLayoutEffect in the browser; on the server, where React 18 warns about
+ * it, the effect would not run anyway. */
+const useBrowserLayoutEffect =
+  typeof document === 'undefined' ? useEffect : useLayoutEffect;
 
 import type { DiffPart } from '../structuredDiff';
 
@@ -69,7 +74,7 @@ export const DiffPane = (props: { parts: Array<DiffPart> }) => {
   const ref = useRef<HTMLDivElement>(null);
   const rendered = useRef<Array<Rendered>>([]);
 
-  useLayoutEffect(() => {
+  useBrowserLayoutEffect(() => {
     const container = ref.current!;
     const old = rendered.current;
     const { parts } = props;
