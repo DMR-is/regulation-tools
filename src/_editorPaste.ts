@@ -264,6 +264,55 @@ export async function prepareWordDocument(
   return docContent;
 }
 
+/**
+ * Plain text from the clipboard as HTML, the way TinyMCE 5's paste plugin
+ * made it (`pasteText` → `normalizeWhitespace` → `toBlockElements`), so it
+ * goes through the paste pipeline as it did in the current editor:
+ * paragraphs at blank lines, `<br />` at single line breaks, tabs as four
+ * spaces, and runs of spaces kept with non-breaking spaces.
+ */
+export function plainTextToHtml(text: string): string {
+  const encoded = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/\r\n/g, '\n')
+    .replace(/\t/g, '    ');
+
+  const NBSP = '\u00a0';
+  const isNewline = (i: number) => encoded[i] === '\n' || encoded[i] === '\r';
+  let normalized = '';
+  let prevIsSpace = false;
+  for (let i = 0; i < encoded.length; i++) {
+    const c = encoded[i]!;
+    if (' \f\t\x0B'.includes(c) || c === NBSP) {
+      if (
+        prevIsSpace ||
+        i === 0 ||
+        i === encoded.length - 1 ||
+        isNewline(i + 1)
+      ) {
+        normalized += NBSP;
+        prevIsSpace = false;
+      } else {
+        normalized += ' ';
+        prevIsSpace = true;
+      }
+    } else {
+      normalized += c;
+      prevIsSpace = c === '\n' || c === '\r';
+    }
+  }
+
+  const paragraphs = normalized
+    .split(/\n\n/)
+    .map((p) => p.split(/\n/).join('<br />'));
+  return paragraphs.length === 1
+    ? paragraphs[0]!
+    : paragraphs.map((p) => `<p>${p}</p>`).join('');
+}
+
 /** The full paste pipeline: returns the HTML to insert. */
 export const preparePastedHtml = (
   html: string,

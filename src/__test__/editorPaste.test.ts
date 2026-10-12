@@ -26,6 +26,7 @@ const {
   hasInlineImages,
   prepareWordDocument,
   preparePastedHtml,
+  plainTextToHtml,
   prepareWordHtml,
   uploadInlineImages,
   WORD_IMAGE_UPLOAD_CONCURRENCY,
@@ -324,5 +325,47 @@ describe('pipelines', () => {
     await expect(prepareWordDocument(new ArrayBuffer(0))).rejects.toThrow(
       'bad docx',
     );
+  });
+});
+
+describe('plainTextToHtml (as TinyMCE 5 converted plain-text pastes)', () => {
+  const NBSP = '\u00a0';
+
+  test('one block: no paragraph, line breaks as <br />', () => {
+    expect(plainTextToHtml('Fyrsta lína\nönnur lína')).toBe(
+      'Fyrsta lína<br />önnur lína',
+    );
+  });
+
+  test('blank lines make paragraphs; Windows line endings too', () => {
+    expect(plainTextToHtml('3. gr.\r\n\r\nTexti greinar.\r\nNý lína')).toBe(
+      '<p>3. gr.</p><p>Texti greinar.<br />Ný lína</p>',
+    );
+  });
+
+  test('escapes HTML, so pasted text stays text', () => {
+    expect(plainTextToHtml('a < b & "c" > d')).toBe(
+      'a &lt; b &amp; &quot;c&quot; &gt; d',
+    );
+  });
+
+  test('keeps runs of spaces and tabs with non-breaking spaces', () => {
+    // As TinyMCE's normalizeWhitespace: a single space stays a space; the
+    // second of two, a leading or a trailing space becomes a nbsp.
+    expect(plainTextToHtml('a  b')).toBe(`a ${NBSP}b`);
+    expect(plainTextToHtml(' a ')).toBe(`${NBSP}a${NBSP}`);
+    expect(plainTextToHtml('a\tb')).toBe(`a ${NBSP} ${NBSP}b`);
+    expect(plainTextToHtml('a \nb')).toBe(`a${NBSP}<br />b`);
+  });
+
+  test('a plain-text paste goes through the same pipeline as HTML', async () => {
+    const uploader = jest.fn();
+    const html = await preparePastedHtml(
+      plainTextToHtml('3. gr.\n\nRáðherra setur reglugerð.'),
+      uploader,
+    );
+    expect(html).toContain('<h3 class="article__title">3. gr.');
+    expect(html).toContain('Ráðherra setur reglugerð.');
+    expect(uploader).not.toHaveBeenCalled();
   });
 });

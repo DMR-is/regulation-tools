@@ -25,6 +25,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 
 import {
   PasteImageUploader,
+  plainTextToHtml,
   prepareWordDocument,
   prepareWordHtml,
   preparePastedHtml,
@@ -111,11 +112,21 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
         }),
       },
       handlePaste: (view, event) => {
-        const html = event.clipboardData?.getData('text/html');
-        // Plain text, and copying within the editor (ProseMirror marks its
-        // own clipboard HTML), are left to ProseMirror.
-        if (!html || /data-pm-slice/.test(html)) {
+        let html = event.clipboardData?.getData('text/html');
+        // Copying within the editor is left to ProseMirror, which marks its
+        // own clipboard HTML.
+        if (html && /data-pm-slice/.test(html)) {
           return false;
+        }
+        // Plain text (copied from a PDF, say) goes through the same pipeline
+        // as HTML, as in the current editor: dirtyClean is what makes
+        // "3. gr." lines article titles and lettered lines lists.
+        if (!html) {
+          const text = event.clipboardData?.getData('text/plain');
+          if (!text) {
+            return false;
+          }
+          html = plainTextToHtml(text);
         }
         event.preventDefault();
         const { from, to } = view.state.selection;

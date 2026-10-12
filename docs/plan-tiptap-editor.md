@@ -52,6 +52,7 @@ Playwright suite.
 | Search and replace | `searchreplace` | Own extension (decorations); panel beside the text | Done; unit (matching, case, replace all as one undo step) |
 | View/edit source HTML | `code` plugin | Source dialog; warns before saving elements the editor would drop | Done; unit (`findUnsupportedElements`, silent on the whole corpus). Phase 3 |
 | Paste from Word/web | `paste_preprocess` pipeline | `handlePaste` calling the same functions (`src/_editorPaste.ts`) | Done; unit (20 tests on the shared pipeline). Phase 3 |
+| Plain-text paste (e.g. from a PDF) | TinyMCE turns it into `<p>`/`<br />` and runs it through `paste_preprocess` too, so dirtyClean makes "3. gr." lines article titles | `plainTextToHtml`, a copy of TinyMCE's conversion, then the same pipeline | Done; unit (conversion, and "3. gr." becoming a title). Phase 3 |
 | Word (.docx) import button | mammoth → same pipeline | Same, from the shared module | Done; unit (shared pipeline). Phase 3 |
 | Undo/redo | built-in | `UndoRedo` | Done; unit (replace all undoes in one step) |
 | Icelandic UI texts | `tinymce.addI18n` (only the link dialog) | All toolbar tooltips and dialogs in Icelandic | Done |
@@ -67,9 +68,6 @@ Playwright suite.
 
 - **No right-click menu on tables.** The same actions are in the toolbar's
   table dropdown. A context menu can be added if editors rely on it.
-- **Plain-text paste** goes in as paragraphs, without dirtyClean. HTML
-  pastes (Word, web) go through the shared pipeline as before. In v1,
-  TinyMCE ran plain text through `paste_preprocess` too.
 - **"Grein m. heiti" / "Kafli m. heiti" on a line with text** keeps the text
   and adds an `<em>Titill</em>` name to type over. v1 replaced the line's
   text with the template.
