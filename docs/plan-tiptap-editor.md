@@ -94,7 +94,7 @@ test in `src/__test__/editorPaste.test.ts` ("fixed pipeline problems").
 | 10 | v1: `id="wordFileInput"` is hard-coded, so two editors on a page share one input | Left (v1 only); v2 uses a ref |
 
 These change v1's paste output in those cases, from wrong to right; they
-ship in the same 0.12.0 release.
+ship in the same 1.0.0 release.
 
 ## Schema: what real regulations contain
 
@@ -517,8 +517,7 @@ also declare they do not support 19: `@hugsmidjan/react` (`<19`, also in
 its latest 0.4.33) and `@tinymce/tinymce-react` 3.14 (up to 18). It works
 in production, but nothing checks that it keeps working.
 
-**Changes (part of 0.12.0; under 0.x a minor bump signals a breaking
-change):**
+**Changes (part of 1.0.0):**
 
 1. Peer range `^18 || ^19`. No consumer uses 16 or 17, and Tiptap 3 needs at
    least 17.
@@ -569,24 +568,26 @@ consuming apps.
   people can follow and comment as it grows; it is marked ready at release
   time. Commits are kept per logical step, so the PR can be read commit by
   commit.
-- **0.12.0:** React 19 baseline + `EditorV2` (with `getStructuredDiff` in its
-  pane), beside the unchanged `Editor`.
-- **Pre-releases for trying it in the apps:** `0.12.0-next.N` under the
-  `next` dist-tag. Ranges like `^0.11.0` never resolve to a pre-release, so
-  no consumer is updated by them; only the app being tested opts in.
-  (`yarn link` or a packed `.tgz` instead, if nothing should be published
-  before the release.)
+- **1.0.0:** React 19 baseline (React 16/17 dropped) + `EditorV2` (with
+  `createStructuredDiffer` in its pane), beside the unchanged `Editor`.
+  Decided: 1.0, not 0.12 — dropping React versions is breaking, and from
+  1.x only a major version may break, so `^1.0.0` ranges in the apps never
+  pick up a breaking change.
+- **The trial runs on pre-releases:** `1.0.0-next.N` under the `next`
+  dist-tag. Ranges like `^0.11.0` never resolve to a pre-release, so no app
+  is updated by them; only the app being tested opts in. 1.0.0 is published
+  when the trial is done, so `EditorV2`'s props are settled before 1.0 fixes
+  them.
+- **The trial is done by Þórður**, who has access to all the apps and makes
+  the changes in the three main ones (island.is, reglugerd-admin-www,
+  dmr.is).
 - **Server-side consumer:** dmr.is's regulations-api uses
   `cleanupAndCombineEditorOutputs` to clean texts before computing
   changesets (DMR-is/dmr.is#1585), as reglugerd-admin-www does. A release
   must not change cleanup output unless that is the intent: the cleanup
   tests pass unchanged, and the corpus run's "untouched save" check covers
   it on real texts.
-- **1.0.0:** removes TinyMCE and the old `Editor`, after editors have used v2
-  on real amendments. This needs its own release because v2 runs beside v1
-  first. The alternative, finishing that trial on pre-releases and shipping
-  once with v1 removed, would make all three apps switch editors in the same
-  update.
+- **2.0.0:** removes TinyMCE and the old `Editor`, once no app uses them.
 
 ## Phases
 
@@ -632,9 +633,12 @@ consuming apps.
 - Exit: runs in one consumer screen behind a flag.
 
 **4. Rollout and retirement**
-- Side-by-side use; fix what it finds.
-- Then a major version that removes TinyMCE, `@tinymce/tinymce-react` and the
-  CDN skin URL.
+- Trial on `1.0.0-next.N` in the apps (Þórður); fix what it finds; measure
+  speed in the real apps.
+- Release 1.0.0. Apps switch screen by screen (`config={{ toolbar }}` →
+  `toolbar=`).
+- 2.0.0 removes TinyMCE, `@tinymce/tinymce-react` and the CDN skin URL,
+  once no app uses `Editor`.
 
 ## Decisions
 
@@ -668,6 +672,12 @@ consuming apps.
   - The HTML output is the same as today either way. If the heading rules turn
     out too strict for real texts, the corpus run will show it as fidelity
     losses, and the rule is loosened rather than the text changed.
+
+- **Versions:** 1.0.0 for this release, trialled as `1.0.0-next.N`;
+  2.0.0 removes TinyMCE.
+- **Right-click menu on tables:** only if editors ask for it during the
+  trial.
+- **Behaviour that differs from `Editor`:** approved (see the checklist).
 
 ## Open questions
 
