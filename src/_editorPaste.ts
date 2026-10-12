@@ -44,62 +44,79 @@ export const WORD_IMAGE_UPLOAD_CONCURRENCY = 20;
 
 // ---------------------------------------------------------------------------
 
+/** List numbering written as text at the start of an item, by type. */
+const MARKERS: Record<'a' | 'A' | 'i' | 'I', RegExp> = {
+  a: /^\s*[a-z][.)]\s*/,
+  A: /^\s*[A-Z][.)]\s*/,
+  i: /^\s*(?:x{0,3})(?:ix|iv|v?i{0,3})[.)]\s*/,
+  I: /^\s*(?:X{0,3})(?:IX|IV|V?I{0,3})[.)]\s*/,
+};
+
 /**
- * Post-process HTML from mammoth to detect and fix alphabetical lists
- * that were converted to numbered lists
+ * The list type the first item's marker says, if any. "i." and "I." start
+ * roman lists (a lettered list starts at "a."); any other single letter is
+ * lettered; other roman numerals ("ii.", "iv.") are roman.
+ */
+const listTypeOf = (first: string): keyof typeof MARKERS | undefined => {
+  const marker = /^([a-zA-Z]+)[.)]\s/.exec(first)?.[1];
+  if (!marker) {
+    return undefined;
+  }
+  if (marker === 'i' || marker === 'I') {
+    return marker;
+  }
+  if (marker.length === 1) {
+    return marker === marker.toLowerCase() ? 'a' : 'A';
+  }
+  if (/^[ivx]+$/.test(marker)) {
+    return 'i';
+  }
+  if (/^[IVX]+$/.test(marker)) {
+    return 'I';
+  }
+  return undefined;
+};
+
+/**
+ * Removes a marker from the start of an element's text, keeping its markup:
+ * the characters are taken off the leading text nodes, wherever they are.
+ */
+const stripMarker = (elm: Element, marker: RegExp) => {
+  const match = marker.exec(elm.textContent || '');
+  if (!match || !match[0].trim()) {
+    return;
+  }
+  let remove = match[0].length;
+  const walker = elm.ownerDocument.createTreeWalker(elm, 4 /* SHOW_TEXT */);
+  while (remove > 0 && walker.nextNode()) {
+    const text = walker.currentNode as Text;
+    const take = Math.min(remove, text.data.length);
+    text.data = text.data.slice(take);
+    remove -= take;
+  }
+};
+
+/**
+ * Post-process HTML from mammoth and pastes: an ordered list whose items
+ * carry their numbering as text ("a. …", "i) …") gets that numbering as its
+ * `type`, and the markers are taken out of the items' text. The items keep
+ * their formatting, links and nested lists.
  */
 export function fixAlphabeticalLists(html: string): string {
   const div = document.createElement('div');
   div.innerHTML = html;
 
-  // Find all ordered lists
-  const orderedLists = div.querySelectorAll('ol');
-
-  orderedLists.forEach((ol) => {
-    const listItems = ol.querySelectorAll('li');
-    if (listItems.length === 0) return;
-
-    // Check first item for alphabetical pattern
-    const firstItemText = listItems[0]?.textContent?.trim() || '';
-
-    // Patterns: "a.", "a)", "A.", "A)", or just starting with a letter followed by punctuation
-    const lowerAlphaMatch = /^([a-z])[.)]\s/.exec(firstItemText);
-    const upperAlphaMatch = /^([A-Z])[.)]\s/.exec(firstItemText);
-    const lowerRomanMatch = /^(i{1,3}|iv|v|vi{1,3}|ix|x)[.)]\s/i.exec(
-      firstItemText,
+  div.querySelectorAll('ol').forEach((ol) => {
+    const listItems = Array.from(ol.children).filter(
+      (elm) => elm.tagName === 'LI',
     );
-    const upperRomanMatch = /^(I{1,3}|IV|V|VI{1,3}|IX|X)[.)]\s/.exec(
-      firstItemText,
-    );
-
-    if (lowerAlphaMatch) {
-      ol.setAttribute('type', 'a');
-    } else if (upperAlphaMatch) {
-      ol.setAttribute('type', 'A');
-    } else if (
-      lowerRomanMatch &&
-      firstItemText === firstItemText.toLowerCase()
-    ) {
-      ol.setAttribute('type', 'i');
-    } else if (upperRomanMatch && /^[IVX]/.test(firstItemText)) {
-      ol.setAttribute('type', 'I');
+    const first = listItems[0]?.textContent?.trim() || '';
+    const type = listTypeOf(first);
+    if (!type) {
+      return;
     }
-
-    // Remove the letter/number prefix from list items if it exists
-    if (
-      lowerAlphaMatch ||
-      upperAlphaMatch ||
-      lowerRomanMatch ||
-      upperRomanMatch
-    ) {
-      listItems.forEach((li) => {
-        const text = li.textContent?.trim() || '';
-        const cleanedText = text.replace(/^[a-zA-Z\d]+[.)]\s*/, '');
-        if (cleanedText !== text) {
-          li.textContent = cleanedText;
-        }
-      });
-    }
+    ol.setAttribute('type', type);
+    listItems.forEach((li) => stripMarker(li, MARKERS[type]));
   });
 
   return div.innerHTML;
@@ -124,9 +141,12 @@ export function cleanPastedHtml(content: string): string {
     content = content.replace(/^<p>/, '').replace(/<\/p>$/, '');
   } else {
     if (!/article__title/.test(content)) {
+      // A paragraph starting "N. gr." becomes an article title; the rest of
+      // the paragraph, if any, stays a paragraph after it.
       content = content.replace(
-        /<p>(\d+\.\s+gr\.(\s+)?)(<br\s+?\/>)?/g,
-        '<h3 class="article__title">$1</h3><p>',
+        /<p>(\d+\.\s+gr\.(\s+)?)(<br\s*\/?>\s*)?(<\/p>)?/g,
+        (_, title: string, _space, _br, end?: string) =>
+          `<h3 class="article__title">${title}</h3>` + (end ? '' : '<p>'),
       );
     }
   }
@@ -136,27 +156,35 @@ export function cleanPastedHtml(content: string): string {
 
 // ---------------------------------------------------------------------------
 
-// NOTE: a fresh RegExp per call, since the `g` flag makes it stateful
-const getImgTagRegex = () =>
-  /<img.*?src=["'](data:image\/(png|jpeg|svg\+xml);base64,.*?)["'].*?>/g;
+const INLINE_IMAGES = 'img[src^="data:image/"]';
 
 /**
  * Whether `uploadInlineImages` would find any base64 images to upload.
  * Lets a caller insert image-less content synchronously.
  */
 export const hasInlineImages = (html: string): boolean =>
-  getImgTagRegex().test(html);
+  /data:image\//.test(html) && !!asContainer(html).querySelector(INLINE_IMAGES);
 
-type ImageInfo = {
-  base64: string;
-  placeholder: string;
+const asContainer = (html: string) => {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div;
+};
+
+const failureMarker = (doc: Document) => {
+  const span = doc.createElement('span');
+  span.className = 'image-upload-failed';
+  span.textContent = '[Image upload failed]';
+  return span;
 };
 
 /**
  * Uploads every base64 `<img>` in `html` through `fileUploader` and returns
- * the HTML with each replaced by `<img src alt>` (or a failure marker).
- * Uploads start in document order, synchronously up to the concurrency
- * limit, and the promise never rejects on a failed upload.
+ * the HTML with each one's `src` set to its uploaded URL, or the image
+ * replaced by a failure marker. The images are found as elements, not by
+ * pattern, so other images are never touched. Uploads start in document
+ * order, synchronously up to the concurrency limit, and the promise never
+ * rejects on a failed upload.
  */
 export async function uploadInlineImages(
   html: string,
@@ -164,55 +192,35 @@ export async function uploadInlineImages(
   opts: UploadInlineImagesOptions = {},
 ): Promise<string> {
   const concurrencyLimit = opts.concurrency ?? Infinity;
-
-  const imgTagRegex = getImgTagRegex();
-  let match: RegExpExecArray | null;
-  const images: Array<ImageInfo> = [];
-  let contentWithPlaceholders = html;
-
-  // Extract images from the content
-  while ((match = imgTagRegex.exec(html)) !== null) {
-    const placeholder = `__IMAGE_PLACEHOLDER_${images.length}__`;
-    if (match[1]) {
-      images.push({ base64: match[1], placeholder });
-    }
-    contentWithPlaceholders = contentWithPlaceholders.replace(
-      match[0],
-      placeholder,
-    );
-  }
+  const container = asContainer(html);
+  const images = Array.from(
+    container.querySelectorAll<HTMLImageElement>(INLINE_IMAGES),
+  );
 
   // Upload single image
-  const uploadImage = async (image: ImageInfo): Promise<void> => {
-    const { base64, placeholder } = image;
-    const { file, filename } = base64ToBlob(base64);
-    if (file) {
-      const blobInfo = convertFileToBlobInfo(file);
-      return new Promise<void>((resolve) => {
-        fileUploader(
-          blobInfo,
-          (url: string) => {
-            // Replace the placeholder with the uploaded image URL
-            contentWithPlaceholders = contentWithPlaceholders.replace(
-              placeholder,
-              `<img src="${url}" alt="${filename}" />`,
-            );
-            resolve();
-          },
-          (error: string) => {
-            console.error('Image upload failed:', error);
-            // Replace the placeholder with a failure message or icon
-            contentWithPlaceholders = contentWithPlaceholders.replace(
-              placeholder,
-              `<span class="image-upload-failed">[Image upload failed]</span>`,
-            );
-            resolve(); // Resolve even on error to ensure all promises complete
-          },
-        );
-      });
-    } else {
-      return Promise.resolve();
+  const uploadImage = async (img: HTMLImageElement): Promise<void> => {
+    const { file, filename } = base64ToBlob(img.getAttribute('src') || '');
+    if (!file) {
+      // Not data we can upload: a marker, never the raw data or a placeholder.
+      img.replaceWith(failureMarker(container.ownerDocument));
+      return;
     }
+    return new Promise<void>((resolve) => {
+      fileUploader(
+        convertFileToBlobInfo(file),
+        (url: string) => {
+          img.setAttribute('src', url);
+          // Pasted images keep their own alt text.
+          img.getAttribute('alt') || img.setAttribute('alt', filename);
+          resolve();
+        },
+        (error: string) => {
+          console.error('Image upload failed:', error);
+          img.replaceWith(failureMarker(container.ownerDocument));
+          resolve(); // Resolve even on error to ensure all promises complete
+        },
+      );
+    });
   };
 
   // Limit the number of concurrent uploads
@@ -234,7 +242,7 @@ export async function uploadInlineImages(
     await Promise.race(activeUploads);
   }
 
-  return contentWithPlaceholders;
+  return container.innerHTML;
 }
 
 // ---------------------------------------------------------------------------

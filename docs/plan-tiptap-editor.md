@@ -74,33 +74,27 @@ Playwright suite.
 - **Typing `1. ` at the start of a line stays text.** Tiptap's markdown-style
   input rules are off (they would turn "1. gr." into a list). The same as v1.
 
-**Existing problems in the paste/Word pipeline** (found when it was moved to
-`src/_editorPaste.ts`; unchanged, as v1 and v2 now share it, so a fix
-changes both):
+**Problems in the paste/Word pipeline** (found when it was moved to
+`src/_editorPaste.ts`). Decided: fix those that lose or corrupt content,
+plus two small ones, in the shared module, so they are fixed in v1 too;
+leave the v1-only ones, as v1 is being retired. Each fix is pinned by a
+test in `src/__test__/editorPaste.test.ts` ("fixed pipeline problems").
 
-1. The image regex (`<img.*?src=`) can run from an ordinary `<img>` to a
-   later data-URI `src` on the same line, losing the ordinary image.
-2. Only png, jpeg and svg+xml data URIs are uploaded; pasted gif or webp go
-   in as raw base64.
-3. If `base64ToBlob` fails, the literal `__IMAGE_PLACEHOLDER_n__` is
-   inserted into the text.
-4. The uploaded image is inserted with `String.replace` and a string
-   argument, so a URL containing `$&` or `$1` is mangled; the URL is not
-   escaped; alt is the generated file name, not the original alt.
-5. `fixAlphabeticalLists` sets `li.textContent`, wiping bold, links and
-   nested lists in the items of a list it recognises; `i.`, `v.`, `x.` are
-   taken as letters before roman numerals; every item loses any `\w+[.)]`
-   prefix, including "1." and words followed by ")".
-6. The `N. gr.` detection needs a space in `<br />`, so `<br/>` is missed,
-   and a paragraph that is only "2. gr." leaves an empty `<p></p>`.
-7. v1 only: `isProcessing` is a plain variable re-created on every render,
-   so it does not guard across renders or between paste and Word import.
-8. v1 only: if cleaning or an upload throws, the loading overlay and the
-   paste guard stay set.
-9. v1 only: the Word file input is never reset, so the same file cannot be
-   chosen twice. (Fixed in v2.)
-10. v1 only: `id="wordFileInput"` is hard-coded, so two editors on one page
-    share one input. (Not in v2, which uses a ref.)
+| # | Problem | Status |
+|---|---|---|
+| 1 | The image regex (`<img.*?src=`) could run from an ordinary `<img>` to a later data-URI one on the same line, losing the ordinary image | **Fixed**: images are found as elements |
+| 2 | Only png, jpeg and svg+xml data URIs were uploaded; gif and webp went in as raw base64 | **Fixed**: any `data:image/` |
+| 3 | If `base64ToBlob` failed, the literal `__IMAGE_PLACEHOLDER_n__` was inserted | **Fixed**: the "[Image upload failed]" marker instead |
+| 4 | The URL was inserted with `String.replace` (`$&` mangled) and unescaped; alt was always the generated file name | **Fixed** with 1 (the URL is set as an attribute); pasted images keep their own alt |
+| 5 | `fixAlphabeticalLists` set `li.textContent`, wiping bold, links and nested lists; read "i." as a letter; stripped any `\w+[.)]` prefix, "1." included | **Fixed**: only the marker is removed, from the text; "i."/"I." start roman lists; only markers of the list's own type are removed |
+| 6 | "N. gr." detection missed `<br>` without a slash, and left an empty `<p></p>` after a title-only paragraph | **Fixed** |
+| 7 | v1: `isProcessing` is re-created on every render, so it guards nothing | Left (v1 only) |
+| 8 | v1: if cleaning or an upload throws, the loading overlay and the paste guard stay set | Left (v1 only) |
+| 9 | v1: the Word file input is never reset, so the same file cannot be chosen twice | Left (v1 only); v2 resets it |
+| 10 | v1: `id="wordFileInput"` is hard-coded, so two editors on a page share one input | Left (v1 only); v2 uses a ref |
+
+These change v1's paste output in those cases, from wrong to right; they
+ship in the same 0.12.0 release.
 
 ## Schema: what real regulations contain
 

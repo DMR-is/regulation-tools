@@ -150,7 +150,8 @@ describe('cleanPastedHtml', () => {
   it('turns "N. gr." paragraphs into article titles', () => {
     expect(cleanPastedHtml('<p>1. gr. Texti greinar.</p><p>2. gr.</p>')).toBe(
       '<h3 class="article__title">1. gr. </h3><p>Texti greinar.</p>' +
-        '<h3 class="article__title">2. gr.</h3><p></p>',
+        // A paragraph that is only "2. gr." leaves no empty <p> behind.
+        '<h3 class="article__title">2. gr.</h3>',
     );
   });
 
@@ -190,8 +191,9 @@ describe('uploadInlineImages', () => {
       (u) => u.success('/files/x.png'),
     );
     expect(uploader).toHaveBeenCalledTimes(1);
+    // The image keeps its own attributes; only `src` (and a missing alt) change.
     expect(result).toMatch(
-      /^<p>A <img src="\/files\/x\.png" alt="\d+\.png" \/> B<\/p>$/,
+      /^<p>A <img src="\/files\/x\.png" data-n="1" alt="\d+\.png"> B<\/p>$/,
     );
   });
 
@@ -205,7 +207,7 @@ describe('uploadInlineImages', () => {
     expect(result).toMatch(
       new RegExp(
         '^<p><span class="image-upload-failed">\\[Image upload failed\\]</span></p>' +
-          '<p><img src="/ok\\.png" alt="\\d+\\.png" /></p>$',
+          '<p><img src="/ok\\.png" data-n="2" alt="\\d+\\.png"></p>$',
       ),
     );
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -367,5 +369,111 @@ describe('plainTextToHtml (as TinyMCE 5 converted plain-text pastes)', () => {
     expect(html).toContain('<h3 class="article__title">3. gr.');
     expect(html).toContain('Ráðherra setur reglugerð.');
     expect(uploader).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  The problems found when the pipeline was moved here (see
+  docs/plan-tiptap-editor.md, "Existing problems in the paste/Word
+  pipeline"), each pinned as fixed.
+*/
+describe('fixed pipeline problems', () => {
+  test('1. an ordinary image before a pasted one is kept', async () => {
+    const { uploader, pending } = makeUploader();
+    const result = await drain(
+      uploadInlineImages(
+        `<p><img src="/x.png" alt="x"> og ${img(1)}</p>`,
+        uploader,
+      ),
+      pending,
+      (u) => u.success('/files/new.png'),
+    );
+    expect(uploader).toHaveBeenCalledTimes(1);
+    expect(result).toContain('<img src="/x.png" alt="x">');
+    expect(result).toContain('src="/files/new.png"');
+  });
+
+  test('2. GIF and WebP are uploaded too', async () => {
+    const GIF = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+    const { uploader, pending } = makeUploader();
+    const result = await drain(
+      uploadInlineImages(`<p><img src="${GIF}"></p>`, uploader),
+      pending,
+      (u) => u.success('/files/x.gif'),
+    );
+    expect(uploader).toHaveBeenCalledTimes(1);
+    expect(result).not.toContain('base64');
+  });
+
+  test('3. data that cannot be uploaded becomes the failure marker, never a placeholder', async () => {
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const uploader = jest.fn();
+    const result = await uploadInlineImages(
+      '<p><img src="data:image/png;base64,not*base64"></p>',
+      uploader,
+    );
+    expect(uploader).not.toHaveBeenCalled();
+    expect(result).toBe(
+      '<p><span class="image-upload-failed">[Image upload failed]</span></p>',
+    );
+    expect(result).not.toContain('PLACEHOLDER');
+    error.mockRestore();
+  });
+
+  test('4. a URL with $& or quotes is inserted as it is, and alt text is kept', async () => {
+    const { uploader, pending } = makeUploader();
+    const result = await drain(
+      uploadInlineImages(`<p><img src="${PNG}" alt="Kort"></p>`, uploader),
+      pending,
+      (u) => u.success('/files/a$&b"c.png'),
+    );
+    expect(result).toBe(
+      '<p><img src="/files/a$&amp;b&quot;c.png" alt="Kort"></p>',
+    );
+  });
+
+  test('5. list items keep their formatting, links and nested lists', () => {
+    expect(
+      fixAlphabeticalLists(
+        '<ol><li>a. <strong>Feitt</strong> og <a href="/x">hlekkur</a></li>' +
+          '<li>b. Liður<ol><li>undirliður</li></ol></li></ol>',
+      ),
+    ).toBe(
+      '<ol type="a"><li><strong>Feitt</strong> og <a href="/x">hlekkur</a></li>' +
+        '<li>Liður<ol><li>undirliður</li></ol></li></ol>',
+    );
+  });
+
+  test('5. a marker inside formatting is removed, the formatting kept', () => {
+    expect(
+      fixAlphabeticalLists(
+        '<ol><li><em>a.</em> Texti</li><li>b. Annar</li></ol>',
+      ),
+    ).toBe('<ol type="a"><li><em></em>Texti</li><li>Annar</li></ol>');
+  });
+
+  test('5. "i." starts a roman list; other letters stay letters', () => {
+    expect(
+      fixAlphabeticalLists('<ol><li>i. fyrsti</li><li>ii. annar</li></ol>'),
+    ).toBe('<ol type="i"><li>fyrsti</li><li>annar</li></ol>');
+    expect(fixAlphabeticalLists('<ol><li>v. Liður</li></ol>')).toBe(
+      '<ol type="a"><li>Liður</li></ol>',
+    );
+  });
+
+  test("5. only markers of the list's own type are removed", () => {
+    expect(
+      fixAlphabeticalLists(
+        '<ol><li>a. Liður</li><li>Ráðherra) setur</li><li>1. tala</li></ol>',
+      ),
+    ).toBe(
+      '<ol type="a"><li>Liður</li><li>Ráðherra) setur</li><li>1. tala</li></ol>',
+    );
+  });
+
+  test('6. "N. gr." followed by <br> without a slash', () => {
+    expect(cleanPastedHtml('<p>3. gr.<br>Texti.</p><p>Meira.</p>')).toBe(
+      '<h3 class="article__title">3. gr.</h3><p>Texti.</p><p>Meira.</p>',
+    );
   });
 });
