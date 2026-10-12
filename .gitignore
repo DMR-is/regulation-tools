@@ -1,4 +1,5 @@
 dist/
+.cache/
 tsconfig.tsbuildinfo
 
 yarn.lock

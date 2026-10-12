@@ -8,7 +8,7 @@
       node /tmp/structuredDiffReport.js 0678-2009
 
   Requests go through ./regulationsApi: sequential, one per second, and
-  cached under the OS temp dir, so a rerun makes no requests at all.
+  cached in .cache/regulations-api/, so a rerun makes no requests at all.
 
   For each amendment it prints how many blocks each diff marks as changed, the
   structured operations as rough amending phrases, and the amending
