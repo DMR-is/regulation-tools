@@ -4,7 +4,7 @@
   text), with each block's text and shape.
 */
 
-import { BlockKind, Section, StructuredDiffOptions } from './types';
+import { Block, BlockKind, Section, StructuredDiffOptions } from './types';
 
 export const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
 
@@ -224,139 +224,224 @@ export const blockKind = (el: Element): BlockKind => {
   return 'other';
 };
 
+// ---------------------------------------------------------------------------
+// parseSections in three steps, so the incremental differ can cache the
+// first per top-level node: what each node is (`itemOf`), where sections
+// start (`segment`), and each section's blocks (`buildSection`). Everything a
+// section holds is decided by its own nodes, never by its neighbours.
+
+/** A block without its paragraph number, which depends on its position. */
+export type BlockFields = Omit<Block, 'mgr'>;
+
+/** What one top-level node is to the parse. */
+export type Item =
+  /** Loose text or inline markup: collected into runs, each run one block. */
+  | { type: 'inline'; node: ChildNode }
+  /** A comment. */
+  | { type: 'skip' }
+  /** An article, chapter or sub-article heading: starts a section. */
+  | { type: 'heading'; section: Omit<Section, 'blocks'> }
+  /** `sigStart`: would start the signature, unless already inside it. */
+  | { type: 'block'; sigStart: boolean; fields: BlockFields };
+
+export type InlineItem = Extract<Item, { type: 'inline' }>;
+
+export const itemOf = (node: ChildNode): Item => {
+  if (isInline(node)) {
+    return { type: 'inline', node };
+  }
+  if (node.nodeType !== 1) {
+    return { type: 'skip' };
+  }
+  const el = node as Element;
+  const text = normalize(el.textContent || '');
+  const heading = () => ({ html: el.outerHTML, text, shape: shapeOf(el) });
+
+  if (el.tagName === 'H3') {
+    const m = text.match(ARTICLE_RE);
+    const num = m && m[1] + (m[2] || '');
+    return {
+      type: 'heading',
+      section: {
+        key: num ? `gr:${num}` : `h3:${text}`,
+        label: m ? `${m[1]}. gr.${m[2] ? ' ' + m[2] : ''}` : text,
+        title: m ? normalize(text.slice(m[0].length)) : text,
+        heading: heading(),
+      },
+    };
+  }
+  if (el.tagName === 'H2') {
+    // Keyed by kind and number, so a changed title is not a renumbering.
+    const m = text.match(DIVISION_RE);
+    const kind = m?.[2]!.toLowerCase();
+    const num = m && m[1]! + (m[3] ? ' ' + m[3] : '');
+    return {
+      type: 'heading',
+      section: {
+        key: m ? `h2:${kind}:${num}` : `h2:${text}`,
+        label: m ? `${num}. ${kind}` : text,
+        title: m ? normalize(text.slice(m[0].length)) : text,
+        heading: heading(),
+      },
+    };
+  }
+  const sub = subheadingNumber(el);
+  if (sub) {
+    return {
+      type: 'heading',
+      section: {
+        key: `sub:${sub}`,
+        label: `${sub}. gr.`,
+        title: normalize(text.replace(SUBHEADING_RE, '')),
+        heading: heading(),
+      },
+    };
+  }
+  return {
+    type: 'block',
+    sigStart: isSignatureStart(el, text),
+    fields: {
+      kind: blockKind(el),
+      html: el.outerHTML,
+      text,
+      content: contentOf(el),
+      canon: canonOf(el).replace(/^<div>|<\/div>$/g, ''),
+      shape: shapeOf(el),
+      blockShape: shapeOf(el, false),
+      term: definedTerm(el, text),
+    },
+  };
+};
+
+/**
+ * A run of loose text and inline markup as one block, or undefined when it
+ * holds nothing visible (whitespace between elements).
+ */
+export const runFields = (
+  run: ReadonlyArray<InlineItem>,
+): BlockFields | undefined => {
+  if (!run.length) {
+    return;
+  }
+  const wrap = run[0]!.node.ownerDocument!.createElement('div');
+  run.forEach(({ node }) => wrap.appendChild(node.cloneNode(true)));
+  const text = normalize(wrap.textContent || '');
+  // An image is content too: a run of only an image is still a block.
+  if (!text && !wrap.querySelector('img')) {
+    return;
+  }
+  return {
+    kind: 'text',
+    html: wrap.innerHTML,
+    text,
+    content: contentOf(wrap),
+    canon: canonOf(wrap).replace(/^<div>|<\/div>$/g, ''),
+    shape: shapeOf(wrap).replace(/^div/, '#text'),
+    blockShape: shapeOf(wrap, false).replace(/^div/, '#text'),
+    term: undefined,
+  };
+};
+
+/** Items `from`–`to` (exclusive) make one section, started as `start` says. */
+export type Segment = {
+  start: 'pre' | 'heading' | 'sig';
+  from: number;
+  to: number;
+};
+
+/**
+ * Where sections start: at every heading, and at the closing date line
+ * unless already in the signature. Loose text before a heading stays with the
+ * section before it.
+ */
+export const segment = (items: ReadonlyArray<Item>): Array<Segment> => {
+  const out: Array<Segment> = [];
+  let start: Segment['start'] = 'pre';
+  let from = 0;
+  items.forEach((item, i) => {
+    const next =
+      item.type === 'heading'
+        ? 'heading'
+        : item.type === 'block' && item.sigStart && start !== 'sig'
+        ? 'sig'
+        : undefined;
+    if (next) {
+      out.push({ start, from, to: i });
+      start = next;
+      from = i;
+    }
+  });
+  out.push({ start, from, to: items.length });
+  return out;
+};
+
+export type BuildHooks = {
+  /** `runFields`, or a cached equivalent. */
+  run: (run: ReadonlyArray<InlineItem>) => BlockFields | undefined;
+  /** The block itself, or a cached equivalent. */
+  block: (fields: BlockFields, mgr: number) => Block;
+};
+
+export const plainHooks: BuildHooks = {
+  run: runFields,
+  block: (fields, mgr) => ({ ...fields, mgr }),
+};
+
+/** One segment as a section, or undefined for an empty unheaded one. */
+export const buildSection = (
+  items: ReadonlyArray<Item>,
+  { start, from, to }: Segment,
+  hooks: BuildHooks,
+): Section | undefined => {
+  const blocks: Array<Block> = [];
+  const first = items[from];
+  const section: Section =
+    start === 'heading' && first?.type === 'heading'
+      ? { ...first.section, blocks }
+      : start === 'sig'
+      ? {
+          key: 'sig',
+          label: 'Undirritun',
+          title: '',
+          signature: true,
+          blocks,
+        }
+      : { key: 'pre', label: '', title: '', blocks };
+  let mgr = 0;
+  const push = (fields: BlockFields) => {
+    // A list or table belongs to the paragraph before it.
+    if (fields.kind === 'paragraph' || fields.kind === 'text' || mgr === 0) {
+      mgr++;
+    }
+    blocks.push(hooks.block(fields, mgr));
+  };
+  let run: Array<InlineItem> = [];
+  const flushRun = () => {
+    const fields = run.length ? hooks.run(run) : undefined;
+    run = [];
+    fields && push(fields);
+  };
+  for (let i = start === 'heading' ? from + 1 : from; i < to; i++) {
+    const item = items[i]!;
+    if (item.type === 'inline') {
+      run.push(item);
+      continue;
+    }
+    flushRun();
+    if (item.type === 'block') {
+      push(item.fields);
+    }
+  }
+  flushRun();
+  return section.heading || blocks.length ? section : undefined;
+};
+
 export const parseSections = (
   html: string,
   asDiv: StructuredDiffOptions['asDiv'],
 ): Array<Section> => {
-  const sections: Array<Section> = [];
-  let current: Section = { key: 'pre', label: '', title: '', blocks: [] };
-  let mgr = 0;
-
-  const start = (section: Section) => {
-    if (current.heading || current.blocks.length) {
-      sections.push(current);
-    }
-    current = section;
-    mgr = 0;
-  };
-
-  const pushBlock = (
-    kind: BlockKind,
-    el: Element,
-    html: string,
-    text: string,
-    shape: string,
-    blockShape: string,
-    term?: string,
-  ) => {
-    if (kind === 'paragraph' || kind === 'text' || mgr === 0) {
-      mgr++;
-    }
-    current.blocks.push({
-      kind,
-      html,
-      text,
-      content: contentOf(el),
-      canon: canonOf(el).replace(/^<div>|<\/div>$/g, ''),
-      shape,
-      blockShape,
-      term,
-      mgr,
-    });
-  };
-
-  const root = asDiv(html);
-  // Loose top-level text and inline markup — not wrapped in a block element —
-  // is collected into runs, each its own block, so no text is ever dropped.
-  let run: Array<ChildNode> = [];
-  const flushRun = () => {
-    const wrap = root.ownerDocument.createElement('div');
-    run.forEach((node) => wrap.appendChild(node.cloneNode(true)));
-    run = [];
-    const text = normalize(wrap.textContent || '');
-    // An image is content too: a run of only an image is still a block.
-    if (text || wrap.querySelector('img')) {
-      pushBlock(
-        'text',
-        wrap,
-        wrap.innerHTML,
-        text,
-        shapeOf(wrap).replace(/^div/, '#text'),
-        shapeOf(wrap, false).replace(/^div/, '#text'),
-      );
-    }
-  };
-
-  for (const node of Array.from(root.childNodes)) {
-    if (isInline(node)) {
-      run.push(node);
-      continue;
-    }
-    flushRun();
-    if (node.nodeType !== 1) {
-      continue; // comments
-    }
-    const el = node as Element;
-    const text = normalize(el.textContent || '');
-    const heading = { html: el.outerHTML, text, shape: shapeOf(el) };
-
-    if (el.tagName === 'H3') {
-      const m = text.match(ARTICLE_RE);
-      const num = m && m[1] + (m[2] || '');
-      start({
-        key: num ? `gr:${num}` : `h3:${text}`,
-        label: m ? `${m[1]}. gr.${m[2] ? ' ' + m[2] : ''}` : text,
-        title: m ? normalize(text.slice(m[0].length)) : text,
-        heading,
-        blocks: [],
-      });
-      continue;
-    }
-    if (el.tagName === 'H2') {
-      // Keyed by kind and number, so a changed title is not a renumbering.
-      const m = text.match(DIVISION_RE);
-      const kind = m?.[2]!.toLowerCase();
-      const num = m && m[1]! + (m[3] ? ' ' + m[3] : '');
-      start({
-        key: m ? `h2:${kind}:${num}` : `h2:${text}`,
-        label: m ? `${num}. ${kind}` : text,
-        title: m ? normalize(text.slice(m[0].length)) : text,
-        heading,
-        blocks: [],
-      });
-      continue;
-    }
-    const sub = subheadingNumber(el);
-    if (sub) {
-      start({
-        key: `sub:${sub}`,
-        label: `${sub}. gr.`,
-        title: normalize(text.replace(SUBHEADING_RE, '')),
-        heading,
-        blocks: [],
-      });
-      continue;
-    }
-    if (!current.signature && isSignatureStart(el, text)) {
-      start({
-        key: 'sig',
-        label: 'Undirritun',
-        title: '',
-        signature: true,
-        blocks: [],
-      });
-    }
-    pushBlock(
-      blockKind(el),
-      el,
-      el.outerHTML,
-      text,
-      shapeOf(el),
-      shapeOf(el, false),
-      definedTerm(el, text),
-    );
-  }
-  flushRun();
-  start({ key: '', label: '', title: '', blocks: [] });
-  return sections;
+  const items = Array.from(asDiv(html).childNodes).map(itemOf);
+  return segment(items).flatMap(
+    (seg) => buildSection(items, seg, plainHooks) || [],
+  );
 };

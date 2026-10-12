@@ -1,5 +1,9 @@
 import { asDiv } from './_cleanup/serverDOM';
-import { getStructuredDiff, StructuredDiffOptions } from './structuredDiff';
+import {
+  createStructuredDiffer as createDiffer,
+  getStructuredDiff,
+  StructuredDiffOptions,
+} from './structuredDiff';
 import { HTMLText } from './types';
 
 export type * from './structuredDiff';
@@ -10,5 +14,11 @@ const getStructuredDiffServer = (
   newer: HTMLText,
   opts?: Omit<StructuredDiffOptions, 'asDiv'>,
 ) => getStructuredDiff(older, newer, { ...opts, asDiv });
+
+/** `createStructuredDiffer` for Node, parsing with jsdom. */
+export const createStructuredDiffer = (
+  older: HTMLText,
+  opts?: Omit<StructuredDiffOptions, 'asDiv'>,
+) => createDiffer(older, { ...opts, asDiv });
 
 export default getStructuredDiffServer;
