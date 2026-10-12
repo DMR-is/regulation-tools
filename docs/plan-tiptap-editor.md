@@ -573,6 +573,11 @@ effect, or a preloaded chunk) to avoid it.
   19-only APIs (`use`, `useActionState`, `useOptimistic`, `ref` as a plain
   prop) type-check here while breaking there. The package does not bundle
   React (`build.js`, `bundle: false`), so the consumer's React is what runs.
+  `yarn typecheck:react18` (part of `yarn build`) runs `tsc` with
+  `tsconfig.react18.json`, which maps `react` and `react-dom` to the React
+  18 types, installed under the `types-react-18` / `types-react-dom-18`
+  aliases, and turns off automatic `@types` so React 19's are not loaded
+  too.
 - The speed harness (`scripts/editorSpeed.ts`) doubles as a smoke test of the
   current editor in a real browser: it loads, typing lands in the text, and
   the diff pane updates. It runs once on React 18 and once on React 19

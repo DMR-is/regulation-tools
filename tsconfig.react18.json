@@ -1,6 +1,4 @@
 {
-  // Typechecks against React 18's types. Development uses React 19, whose
-  // types accept 19-only APIs that would break consumers still on 18.
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
