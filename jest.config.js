@@ -15,6 +15,6 @@ module.exports = {
   setupFiles: [],
   testEnvironment: 'node',
   modulePathIgnorePatterns: ['<rootDir>/dist/'],
-  testPathIgnorePatterns: ['<rootDir>/dist/'],
+  testPathIgnorePatterns: ['<rootDir>/dist/', '<rootDir>/e2e/'],
   watchPathIgnorePatterns: ['<rootDir>/dist/']
 };

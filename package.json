@@ -18,7 +18,9 @@
     "typecheck:react18": "tsc -p tsconfig.react18.json",
     "prepublishOnly": "echo \"\nRun 'yarn run publishdist' to publish this package\n\n\"  && exit 1",
     "publishdist": "yarn test  &&  yarn build  &&  cd dist  &&  npm publish",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "playwright test",
+    "typecheck:e2e": "tsc -p e2e/tsconfig.json"
   },
   "publishConfig": {
     "access": "public"
@@ -63,6 +65,7 @@
   "devDependencies": {
     "@babel/parser": "^7.28.5",
     "@hugsmidjan/hxmstyle": "^6.3.1",
+    "@playwright/test": "1.48.2",
     "@types/cleanup-prettier": "npm:@types/prettier@2.1.6",
     "@types/jest": "^27.0.3",
     "@types/jsdom": "^16.2.5",
