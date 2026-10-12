@@ -12,6 +12,7 @@ import { importText } from '../_editorText';
 
 import { findUnsupportedElements } from './fidelity';
 import { searchKey } from './search';
+import { editorInput } from './serialize';
 import { DialogName } from './Toolbar';
 
 const Dialog = (props: {
@@ -237,7 +238,7 @@ const CodeDialog = (props: {
       setUnsupported(found);
       return;
     }
-    props.editor.chain().focus().setContent(imported).run();
+    props.editor.chain().focus().setContent(editorInput(imported)).run();
     props.onClose();
   };
   return (

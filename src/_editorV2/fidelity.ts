@@ -20,13 +20,13 @@ import { DOMParser, Schema } from '@tiptap/pm/model';
 import { HTMLText } from '../types';
 
 import { regulationSchemaExtensions } from './schema';
-import { toRegulationHTML } from './serialize';
+import { editorInput, toRegulationHTML } from './serialize';
 
 const schema = getSchema(regulationSchemaExtensions);
 
 /** Loads `html` into the editor's schema and writes it back out. */
 export const roundTrip = (html: string): HTMLText =>
-  toRegulationHTML(createDocument(html, schema).content, schema);
+  toRegulationHTML(createDocument(editorInput(html), schema).content, schema);
 
 export type FidelityResult = {
   ok: boolean;
@@ -127,6 +127,6 @@ const checkSchema = new Schema({
  */
 export const findUnsupportedElements = (html: string): Array<string> => {
   unsupported = [];
-  DOMParser.fromSchema(checkSchema).parse(elementFromString(html));
+  DOMParser.fromSchema(checkSchema).parse(elementFromString(editorInput(html)));
   return unsupported;
 };

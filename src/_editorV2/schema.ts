@@ -124,7 +124,15 @@ const GlobalAttributes = Extension.create({
         },
       },
       {
-        types: ['bold', 'italic', 'underline', 'superscript', 'subscript'],
+        types: [
+          'bold',
+          'italic',
+          'underline',
+          'superscript',
+          'subscript',
+          'link',
+          'footnoteMarker',
+        ],
         attributes: { id: htmlAttr('id') },
       },
       {
@@ -204,15 +212,33 @@ const Heading = Node.create({
  * useTextWarnings requires. Its name is an `<em>` inside it, which cleanup
  * gives the right class (`article__name`, …) on save.
  */
-const structuralHeading = (name: string, tag: 'h2' | 'h3', className: string) =>
+const structuralHeading = (
+  name: string,
+  tag: 'h2' | 'h3',
+  className: string,
+  /** The class values cleanup keeps for it. Default: `className` alone. */
+  classes: Array<string> = [className],
+) =>
   Node.create({
     name,
     group: 'block structure',
     content: 'inline*',
     defining: true,
     parseHTML() {
-      // Before plain headings, which would otherwise take these too.
-      return [{ tag: `${tag}.${className}`, priority: 60 }];
+      // Before plain headings, which would otherwise take these too. Only
+      // the exact class values cleanup keeps: for any other class string
+      // cleanup drops the class (`removeUnwantedAttributes`), so this is
+      // then a plain heading, as it is when Editor saves it.
+      return [
+        {
+          tag,
+          priority: 60,
+          getAttrs: (elm) =>
+            classes.includes(
+              (elm.getAttribute('class') || '').trim().replace(/\s+/g, ' '),
+            ) && null,
+        },
+      ];
     },
     renderHTML({ HTMLAttributes }) {
       return [tag, mergeAttributes({ class: className }, HTMLAttributes), 0];
@@ -220,11 +246,10 @@ const structuralHeading = (name: string, tag: 'h2' | 'h3', className: string) =>
   });
 
 /** Grein. `provisional` is Bráðabirgðaákvæði (`article__title--provisional`). */
-const ArticleTitle = structuralHeading(
-  'articleTitle',
-  'h3',
+const ArticleTitle = structuralHeading('articleTitle', 'h3', 'article__title', [
   'article__title',
-).extend({
+  'article__title article__title--provisional',
+]).extend({
   addAttributes() {
     return {
       provisional: {

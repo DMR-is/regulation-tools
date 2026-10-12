@@ -35,7 +35,11 @@ import { convertFileToBlobInfo } from '../utils';
 
 import { Dialogs, UploadFile } from './Dialogs';
 import { editorExtensions, highlightElement } from './extensions';
-import { createRegulationSerializer, toRegulationHTML } from './serialize';
+import {
+  createRegulationSerializer,
+  editorInput,
+  toRegulationHTML,
+} from './serialize';
 import { DialogName, Toolbar } from './Toolbar';
 import { ToolbarItem } from './toolbarItems';
 
@@ -93,7 +97,7 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
 
   const editor = useEditor({
     extensions: editorExtensions,
-    content: props.initialText,
+    content: editorInput(props.initialText),
     editable: !props.disabled,
     enableInputRules: false,
     enablePasteRules: false,
@@ -158,7 +162,11 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
   }, [editor]);
 
   useEffect(() => {
-    editor?.setEditable(!props.disabled);
+    // Without `emitUpdate: false`, Tiptap reports this as a change, and
+    // `onChange` would fire on load, before anyone has typed.
+    if (editor && editor.isEditable === !!props.disabled) {
+      editor.setEditable(!props.disabled, false);
+    }
   }, [editor, props.disabled]);
 
   useEffect(() => {
@@ -169,7 +177,7 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
         highlight: (elm) => highlightElement(editor, elm),
         normalize: (html) =>
           toRegulationHTML(
-            createDocument(html, editor.schema).content,
+            createDocument(editorInput(html), editor.schema).content,
             editor.schema,
           ),
       });

@@ -1,5 +1,8 @@
 import './editorV2-dom';
 
+import { readdirSync, readFileSync } from 'fs';
+import { join } from 'path';
+
 import { checkFidelity, roundTrip } from '../_editorV2/fidelity';
 import { cleanupSingleEditorOutput } from '../cleanupEditorOutput';
 
@@ -24,6 +27,11 @@ const lossless: Record<string, string> = {
     '<h2 class="section__title">1. <em class="section__name">Hluti.</em></h2>' +
     '<h2 class="appendix__title">Viðauki</h2>',
   'plain headings': '<h2 align="center">Fyrirsögn</h2><h4>Minni</h4>',
+  'a heading class cleanup does not keep makes a plain heading':
+    '<h2 class="chapter__title chapter__title--appendix">VIÐAUKI <em>Skilgreining.</em></h2>',
+  'an "empty" cell and a legacy indent holding only a nbsp, prettified':
+    '<table><tbody><tr><td>\n&nbsp;\n</td></tr></tbody></table>' +
+    '<p>\n<span data-legacy-indenter="">\n&nbsp;\n</span>\nAuðkenni\nefnis.\n</p>',
 
   // Paragraphs
   'paragraph classes':
@@ -35,6 +43,8 @@ const lossless: Record<string, string> = {
   'legacy indents as margin styles':
     '<p style="margin-left: 2em; text-indent: -2em">Hangandi inndráttur.</p>',
   'ids, for links to point at': '<p id="ftn4">Neðanmálsgrein.</p>',
+  'ids on links (footnote back-references)':
+    '<p>CAS<sup class="footnote-reference"><a id="_ftnref1" href="#_ftn1">1</a>)</sup></p>',
   'horizontal rule': '<p>Fyrir.</p><hr><p>Eftir.</p>',
   blockquote: '<blockquote><p>Tilvitnun.</p></blockquote>',
 
@@ -89,6 +99,42 @@ describe('editor v2: a save without edits changes nothing', () => {
       expect(r.idempotent).toBe(true);
     });
   });
+});
+
+/*
+  Real regulation texts as the database stores them: prettified, with a
+  newline between most words. (The public API, which the corpus is read
+  from, returns them with newlines turned into spaces.) The editor in
+  reglugerd-admin-www loads this form.
+*/
+describe('editor v2: stored, prettified regulation texts', () => {
+  // `expected/` holds stored texts. (`input/` holds raw Word HTML, what
+  // dirtyClean starts from; it is never stored, so not loaded into editors.)
+  const dirs = ['expected'].map((d) => join(__dirname, d));
+  dirs.forEach((dir) =>
+    readdirSync(dir)
+      .filter((f) => f.endsWith('.html'))
+      .forEach((file) => {
+        test(`${dir.split('/').pop()}/${file}`, () => {
+          const html = readFileSync(join(dir, file), 'utf8');
+          const r = checkFidelity(html, cleanupSingleEditorOutput);
+          // Nested formatting order is an allowed change (below); compare
+          // with it normalized, everything else exactly.
+          const order = (h: string) =>
+            h
+              .replace(
+                /<u><strong>([^<]*)<\/strong><\/u>/g,
+                '<strong><u>$1</u></strong>',
+              )
+              .replace(
+                /<em><strong>([^<]*)<\/strong><\/em>/g,
+                '<strong><em>$1</em></strong>',
+              );
+          expect(order(r.actual)).toBe(order(r.expected));
+          expect(r.idempotent).toBe(true);
+        });
+      }),
+  );
 });
 
 /*

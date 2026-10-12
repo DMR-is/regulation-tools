@@ -67,3 +67,27 @@ export const createRegulationSerializer = (schema: Schema) => {
     return html as HTMLText;
   };
 };
+
+/**
+ * A text as the editor should read it. Stored texts are prettified, with a
+ * newline between most words; in HTML those are just spaces. Tiptap drops
+ * text nodes that look like formatting whitespace (`/^(\n\s\s|\n)$/`)
+ * before parsing, and `\s` matches a non-breaking space, so `\n&nbsp;\n`
+ * (a legacy indent, an "empty" cell) would vanish. Newlines in text, outside
+ * `<pre>`, become spaces first.
+ */
+export const editorInput = (html: string): string => {
+  if (!html.includes('\n')) {
+    return html;
+  }
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  const walker = document.createTreeWalker(container, 4 /* SHOW_TEXT */);
+  while (walker.nextNode()) {
+    const text = walker.currentNode as Text;
+    if (text.data.includes('\n') && !text.parentElement!.closest('pre')) {
+      text.data = text.data.replace(/\r?\n/g, ' ');
+    }
+  }
+  return container.innerHTML;
+};

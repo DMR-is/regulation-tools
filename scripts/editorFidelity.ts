@@ -7,6 +7,12 @@
       --packages=external --outfile=/tmp/editorFidelity.js
     NODE_PATH=$PWD/node_modules node /tmp/editorFidelity.js \
       [--docs=0112-2012/current/text,…] [--examples=3] [--out=report.json]
+      [--prettified]
+
+  `--prettified` checks each document in the form the database stores it:
+  prettified, with newlines between words, as a save leaves it. The public
+  API returns texts with those newlines turned into spaces; the editor in
+  reglugerd-admin-www loads the database form.
 
   For each document: whether the editor round trip, after cleanup, equals
   cleanup alone (lossless), whether a second round trip changes anything
@@ -21,12 +27,15 @@ import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 import { checkFidelity } from '../src/_editorV2/fidelity';
+import { prettify } from '../src/_cleanup/text';
 import { cleanupSingleEditorOutput } from '../src/cleanupEditorOutput';
+import { HTMLText } from '../src/types';
 
 const argStr = (name: string) =>
   process.argv.find((a) => a.startsWith(`--${name}=`))?.split('=')[1];
 const EXAMPLES = Number(argStr('examples') ?? 3);
 const OUT = argStr('out');
+const PRETTIFIED = process.argv.includes('--prettified');
 
 const CORPUS = join('.cache', 'editor-corpus');
 const API_CACHE = join('.cache', 'regulations-api', 'api.reglugerd.is');
@@ -95,7 +104,7 @@ const run = () => {
   const rows: Array<Row> = ids.map((id) => {
     const t0 = Date.now();
     try {
-      const html = htmlOf(id);
+      const html = PRETTIFIED ? prettify(htmlOf(id) as HTMLText) : htmlOf(id);
       const r = checkFidelity(html, cleanupSingleEditorOutput);
       const ms = Date.now() - t0;
       if (r.ok) {

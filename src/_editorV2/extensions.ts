@@ -178,20 +178,27 @@ const highlightKey = new PluginKey<DecorationSet>('regulationHighlight');
  */
 export const highlightElement = (editor: Editor, elm: Element) => {
   const { view } = editor;
-  let pos: number;
+  let from: number;
+  let to: number;
   try {
-    pos = view.posAtDOM(elm, 0) - 1;
+    from = view.posAtDOM(elm, 0);
+    to = view.posAtDOM(elm, elm.childNodes.length);
   } catch {
     return;
   }
-  const node = pos >= 0 ? view.state.doc.nodeAt(pos) : null;
-  if (!node) {
-    return;
-  }
-  const deco = DecorationSet.create(view.state.doc, [
-    Decoration.node(pos, pos + node.nodeSize, { 'data-highighted': '' }),
-  ]);
-  view.dispatch(view.state.tr.setMeta(highlightKey, deco));
+  const { doc } = view.state;
+  // A node (a paragraph, a list) is decorated as a node; anything else
+  // (a link, which is a mark) as the text it covers.
+  const node = from > 0 ? doc.nodeAt(from - 1) : null;
+  const isNode = !!node && !node.isText && view.nodeDOM(from - 1) === elm;
+  const deco = isNode
+    ? Decoration.node(from - 1, from - 1 + node!.nodeSize, {
+        'data-highighted': '',
+      })
+    : Decoration.inline(from, to, { 'data-highighted': '' });
+  view.dispatch(
+    view.state.tr.setMeta(highlightKey, DecorationSet.create(doc, [deco])),
+  );
   setTimeout(() => {
     if (!view.isDestroyed) {
       view.dispatch(view.state.tr.setMeta(highlightKey, DecorationSet.empty));
