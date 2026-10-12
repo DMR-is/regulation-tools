@@ -2,6 +2,33 @@
 
 ## Upcoming...
 
+## 1.0.0
+
+_Not yet released. Pre-releases: `1.0.0-next.N` on the `next` tag._
+
+- **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
+  on React 19; `yarn typecheck:react18` keeps it working on 18.
+  `@hugsmidjan/react` is no longer a dependency.
+- Feat: `EditorV2`, the editor rebuilt on Tiptap, beside the unchanged
+  `Editor`. The same props, `classes` and uploader; `toolbar` takes the
+  place of `config` and accepts the same toolbar strings. Every feature of
+  `Editor`, fast on long regulations (no keystroke or pause freezes on the
+  longest texts, where `Editor` froze for up to 13 s), and loading a text
+  and saving it untouched changes nothing. Styles: `editorV2.css`. See the
+  README and `docs/plan-tiptap-editor.md`.
+- Feat: `createStructuredDiffer` (`structuredDiff`, `-browser`, `-server`):
+  diffs one base text against a text being edited, again and again, redoing
+  only what changed. The same result as `getStructuredDiff`, plus the diff
+  per section (`parts`).
+- Fix: Pasting and importing Word documents (both editors): an ordinary
+  image next to a pasted one is no longer dropped; GIF and WebP images are
+  uploaded; unreadable image data becomes the "[Image upload failed]"
+  marker instead of `__IMAGE_PLACEHOLDER_n__`; pasted images keep their alt
+  text; lettered and roman lists keep their items' formatting, links and
+  nested lists; "N. gr." detection handles `<br>` and leaves no empty
+  paragraph.
+- Feat: `TextWarnings` takes an optional `highlight` function.
+
 ## 0.11.0
 
 _2026-10-06_
