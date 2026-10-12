@@ -1,6 +1,6 @@
 /*
-  The page that scripts/editorSpeed.ts measures: the current (v1) editor on
-  one long regulation, set up the way consumers edit an amendment — the text
+  The page that scripts/editorSpeed.ts measures: the current editor (or
+  EditorV2, with `?editor=v2`) on one long regulation, set up the way consumers edit an amendment — the text
   is also the base text, so the diff pane and the warnings run as they do in
   real use. Bundled by the runner; not part of the package.
 */
@@ -9,6 +9,7 @@ import React, { MutableRefObject } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { Editor, EditorClasses } from '../../src/Editor';
+import { EditorV2 } from '../../src/EditorV2';
 import { HTMLText } from '../../src/types';
 
 declare global {
@@ -28,15 +29,32 @@ const valueRef: MutableRefObject<() => HTMLText> = {
   current: () => window.__html,
 };
 
-const App = () => (
-  <Editor
-    classes={classes}
-    valueRef={valueRef}
-    baseText={window.__html}
-    isImpact
-    fileUploader={(_blobInfo, _success, failure) => failure('not in tests')}
-  />
-);
+const useV2 = new URLSearchParams(location.search).get('editor') === 'v2';
+
+const fileUploader = (
+  _blobInfo: unknown,
+  _success: (url: string) => void,
+  failure: (err: string) => void,
+) => failure('not in tests');
+
+const App = () =>
+  useV2 ? (
+    <EditorV2
+      classes={classes}
+      valueRef={valueRef}
+      baseText={window.__html}
+      isImpact
+      fileUploader={fileUploader}
+    />
+  ) : (
+    <Editor
+      classes={classes}
+      valueRef={valueRef}
+      baseText={window.__html}
+      isImpact
+      fileUploader={fileUploader}
+    />
+  );
 
 window.__reactVersion = React.version;
 createRoot(document.getElementById('root')!).render(<App />);

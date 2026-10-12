@@ -8,6 +8,7 @@
       --packages=external --outfile=/tmp/editorSpeed.js
     NODE_PATH=$PWD/node_modules node /tmp/editorSpeed.js \
       [--docs=0112-2012/current/text,…] [--runs=3] [--cpu=4] [--react=18]
+      [--editor=v2]
       [--out=file.json]
 
   Texts come from the corpus cache (scripts/editorCorpus.ts); with no
@@ -52,6 +53,8 @@ const RUNS = Number(argStr('runs') ?? 3);
 const CPU = Number(argStr('cpu') ?? 4);
 const OUT = argStr('out');
 const REACT = argStr('react') ?? '19';
+/** `v1` is `Editor` (TinyMCE), `v2` is `EditorV2` (Tiptap). */
+const EDITOR = argStr('editor') ?? 'v1';
 const ROUNDS = 3;
 const KEYS_PER_ROUND = 20;
 const KEYS = ROUNDS * KEYS_PER_ROUND;
@@ -115,6 +118,10 @@ const bundle = async () => {
 const serve = (js: string, docs: Map<string, string>) => {
   const server = createServer((req, res) => {
     const url = new URL(req.url || '/', 'http://x');
+    if (url.pathname === '/editorV2.css') {
+      res.writeHead(200, { 'content-type': 'text/css' });
+      return res.end(readFileSync('src/editorV2.css'));
+    }
     if (url.pathname === '/harness.js') {
       res.writeHead(200, { 'content-type': 'text/javascript' });
       return res.end(js);
@@ -136,6 +143,7 @@ const serve = (js: string, docs: Map<string, string>) => {
     .observe({ type: 'longtask', buffered: true });
   window.__html = ${JSON.stringify(html).replace(/</g, '\\u003c')};
 </script>
+<link rel="stylesheet" href="/editorV2.css">
 <div id="root"></div><script src="/harness.js"></script>`);
   });
   return new Promise<{ base: string; close: () => void }>((resolve) =>
@@ -193,14 +201,16 @@ const measure = async (page: Page, url: string): Promise<Measure> => {
     await page.waitForTimeout(250);
   }
 
-  // Click at the end of the middle paragraph.
-  await page.evaluate(() => {
-    const ps = document.querySelectorAll('.editor[contenteditable] > p');
-    const p = ps[Math.floor(ps.length / 2)]!;
-    p.scrollIntoView({ block: 'center' });
-    p.setAttribute('data-speed-target', '');
-  });
-  const box = (await page.locator('[data-speed-target]').boundingBox())!;
+  // Click at the end of the middle paragraph. Found by position, not marked
+  // with an attribute: ProseMirror removes attributes set on its DOM.
+  const TARGET = '.editor[contenteditable] > p';
+  const index = await page.evaluate((selector) => {
+    const ps = document.querySelectorAll(selector);
+    const i = Math.floor(ps.length / 2);
+    ps[i]!.scrollIntoView({ block: 'center' });
+    return i;
+  }, TARGET);
+  const box = (await page.locator(TARGET).nth(index).boundingBox())!;
   await page.mouse.click(box.x + box.width - 2, box.y + box.height - 4);
 
   const typing: Array<[number, number]> = [];
@@ -212,11 +222,11 @@ const measure = async (page: Page, url: string): Promise<Measure> => {
     await page.waitForTimeout(PAUSE_MS);
   }
   const typed = await page.evaluate(
-    (text) =>
+    ([selector, i, text]) =>
       document
-        .querySelector('[data-speed-target]')!
-        .textContent!.includes(text),
-    TYPED.repeat(ROUNDS).trim(),
+        .querySelectorAll(selector as string)
+        [i as number]!.textContent!.includes(text as string),
+    [TARGET, index, TYPED.repeat(ROUNDS).trim()] as const,
   );
   if (!typed) {
     throw new Error(`the typed text did not land in the paragraph: ${url}`);
@@ -252,6 +262,23 @@ const measure = async (page: Page, url: string): Promise<Measure> => {
     .forEach((e) =>
       keys.set(e.id!, Math.max(keys.get(e.id!) || 0, e.duration)),
     );
+  if (process.env.SPEED_DEBUG) {
+    // Where the slow keystrokes fall: round, and ms into the round.
+    const startOf = new Map<number, number>();
+    events.forEach(
+      (e) => e.id && !startOf.has(e.id) && startOf.set(e.id, e.start),
+    );
+    [...keys.entries()]
+      .filter(([, d]) => d > SLOW_KEY_MS)
+      .forEach(([id, d]) => {
+        const start = startOf.get(id)!;
+        const round = typing.findIndex(([a, b]) => start >= a && start <= b);
+        console.log(
+          `  slow key: ${Math.round(d)} ms, round ${round + 1}, ` +
+            `${Math.round(start - typing[round]![0])} ms in`,
+        );
+      });
+  }
   return {
     loadMs,
     busyAfterLoadMs: busyUntil - loadMs,
@@ -276,19 +303,28 @@ const run = async () => {
     { id: string; chars: number } & Measure & { runs: Array<Measure> }
   > = [];
   const probe = await browser.newPage();
-  await probe.goto(`${base}/?doc=${encodeURIComponent(ids[0]!)}`);
+  await probe.goto(
+    `${base}/?editor=${EDITOR}&doc=${encodeURIComponent(ids[0]!)}`,
+  );
   const reactVersion = await probe.evaluate(
     () => (window as any).__reactVersion as string,
   );
   await probe.close();
   console.log(
-    `React ${reactVersion}, CPU throttling ${CPU}×, ${RUNS} runs each, ${ROUNDS}×${KEYS_PER_ROUND} keys at ${KEY_DELAY_MS} ms\n`,
+    `${
+      EDITOR === 'v2' ? 'EditorV2' : 'Editor'
+    }, React ${reactVersion}, CPU throttling ${CPU}×, ${RUNS} runs each, ${ROUNDS}×${KEYS_PER_ROUND} keys at ${KEY_DELAY_MS} ms\n`,
   );
   for (const id of ids) {
     const runs: Array<Measure> = [];
     for (let i = 0; i < RUNS; i++) {
       const page = await browser.newPage();
-      runs.push(await measure(page, `${base}/?doc=${encodeURIComponent(id)}`));
+      runs.push(
+        await measure(
+          page,
+          `${base}/?editor=${EDITOR}&doc=${encodeURIComponent(id)}`,
+        ),
+      );
       await page.close();
     }
     const m = (k: keyof Measure) => median(runs.map((r) => r[k]));
@@ -320,7 +356,11 @@ const run = async () => {
   if (OUT) {
     writeFileSync(
       OUT,
-      JSON.stringify({ cpu: CPU, react: reactVersion, results }, null, 1),
+      JSON.stringify(
+        { editor: EDITOR, cpu: CPU, react: reactVersion, results },
+        null,
+        1,
+      ),
     );
   }
 };
