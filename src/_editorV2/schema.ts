@@ -97,9 +97,6 @@ const alignAttr: Attribute = {
     attrs.align ? { style: `text-align: ${attrs.align as string}` } : {},
 };
 
-/** The text: ordinary blocks and the regulation's structure, at the top. */
-const RegulationDocument = Document.extend({ content: '(block | structure)+' });
-
 const BLOCK_TYPES = [
   'paragraph',
   'heading',
@@ -151,7 +148,15 @@ const GlobalAttributes = Extension.create({
         attributes: { id: unique(htmlAttr('id')) },
       },
       {
-        types: ['paragraph', 'heading', 'tableCell', 'tableHeader'],
+        // Cleanup removes align from article, chapter, subchapter and section
+        // titles, but keeps it on appendix titles.
+        types: [
+          'paragraph',
+          'heading',
+          'tableCell',
+          'tableHeader',
+          'appendixTitle',
+        ],
         attributes: { align: alignAttr },
       },
     ];
@@ -236,9 +241,11 @@ const structuralHeading = (
 ) =>
   Node.create({
     name,
-    // Not `block`: lists, cells and quotes hold `block+`, so a title can
-    // only be at the top level of the text (see RegulationDocument).
-    group: 'structure',
+    // Also `block`, so a stored text with a title inside a list or cell
+    // loads unchanged: loading never restructures a text. The editor's
+    // commands only create titles at the top level (`atTopLevel`), and the
+    // nonRoot*Titles warnings point out any that are not.
+    group: 'block structure',
     content: 'inline*',
     defining: true,
     parseHTML() {
@@ -395,7 +402,9 @@ const FootnoteMarker = Mark.create({
 const Anchor = Mark.create({
   name: 'anchor',
   inclusive: false,
-  excludes: '',
+  // Not together with a link, which would save as nested <a>s and lose the
+  // anchor on the next load; a link carries its own `id`.
+  excludes: 'link',
   addAttributes() {
     return { id: htmlAttr('id') };
   },
@@ -478,7 +487,7 @@ const LegacyIndenter = Node.create({
  * keyboard shortcuts, …) on top; the fidelity check uses this alone.
  */
 export const regulationSchemaExtensions = [
-  RegulationDocument,
+  Document,
   Text,
   RegulationParagraph,
   Heading,

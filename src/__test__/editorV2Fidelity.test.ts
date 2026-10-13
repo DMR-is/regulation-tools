@@ -43,6 +43,10 @@ const lossless: Record<string, string> = {
   'legacy indents as margin styles':
     '<p style="margin-left: 2em; text-indent: -2em">Hangandi inndráttur.</p>',
   'ids, for links to point at': '<p id="ftn4">Neðanmálsgrein.</p>',
+  'a title inside a list loads unchanged (nonRoot*Titles warns about it)':
+    '<ol><li>a</li><li><h3 class="article__title">1. gr.</h3></li><li>c</li></ol>',
+  'align on an appendix title, which cleanup keeps':
+    '<h2 class="appendix__title" align="center">Viðauki</h2>',
   'anchors without href (link targets)':
     '<p><a id="ftn1">[1]</a> Neðanmálsgrein.</p>',
   'Cloudflare-obfuscated e-mail markers, kept for the warning':

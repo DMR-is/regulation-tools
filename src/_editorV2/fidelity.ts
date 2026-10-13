@@ -125,19 +125,9 @@ const checkSchema = new Schema({
  * empty when the text loads whole. For the warning in the browser, where
  * the full check (which needs cleanup, and so jsdom) cannot run.
  */
-/** The regulation's structure, which the editor keeps at the top level. */
-const STRUCTURAL_TITLES =
-  'h3.article__title, h2.chapter__title, h2.subchapter__title, h2.section__title, h2.appendix__title';
-
 export const findUnsupportedElements = (html: string): Array<string> => {
   unsupported = [];
   const root = elementFromString(editorInput(html));
-  // A title inside a list, cell or quote is moved out of it on load.
-  root.querySelectorAll(STRUCTURAL_TITLES).forEach((elm) => {
-    if (elm.parentElement !== root) {
-      unsupported.push(elm.outerHTML.slice(0, 200));
-    }
-  });
   DOMParser.fromSchema(checkSchema).parse(root);
   return unsupported;
 };

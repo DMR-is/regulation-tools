@@ -12,7 +12,7 @@ import {
 } from '@tiptap/pm/model';
 
 import { HTMLText } from '../types';
-import { inertDocument } from '../utils';
+import { inertDocument } from '../_utils/inert';
 
 /**
  * A lone paragraph without attributes inside a list item or table cell is

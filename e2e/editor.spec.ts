@@ -64,11 +64,10 @@ test('on load, says what in the text it cannot hold as it is', async ({
   page,
 }) => {
   await openEditor(page, {
-    html: '<p>a</p><div class="x">b</div><ol><li><h3 class="article__title">1. gr.</h3></li></ol>',
+    html: '<p>a</p><div class="x">b</div>',
   });
   const alert = page.getByRole('alert');
   await expect(alert).toContainText('<div class="x">b</div>');
-  await expect(alert).toContainText('article__title');
 });
 
 test('a text the editor holds whole shows no such warning', async ({

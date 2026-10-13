@@ -239,6 +239,19 @@ describe('splitting and structure', () => {
     editor.destroy();
   });
 
+  test('Enter mid-text or at the start leaves one id, on the text', () => {
+    let editor = makeEditor('<p id="ftn4">Neðanmáls grein.</p>');
+    editor.commands.setTextSelection(10);
+    editor.commands.splitBlock();
+    expect(editor.getHTML()).toBe('<p id="ftn4">Neðanmáls</p><p> grein.</p>');
+    editor.destroy();
+    editor = makeEditor('<p id="ftn4">Neðanmáls grein.</p>');
+    editor.commands.setTextSelection(1);
+    editor.commands.splitBlock();
+    expect(editor.getHTML()).toBe('<p></p><p id="ftn4">Neðanmáls grein.</p>');
+    editor.destroy();
+  });
+
   test('"Grein" is refused for a selection running into a list', () => {
     const editor = makeEditor('<p>Fyrst</p><ol><li>liður</li></ol>');
     editor.commands.setTextSelection({
