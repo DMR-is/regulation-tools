@@ -594,9 +594,13 @@ consuming apps.
 - **One branch, `feat/editor-v2`, one PR.** Work that one phase needs from
   another stays on the same branch. The PR into `main` (#7) was a draft while
   phases 0–3 were built, and was marked ready for review before the first
-  pre-release, so it is reviewed before the apps try it. It is merged after
-  the trial; pre-releases are published from the branch. Commits are kept
-  per logical step, so the PR can be read commit by commit.
+  pre-release, so it is reviewed before the apps try it. Decided after
+  three reviews: it is merged before the trial, and `1.0.0-next.1` is
+  published from `main` (a `v1.0.0-next.1` tag; `publishdist` publishes
+  pre-releases under `next`). Fixes from the trial come as new PRs and
+  `1.0.0-next.N`. `main` is then no longer at 0.11; a 0.11.x fix, if ever
+  needed, branches from `7be0a7e`. Commits are kept per logical step, so
+  the PR can be read commit by commit.
 - **1.0.0:** React 19 baseline (React 16/17 dropped) + `EditorV2` (with
   `createStructuredDiffer` in its pane), beside the unchanged `Editor`.
   Decided: 1.0, not 0.12 — dropping React versions is breaking, and from
@@ -773,9 +777,40 @@ unchanged sections in place when sections are added. Pre-release
 
 **4. Rollout and retirement**
 - Trial on `1.0.0-next.N` in the apps (Þórður); fix what it finds; measure
-  speed in the real apps.
-- Release 1.0.0. Apps switch screen by screen (`config={{ toolbar }}` →
-  `toolbar=`).
+  speed in the real apps. Each app installs it with
+  `yarn add @dmr.is/regulations-tools@next`; ranges like `^0.11` never
+  pick it up.
+- **Exit criteria: 1.0.0 is released when all of these hold.** After 1.0.0,
+  changing `EditorV2`'s props is a 2.0.0, so it goes out only when nothing
+  in the trial points to an API change.
+  1. The current `Editor` works on `next` in all three apps (island.is,
+     reglugerd-admin-www, dmr.is): above all paste from Word, the web and
+     PDFs, and Word import, which is what changed for it.
+  2. At least one `EditorV2` screen has been used for real work, ideally
+     amendments to long regulations.
+  3. Loading a text and saving it untouched writes nothing to
+     `regulationchange.changeset`, checked in reglugerd-admin-www, which
+     loads the prettified database form.
+  4. Speed holds in the real apps on a long regulation (the lab numbers
+     are a best case, from a page holding only the editor).
+  5. No open findings from the trial: each fix goes out as the next
+     `1.0.0-next.N` and is tried again.
+  6. The known parity gap is closed: the alt text of an inserted image can
+     be edited (TinyMCE's image dialog had a field for it).
+  7. `EditorV2`'s props are settled: no one wants a prop renamed, removed
+     or changed.
+- **Releasing 1.0.0:**
+  1. A small PR: version `1.0.0`, the changelog entry dated, the trial
+     marked done here.
+  2. Merge it, then tag `v1.0.0` on `main` and push the tag. The publish
+     workflow runs `publishdist`, which publishes a version without `-` as
+     `latest`.
+  3. Check: `npm view @dmr.is/regulations-tools dist-tags` shows
+     `latest: 1.0.0`.
+  4. The `next` tag still points at the last pre-release: leave it, or move
+     it with `npm dist-tag add @dmr.is/regulations-tools@1.0.0 next`.
+- Apps move to `^1.0.0` and switch screen by screen (`config={{ toolbar }}`
+  → `toolbar=`), at their own pace; fixes then reach them within 1.x.
 - 2.0.0 removes TinyMCE, `@tinymce/tinymce-react` and the CDN skin URL,
   once no app uses `Editor`.
 
