@@ -43,6 +43,10 @@ const lossless: Record<string, string> = {
   'legacy indents as margin styles':
     '<p style="margin-left: 2em; text-indent: -2em">Hangandi inndráttur.</p>',
   'ids, for links to point at': '<p id="ftn4">Neðanmálsgrein.</p>',
+  'anchors without href (link targets)':
+    '<p><a id="ftn1">[1]</a> Neðanmálsgrein.</p>',
+  'Cloudflare-obfuscated e-mail markers, kept for the warning':
+    '<p>Netfang: <span class="__cf_email__" data-cfemail="a1b2">[email&#160;protected]</span></p>',
   'ids on links (footnote back-references)':
     '<p>CAS<sup class="footnote-reference"><a id="_ftnref1" href="#_ftn1">1</a>)</sup></p>',
   'horizontal rule': '<p>Fyrir.</p><hr><p>Eftir.</p>',

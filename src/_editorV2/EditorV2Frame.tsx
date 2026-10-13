@@ -41,6 +41,7 @@ import { convertFileToBlobInfo } from '../utils';
 
 import { Dialogs, UploadFile } from './Dialogs';
 import { editorExtensions, highlightElement } from './extensions';
+import { findUnsupportedElements } from './fidelity';
 import {
   createRegulationSerializer,
   editorInput,
@@ -82,6 +83,14 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
   const [loadingWord, setLoadingWord] = useState(false);
   /** A failure the person editing should see (Word import, image upload). */
   const [error, setError] = useState<string>();
+  /**
+   * What in the loaded text the editor cannot hold as it is (and so would
+   * drop or move if it is saved), shown on load: the fidelity guard of
+   * docs/plan-tiptap-editor.md, as far as it can run in the browser.
+   */
+  const [unsupported] = useState(() =>
+    findUnsupportedElements(props.initialText),
+  );
   const lastCopied = useRef<string>(undefined);
   const wordInput = useRef<HTMLInputElement>(null);
   const imageInput = useRef<HTMLInputElement>(null);
@@ -282,6 +291,7 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
         {editor && (
           <Toolbar
             editor={editor}
+            disabled={props.disabled}
             items={props.toolbar}
             actions={{
               openDialog: setDialog,
@@ -318,6 +328,22 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
           {props.documentLoaderElement ?? 'Hleð inn Word skjali ...'}
         </div>
       )}
+      {unsupported.length > 0 && (
+        <div className="regtools-editor__error" role="alert">
+          Ritillinn getur ekki haldið öllu í þessum texta óbreyttu. Þetta
+          breytist eða hverfur ef textinn er vistaður:
+          <ul>
+            {unsupported.slice(0, 5).map((u, i) => (
+              <li key={i}>
+                <code>{u}</code>
+              </li>
+            ))}
+          </ul>
+          {unsupported.length > 5 && (
+            <p>og {unsupported.length - 5} í viðbót.</p>
+          )}
+        </div>
+      )}
       {error && (
         <div className="regtools-editor__error" role="alert">
           {error}{' '}
@@ -351,6 +377,11 @@ const sameProps = (a: EditorV2FrameProps, b: EditorV2FrameProps) =>
   (Object.keys(a) as Array<keyof EditorV2FrameProps>).every((key) => {
     if (typeof a[key] === 'function') {
       return typeof b[key] === 'function';
+    }
+    if (key === 'documentLoaderElement') {
+      // Often inline JSX, a new object on every render; it is only shown
+      // while a Word document loads, so whether there is one is enough.
+      return !!a[key] === !!b[key];
     }
     if (key === 'classes') {
       return (

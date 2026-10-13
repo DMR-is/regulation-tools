@@ -4,7 +4,14 @@
   and search and replace. Native `<dialog>` elements.
 */
 
-import React, { ReactNode, useEffect, useId, useRef, useState } from 'react';
+import React, {
+  ReactNode,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Editor, useEditorState } from '@tiptap/react';
 
 import { HTMLText } from '../types';
@@ -27,7 +34,9 @@ const Dialog = (props: {
   const titleId = useId();
   const returnFocus = useRef(props.returnFocus);
   returnFocus.current = props.returnFocus;
-  useEffect(() => {
+  // A layout effect, so `close()` runs before React removes the dialog:
+  // closed while still in the page, it gives focus back to where it was.
+  useLayoutEffect(() => {
     const dialog = ref.current!;
     props.modal === false ? dialog.show() : dialog.showModal();
     return () => {

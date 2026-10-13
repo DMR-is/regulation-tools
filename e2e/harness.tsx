@@ -34,6 +34,8 @@ declare global {
     __changes: number;
     __focus: number;
     __blur: number;
+    /** Sets readOnly after load, as an app does while it saves. */
+    __setReadOnly: (readOnly: boolean) => void;
   }
 }
 
@@ -71,7 +73,6 @@ const common = {
   baseText: options.baseText as HTMLText | undefined,
   isImpact: true,
   fileUploader,
-  readOnly: options.readOnly,
   disabled: options.disabled,
   warningsAbove: options.warningsAbove,
   'aria-labelledby': options.labelledBy,
@@ -80,16 +81,23 @@ const common = {
   onBlur: () => window.__blur++,
 };
 
-const App = () =>
+const App = () => {
+  const [readOnly, setReadOnly] = React.useState(options.readOnly);
+  window.__setReadOnly = setReadOnly;
+  return <EditorOf readOnly={readOnly} />;
+};
+
+const EditorOf = ({ readOnly }: { readOnly?: boolean }) =>
   options.editor === 'v1' ? (
     <Editor
       {...common}
+      readOnly={readOnly}
       config={
         options.toolbar !== undefined ? { toolbar: options.toolbar } : undefined
       }
     />
   ) : (
-    <EditorV2 {...common} toolbar={options.toolbar} />
+    <EditorV2 {...common} readOnly={readOnly} toolbar={options.toolbar} />
   );
 
 createRoot(document.getElementById('root')!).render(<App />);

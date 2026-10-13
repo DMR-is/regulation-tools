@@ -167,6 +167,11 @@ test('search and replace', async ({ page }) => {
   await tool(page, 'Leita og skipta út').click();
   await dialog(page).getByLabel('Leita að').fill('ráðherra');
   await expect(dialog(page)).toContainText('1 af 2');
+  // Enter goes to the first match, not past it.
+  await dialog(page).getByLabel('Leita að').press('Enter');
+  await expect(dialog(page)).toContainText('1 af 2');
+  await dialog(page).getByLabel('Leita að').press('Enter');
+  await expect(dialog(page)).toContainText('2 af 2');
   await expect(page.locator('.regtools-search-match')).toHaveCount(2);
   await dialog(page).getByLabel('Hástafanæmt').check();
   await expect(dialog(page)).toContainText('1 af 1');

@@ -50,6 +50,34 @@ test('read-only: no dropdown can change the text; search works, replacing does n
   expect(await value(page)).toContain('Texti greinar.');
 });
 
+test('read-only set after load reaches the toolbar', async ({ page }) => {
+  await openEditor(page, { html: TEXT });
+  await expect(tool(page, 'Feitletrað')).toBeEnabled();
+  await page.evaluate(() => window.__setReadOnly(true));
+  await expect(tool(page, 'Feitletrað')).toBeDisabled();
+  await expect(tool(page, 'Tafla')).toBeDisabled();
+  await page.evaluate(() => window.__setReadOnly(false));
+  await expect(tool(page, 'Feitletrað')).toBeEnabled();
+});
+
+test('on load, says what in the text it cannot hold as it is', async ({
+  page,
+}) => {
+  await openEditor(page, {
+    html: '<p>a</p><div class="x">b</div><ol><li><h3 class="article__title">1. gr.</h3></li></ol>',
+  });
+  const alert = page.getByRole('alert');
+  await expect(alert).toContainText('<div class="x">b</div>');
+  await expect(alert).toContainText('article__title');
+});
+
+test('a text the editor holds whole shows no such warning', async ({
+  page,
+}) => {
+  await openEditor(page, { html: TEXT });
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
 test('accessible names: the toolbar, dialogs, the HTML source box', async ({
   page,
 }) => {

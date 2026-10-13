@@ -222,3 +222,47 @@ describe('search and replace', () => {
     editor.destroy();
   });
 });
+
+describe('splitting and structure', () => {
+  test('Enter does not copy a list number or an id into the new block', () => {
+    const editor = makeEditor(
+      '<ol><li value="5">fimm</li></ol><p id="a1">Akkeri</p>',
+    );
+    cursorAt(editor, 'fimm');
+    editor.commands.setTextSelection(editor.state.selection.from + 4);
+    editor.commands.splitListItem('listItem');
+    editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+    editor.commands.splitBlock();
+    const html = editor.getHTML();
+    expect(html.match(/value="5"/g)).toHaveLength(1);
+    expect(html.match(/id="a1"/g)).toHaveLength(1);
+    editor.destroy();
+  });
+
+  test('"Grein" is refused for a selection running into a list', () => {
+    const editor = makeEditor('<p>Fyrst</p><ol><li>liður</li></ol>');
+    editor.commands.setTextSelection({
+      from: 2,
+      to: editor.state.doc.content.size - 3,
+    });
+    expect(setBlockFormat(editor, 'articleTitle')).toBe(false);
+    expect(editor.getHTML()).not.toContain('article__title');
+    editor.destroy();
+  });
+
+  test('search: the first "next" selects the first match', () => {
+    const editor = makeEditor('<p>a x b x</p>');
+    editor.commands.setSearch('x');
+    editor.commands.findNext();
+    expect(searchKey.getState(editor.state)!.current).toBe(0);
+    expect(
+      editor.state.doc.textBetween(
+        editor.state.selection.from,
+        editor.state.selection.to,
+      ),
+    ).toBe('x');
+    editor.commands.findNext();
+    expect(searchKey.getState(editor.state)!.current).toBe(1);
+    editor.destroy();
+  });
+});

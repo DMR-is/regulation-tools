@@ -66,9 +66,25 @@ export const currentBlockFormat = (editor: Editor): BlockFormat | undefined => {
   return undefined;
 };
 
-/** Whether the selection is in a top-level block, where structure may go. */
-export const atTopLevel = (editor: Editor) =>
-  editor.state.selection.$from.depth === 1;
+/**
+ * Whether every block the selection touches is at the top level of the
+ * text, where structure may go. A selection running from a paragraph into
+ * a list is not.
+ */
+export const atTopLevel = (editor: Editor) => {
+  const { from, to, $from } = editor.state.selection;
+  if ($from.depth !== 1) {
+    return false;
+  }
+  let topLevel = true;
+  editor.state.doc.nodesBetween(from, to, (node, _pos, parent) => {
+    if (node.isTextblock && parent !== editor.state.doc) {
+      topLevel = false;
+    }
+    return topLevel;
+  });
+  return topLevel;
+};
 
 /**
  * "m. heiti": the heading gets a name, an `<em>` placeholder selected for

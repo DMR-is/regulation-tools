@@ -91,6 +91,14 @@ const reduce = (state: SearchState, doc: PMNode, meta?: Meta) => {
   return { query, caseSensitive, matches, current };
 };
 
+const isSelected = (
+  state: EditorState,
+  match: { from: number; to: number } | undefined,
+) =>
+  !!match &&
+  state.selection.from === match.from &&
+  state.selection.to === match.to;
+
 const selectMatch = (state: EditorState, index: number) => {
   const match = searchKey.getState(state)!.matches[index];
   return match
@@ -140,7 +148,12 @@ export const Search = Extension.create({
           if (!matches.length) {
             return false;
           }
-          const tr = selectMatch(state, (current + 1) % matches.length);
+          // The current match first, if it is not selected yet: after a new
+          // search, "next" goes to match 1, not 2.
+          const next = isSelected(state, matches[current])
+            ? (current + 1) % matches.length
+            : current;
+          const tr = selectMatch(state, next);
           tr && dispatch?.(tr);
           return true;
         },
@@ -153,7 +166,9 @@ export const Search = Extension.create({
           }
           const tr = selectMatch(
             state,
-            (current - 1 + matches.length) % matches.length,
+            isSelected(state, matches[current])
+              ? (current - 1 + matches.length) % matches.length
+              : current,
           );
           tr && dispatch?.(tr);
           return true;

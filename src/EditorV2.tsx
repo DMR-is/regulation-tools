@@ -171,9 +171,9 @@ export const EditorV2 = (
     const start = performance.now();
     differ.current ||= createStructuredDiffer(base);
     setDiffParts(differ.current.diff(text).parts);
-    if (performance.now() - start > SLOW_DIFF_MS) {
-      autoDiff.current = false;
-    }
+    // As Editor does: off after a slow diff, on again after a fast one
+    // (a manual "Endurreikna breytingar" on a text that got shorter).
+    autoDiff.current = performance.now() - start <= SLOW_DIFF_MS;
   };
 
   /** After a pause in typing: serialize once, then warnings and diff. */
