@@ -17,7 +17,7 @@
     "build": "tsc --noEmit  &&  yarn typecheck:react18  &&  node build.js && yarn build:types  &&  yarn run test",
     "typecheck:react18": "tsc -p tsconfig.react18.json",
     "prepublishOnly": "echo \"\nRun 'yarn run publishdist' to publish this package\n\n\"  && exit 1",
-    "publishdist": "yarn test  &&  yarn build  &&  cd dist  &&  npm publish",
+    "publishdist": "yarn test  &&  yarn build  &&  cd dist  &&  npm publish --tag $(node -p \"require('./package.json').version.includes('-') ? 'next' : 'latest'\")",
     "test": "jest",
     "test:e2e": "playwright test",
     "typecheck:e2e": "tsc -p e2e/tsconfig.json"
