@@ -15,8 +15,7 @@
   Internal module, not exported from the package entry points.
 */
 
-import mammoth from 'mammoth';
-
+import { inertDocument } from './_utils/dom';
 import { base64ToBlob, convertFileToBlobInfo } from './_utils/fileHandlers';
 import dirtyClean from './dirtyClean-browser';
 import { HTMLText } from './types';
@@ -44,33 +43,95 @@ export const WORD_IMAGE_UPLOAD_CONCURRENCY = 20;
 
 // ---------------------------------------------------------------------------
 
-/** Elements that load or run something; never part of a regulation text. */
-const ACTIVE_ELEMENTS =
-  'script, style, iframe, frame, frameset, object, embed, applet, link, meta, base, form, noscript, template';
+/**
+ * Elements that load or run something, and elements that mutation XSS uses
+ * to turn text into markup when HTML is parsed a second time (MathML and
+ * SVG, whose namespace rules differ, and the raw-text elements). None of
+ * them belongs in a regulation text.
+ */
+const ACTIVE_ELEMENTS = [
+  'script',
+  'style',
+  'iframe',
+  'frame',
+  'frameset',
+  'object',
+  'embed',
+  'applet',
+  'link',
+  'meta',
+  'base',
+  'form',
+  'noscript',
+  'template',
+  'math',
+  'svg',
+  'xmp',
+  'noembed',
+  'noframes',
+  'plaintext',
+  'textarea',
+  'title',
+].join(', ');
+
+const URL_ATTRS = /^(href|src|xlink:href|action|formaction|srcset|poster)$/i;
+
+/** Schemes a link may use; anything else (javascript:, data:, …) goes. */
+const SAFE_SCHEMES = /^(https?|mailto|tel):/i;
 
 /**
- * Clipboard HTML made safe to touch. It comes from anywhere, and the rest of
- * the pipeline parses it with the page's own document (`innerHTML`), where
- * `<img src=x onerror=…>` would run. So it is parsed here in an inert
- * document (`DOMParser`: nothing loads, nothing runs), and active elements,
- * `on*` handlers and `javascript:` URLs are removed before anything else
- * sees it. The rest of the pipeline is unchanged.
+ * Whether a URL attribute may stay. Browsers ignore tabs, newlines and
+ * control characters inside a scheme (`java&#9;script:`), so they are
+ * removed before the check. Relative URLs and fragments are fine; images
+ * may also be base64 data, which the paste pipeline uploads.
  */
-export function sanitizeClipboardHtml(html: string): string {
+const isSafeUrl = (name: string, value: string) => {
+  const url = value.replace(/[\u0000-\u0020\u007f-\u009f]/g, '');
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) {
+    return true; // relative, or a fragment
+  }
+  if (name.toLowerCase() === 'src' && /^data:image\//i.test(url)) {
+    return true;
+  }
+  return SAFE_SCHEMES.test(url);
+};
+
+const sanitizeOnce = (html: string) => {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   doc.querySelectorAll(ACTIVE_ELEMENTS).forEach((elm) => elm.remove());
   doc.body.querySelectorAll('*').forEach((elm) => {
     Array.from(elm.attributes).forEach(({ name, value }) => {
       if (
         /^on/i.test(name) ||
-        (/^(href|src|xlink:href|action|formaction)$/i.test(name) &&
-          /^\s*(javascript|vbscript):/i.test(value))
+        (URL_ATTRS.test(name) && !isSafeUrl(name, value))
       ) {
         elm.removeAttribute(name);
       }
     });
   });
   return doc.body.innerHTML;
+};
+
+/**
+ * Clipboard HTML made safe to touch. It is parsed in an inert document
+ * (`DOMParser`: nothing loads, nothing runs), active elements, `on*`
+ * handlers and unsafe URLs are removed, and this repeats until the result
+ * stops changing: mutation XSS relies on HTML that reads differently when
+ * it is serialised and parsed again, as the rest of the pipeline does. The
+ * pipeline also parses only in an inert document (`inertDocument`), as a
+ * second line of defence.
+ */
+export function sanitizeClipboardHtml(html: string): string {
+  let clean = html;
+  for (let i = 0; i < 5; i++) {
+    const next = sanitizeOnce(clean);
+    if (next === clean) {
+      return clean;
+    }
+    clean = next;
+  }
+  // Still changing after five passes: nothing a real paste does.
+  return '';
 }
 
 /** List numbering written as text at the start of an item, by type. */
@@ -81,18 +142,26 @@ const MARKERS: Record<'a' | 'A' | 'i' | 'I', RegExp> = {
   I: /^\s*(?:X{0,3})(?:IX|IV|V?I{0,3})[.)]\s*/,
 };
 
+const markerOf = (text: string) => /^([a-zA-Z]+)[.)]\s/.exec(text)?.[1];
+
 /**
- * The list type the first item's marker says, if any. "i." and "I." start
- * roman lists (a lettered list starts at "a."); any other single letter is
- * lettered; other roman numerals ("ii.", "iv.") are roman.
+ * The list type the items' markers say, if any. Any single letter is
+ * lettered, but "i."/"I." is roman when the next item is "ii."/"II." (or
+ * there is none): a lettered list that resumes after an interrupting
+ * paragraph at "i." goes on with "j.". Other roman numerals are roman.
  */
-const listTypeOf = (first: string): keyof typeof MARKERS | undefined => {
-  const marker = /^([a-zA-Z]+)[.)]\s/.exec(first)?.[1];
+const listTypeOf = (
+  first: string,
+  second: string,
+): keyof typeof MARKERS | undefined => {
+  const marker = markerOf(first);
   if (!marker) {
     return undefined;
   }
   if (marker === 'i' || marker === 'I') {
-    return marker;
+    const next = markerOf(second);
+    const lettered = next === (marker === 'i' ? 'j' : 'J');
+    return lettered ? (marker === 'i' ? 'a' : 'A') : marker;
   }
   if (marker.length === 1) {
     return marker === marker.toLowerCase() ? 'a' : 'A';
@@ -104,6 +173,21 @@ const listTypeOf = (first: string): keyof typeof MARKERS | undefined => {
     return 'I';
   }
   return undefined;
+};
+
+const ROMAN: Record<string, number> = { i: 1, v: 5, x: 10 };
+
+/** The number the first marker stands for: "c." is 3, "iv." is 4. */
+const startOf = (marker: string, type: keyof typeof MARKERS) => {
+  const m = marker.toLowerCase();
+  if (type === 'a' || type === 'A') {
+    return m.charCodeAt(0) - 96;
+  }
+  return [...m].reduce((sum, c, i) => {
+    const value = ROMAN[c]!;
+    const next = ROMAN[m[i + 1] || ''] || 0;
+    return sum + (value < next ? -value : value);
+  }, 0);
 };
 
 /**
@@ -132,7 +216,7 @@ const stripMarker = (elm: Element, marker: RegExp) => {
  * their formatting, links and nested lists.
  */
 export function fixAlphabeticalLists(html: string): string {
-  const div = document.createElement('div');
+  const div = inertDocument().createElement('div');
   div.innerHTML = html;
 
   div.querySelectorAll('ol').forEach((ol) => {
@@ -140,11 +224,17 @@ export function fixAlphabeticalLists(html: string): string {
       (elm) => elm.tagName === 'LI',
     );
     const first = listItems[0]?.textContent?.trim() || '';
-    const type = listTypeOf(first);
+    const second = listItems[1]?.textContent?.trim() || '';
+    const type = listTypeOf(first, second);
     if (!type) {
       return;
     }
     ol.setAttribute('type', type);
+    // A list that resumes at "c." starts there, not at "a.".
+    const start = startOf(markerOf(first)!, type);
+    if (start > 1 && !ol.hasAttribute('start')) {
+      ol.setAttribute('start', String(start));
+    }
     listItems.forEach((li) => stripMarker(li, MARKERS[type]));
   });
 
@@ -196,7 +286,7 @@ export const hasInlineImages = (html: string): boolean =>
   /data:image\//.test(html) && !!asContainer(html).querySelector(INLINE_IMAGES);
 
 const asContainer = (html: string) => {
-  const div = document.createElement('div');
+  const div = inertDocument().createElement('div');
   div.innerHTML = html;
   return div;
 };
@@ -291,6 +381,8 @@ export async function uploadInlineImages(
 export async function prepareWordDocument(
   arrayBuffer: ArrayBuffer,
 ): Promise<string> {
+  // Loaded when a Word document is imported, not with the editor.
+  const { default: mammoth } = await import('mammoth');
   const result = await mammoth.convertToHtml(
     { arrayBuffer },
     {

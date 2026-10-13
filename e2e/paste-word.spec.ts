@@ -78,10 +78,18 @@ test.describe('paste', () => {
       }
       await clickEnd(page, 'Fyrir.');
       await page.evaluate(() => ((window as any).__ran = 0));
-      await paste(page, {
-        html: '<p>a<img src="x" onerror="window.__ran++"><svg onload="window.__ran++"></svg></p>',
-      });
-      await page.waitForTimeout(500);
+      for (const html of [
+        '<p>a<img src="x" onerror="window.__ran++"><svg onload="window.__ran++"></svg></p>',
+        // Mutation XSS: harmless when parsed once, a handler when parsed again.
+        '<p>b</p><math><mtext><table><mglyph><xmp></math><img src=x onerror="window.__ran++">',
+        '<p>c</p><math><mtext><table><mglyph><noembed></math><img src=x onerror="window.__ran++">',
+      ]) {
+        await paste(page, { html });
+      }
+      // The pastes landed (so the check below is not vacuous)…
+      await expect.poll(() => value(page)).toMatch(/a[\s\S]*b[\s\S]*c/);
+      await page.waitForTimeout(300);
+      // …and nothing in them ran.
       expect(await page.evaluate(() => (window as any).__ran)).toBe(0);
     }
   });

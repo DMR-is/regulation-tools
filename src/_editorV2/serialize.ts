@@ -12,6 +12,7 @@ import {
 } from '@tiptap/pm/model';
 
 import { HTMLText } from '../types';
+import { inertDocument } from '../utils';
 
 /**
  * A lone paragraph without attributes inside a list item or table cell is
@@ -80,9 +81,11 @@ export const editorInput = (html: string): string => {
   if (!html.includes('\n')) {
     return html;
   }
-  const container = document.createElement('div');
+  // Parsed in the inert document: this is text from outside the editor.
+  const doc = inertDocument();
+  const container = doc.createElement('div');
   container.innerHTML = html;
-  const walker = document.createTreeWalker(container, 4 /* SHOW_TEXT */);
+  const walker = doc.createTreeWalker(container, 4 /* SHOW_TEXT */);
   while (walker.nextNode()) {
     const text = walker.currentNode as Text;
     if (text.data.includes('\n') && !text.parentElement!.closest('pre')) {

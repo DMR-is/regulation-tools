@@ -131,13 +131,13 @@ describe('fixAlphabeticalLists', () => {
   it('detects lower-roman lists', () => {
     expect(
       fixAlphabeticalLists('<ol><li>ii. annar</li><li>iii. þriðji</li></ol>'),
-    ).toBe('<ol type="i"><li>annar</li><li>þriðji</li></ol>');
+    ).toBe('<ol type="i" start="2"><li>annar</li><li>þriðji</li></ol>');
   });
 
   it('detects upper-roman lists', () => {
     expect(
       fixAlphabeticalLists('<ol><li>II. annar</li><li>III. þriðji</li></ol>'),
-    ).toBe('<ol type="I"><li>annar</li><li>þriðji</li></ol>');
+    ).toBe('<ol type="I" start="2"><li>annar</li><li>þriðji</li></ol>');
   });
 
   it('leaves plain ordered lists and unordered lists alone', () => {
@@ -455,12 +455,25 @@ describe('fixed pipeline problems', () => {
     ).toBe('<ol type="a"><li><em></em>Texti</li><li>Annar</li></ol>');
   });
 
+  test('5. a lettered list resuming at "i." stays lettered, and starts there', () => {
+    expect(
+      fixAlphabeticalLists('<ol><li>i. níundi</li><li>j. tíundi</li></ol>'),
+    ).toBe('<ol type="a" start="9"><li>níundi</li><li>tíundi</li></ol>');
+    expect(
+      fixAlphabeticalLists('<ol><li>c. þriðji</li><li>d. fjórði</li></ol>'),
+    ).toBe('<ol type="a" start="3"><li>þriðji</li><li>fjórði</li></ol>');
+    expect(
+      fixAlphabeticalLists('<ol><li>iv. fjórði</li><li>v. fimmti</li></ol>'),
+    ).toBe('<ol type="i" start="4"><li>fjórði</li><li>fimmti</li></ol>');
+  });
+
   test('5. "i." starts a roman list; other letters stay letters', () => {
     expect(
       fixAlphabeticalLists('<ol><li>i. fyrsti</li><li>ii. annar</li></ol>'),
     ).toBe('<ol type="i"><li>fyrsti</li><li>annar</li></ol>');
+    // "v." alone is the 22nd letter, as a list resuming there.
     expect(fixAlphabeticalLists('<ol><li>v. Liður</li></ol>')).toBe(
-      '<ol type="a"><li>Liður</li></ol>',
+      '<ol type="a" start="22"><li>Liður</li></ol>',
     );
   });
 
@@ -499,13 +512,22 @@ describe('sanitizeClipboardHtml', () => {
     expect(sanitizeClipboardHtml(word)).toBe(word);
   });
 
-  test('a pasted handler never runs, even though the pipeline parses with the page', async () => {
-    (globalThis as Record<string, unknown>).__ran = 0;
-    const html = await preparePastedHtml(
-      '<p>a<img src="x" onerror="globalThis.__ran++"></p>',
-      jest.fn(),
+  test('mutation XSS payloads come out without handlers or raw-text tricks', async () => {
+    // Running script is checked in the browser (e2e/paste-word.spec.ts);
+    // jsdom loads no images. Here: nothing that could run is left.
+    for (const tag of ['xmp', 'noembed', 'noframes']) {
+      const html = await preparePastedHtml(
+        `<math><mtext><table><mglyph><${tag}></math><img src=x onerror="alert(1)">`,
+        jest.fn(),
+      );
+      expect(html).not.toMatch(/onerror|<math|<xmp|<noembed|<noframes/i);
+    }
+    expect(
+      sanitizeClipboardHtml('<a href="java&#9;script:alert(1)">x</a>'),
+    ).toBe('<a>x</a>');
+    expect(sanitizeClipboardHtml('<a href="data:text/html,x">x</a>')).toBe(
+      '<a>x</a>',
     );
-    expect(html).not.toContain('onerror');
   });
 });
 
