@@ -34,9 +34,10 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
   (active elements, MathML/SVG and raw-text elements, `on*` handlers,
   unsafe URL schemes), until stable, which also closes mutation XSS.
   Applies to `Editor` too.
-- Fix: Pasted lettered lists that resume at "i." followed by "j." stay
-  lettered, and lists get `start` from their first marker ("c." starts at
-  3). Both editors.
+- Fix: Pasted lists numbered as text keep their type when they resume
+  mid-list ("i." then "j." stays lettered, "v." then "vi." stays roman),
+  and get `start` from their first marker ("c." starts at 3). Both
+  editors.
 - Chore: `yarn publishdist` publishes pre-release versions under the `next`
   tag.
 - Feat: `TextWarnings` takes an optional `highlight` function.

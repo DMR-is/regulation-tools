@@ -690,6 +690,32 @@ in both editors before the fix):
   and caching (developer tools, `KNOWN_LONG` is deliberate). CI for tests
   on pull requests: proposed, not added without a decision.
 
+**Third review** (each claim checked first):
+
+- **Fixed:** `file:` URLs are allowed again (Word's
+  `file:///…/clip_image001.png` images, which the `fsImages` warning asks
+  the editor to upload, lost their `src`); `Editor`'s paste sanitises
+  before its early returns (internal-looking pastes, a paste during
+  processing); Enter mid-text or at the start no longer leaves two
+  elements with one `id` (an `appendTransaction` clears the copy, keeping
+  the `id` on the half with the text; Tiptap only skips `keepOnSplit:
+  false` attributes when Enter is at the end); `align` on appendix titles,
+  which cleanup keeps, is kept; an anchor and a link on the same text no
+  longer nest; a roman list resuming at "v." followed by "vi." stays roman;
+  `inertDocument` is internal and sets its base URL only when the page's
+  changes; two tests now assert what must survive.
+- **Reverted, by decision:** structural titles are allowed anywhere in
+  the schema again. Enforcing top level in the schema made loading move a
+  title out of a list or cell, splitting it, and loading must never
+  restructure a stored text (drafts with such titles exist; that is what
+  the `nonRoot*Titles` warnings are for). The editor's commands create
+  titles only at the top level, for the whole selection.
+- **Not changed:** the automatic-diff re-enable has no browser test (it
+  needs a diff over 1.5 s, then a fast one); dropped HTML is parsed by
+  ProseMirror's inert clipboard parser and, as in `Editor`, not cleaned;
+  `<math>` is removed from pastes with its text (none in the corpus; it is
+  one of the mutation-XSS vectors).
+
 ## Phases
 
 **0. Inventory (no editor code yet)**
