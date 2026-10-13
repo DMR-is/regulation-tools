@@ -165,6 +165,11 @@ const run = () => {
   if (OUT) {
     writeFileSync(OUT, JSON.stringify(rows, null, 1));
   }
+  // Allowed changes (the markup groups above) do not fail the run; lost
+  // text, a second save that changes more, or an error does.
+  if (rows.some((r) => r.error || !r.sameText || !r.idempotent)) {
+    process.exitCode = 1;
+  }
 };
 
 run();
