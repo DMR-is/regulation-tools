@@ -87,7 +87,10 @@ test.describe('paste', () => {
         await paste(page, { html });
       }
       // The pastes landed (so the check below is not vacuous)…
-      await expect.poll(() => value(page)).toMatch(/a[\s\S]*b[\s\S]*c/);
+      await expect.poll(() => value(page)).toContain('a');
+      for (const text of ['<p>b</p>', '<p>c</p>']) {
+        expect(await value(page)).toContain(text);
+      }
       await page.waitForTimeout(300);
       // …and nothing in them ran.
       expect(await page.evaluate(() => (window as any).__ran)).toBe(0);

@@ -15,7 +15,7 @@
   Internal module, not exported from the package entry points.
 */
 
-import { inertDocument } from './_utils/dom';
+import { inertDocument } from './_utils/inert';
 import { base64ToBlob, convertFileToBlobInfo } from './_utils/fileHandlers';
 import dirtyClean from './dirtyClean-browser';
 import { HTMLText } from './types';
@@ -76,8 +76,13 @@ const ACTIVE_ELEMENTS = [
 
 const URL_ATTRS = /^(href|src|xlink:href|action|formaction|srcset|poster)$/i;
 
-/** Schemes a link may use; anything else (javascript:, data:, …) goes. */
-const SAFE_SCHEMES = /^(https?|mailto|tel):/i;
+/**
+ * Schemes a link or image may use; anything else (javascript:, data:, …)
+ * goes. `file:` stays: Word refers to the images it copies as
+ * `file:///…/clip_image001.png`, and the `fsImages` warning asks the editor
+ * to upload them. It cannot run script.
+ */
+const SAFE_SCHEMES = /^(https?|mailto|tel|file):/i;
 
 /**
  * Whether a URL attribute may stay. Browsers ignore tabs, newlines and
@@ -144,11 +149,29 @@ const MARKERS: Record<'a' | 'A' | 'i' | 'I', RegExp> = {
 
 const markerOf = (text: string) => /^([a-zA-Z]+)[.)]\s/.exec(text)?.[1];
 
+const toRoman = (n: number) =>
+  (
+    [
+      [10, 'x'],
+      [9, 'ix'],
+      [5, 'v'],
+      [4, 'iv'],
+      [1, 'i'],
+    ] as const
+  ).reduce((out, [value, numeral]) => {
+    while (n >= value) {
+      out += numeral;
+      n -= value;
+    }
+    return out;
+  }, '');
+
 /**
- * The list type the items' markers say, if any. Any single letter is
- * lettered, but "i."/"I." is roman when the next item is "ii."/"II." (or
- * there is none): a lettered list that resumes after an interrupting
- * paragraph at "i." goes on with "j.". Other roman numerals are roman.
+ * The list type the items' markers say, if any. A single letter that is
+ * also a roman numeral ("i.", "v.", "x.") is told apart by the next item:
+ * "j." after "i." is lettered (a list resuming after an interrupting
+ * paragraph), "vi." after "v." is roman. With no next item, "i." is roman
+ * and other letters are letters. Longer roman numerals are roman.
  */
 const listTypeOf = (
   first: string,
@@ -158,21 +181,25 @@ const listTypeOf = (
   if (!marker) {
     return undefined;
   }
-  if (marker === 'i' || marker === 'I') {
-    const next = markerOf(second);
-    const lettered = next === (marker === 'i' ? 'j' : 'J');
-    return lettered ? (marker === 'i' ? 'a' : 'A') : marker;
-  }
+  const lower = marker.toLowerCase();
+  const upper = marker !== lower;
+  const letters = upper ? 'A' : 'a';
+  const romans = upper ? 'I' : 'i';
   if (marker.length === 1) {
-    return marker === marker.toLowerCase() ? 'a' : 'A';
+    const isRoman = /^[ivx]$/.test(lower);
+    if (!isRoman) {
+      return letters;
+    }
+    const next = markerOf(second)?.toLowerCase();
+    if (next === String.fromCharCode(lower.charCodeAt(0) + 1)) {
+      return letters;
+    }
+    if (next === toRoman(startOf(lower, 'i') + 1)) {
+      return romans;
+    }
+    return lower === 'i' ? romans : letters;
   }
-  if (/^[ivx]+$/.test(marker)) {
-    return 'i';
-  }
-  if (/^[IVX]+$/.test(marker)) {
-    return 'I';
-  }
-  return undefined;
+  return /^[ivx]+$/.test(lower) ? romans : undefined;
 };
 
 const ROMAN: Record<string, number> = { i: 1, v: 5, x: 10 };

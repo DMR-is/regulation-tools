@@ -427,6 +427,10 @@ export const EditorFrame = (props: EditorFrameProps) => {
   );
 
   const handlePaste = (plugin: unknown, e: PastePreProcessEvent) => {
+    // First, before any early return: TinyMCE inserts whatever is left in
+    // `e.content`, and a web page can make a paste look internal.
+    e.content = sanitizeClipboardHtml(e.content);
+
     if (e.internal) {
       return;
     }
@@ -437,8 +441,8 @@ export const EditorFrame = (props: EditorFrameProps) => {
 
     isProcessing = true;
 
-    // Capture the original content, made safe before anything parses it
-    let originalContent = sanitizeClipboardHtml(e.content);
+    // Capture the original content (sanitised above)
+    let originalContent = e.content;
 
     // Clear the content to prevent the default paste action
     e.content = '';

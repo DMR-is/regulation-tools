@@ -1,5 +1,7 @@
 import qq from '@hugsmidjan/qj/qq';
 
+import { inertDocument } from './inert';
+
 import { HTMLText, Regulation } from '../types';
 
 export const styleValueToTypeAttrMap: Record<string, string | undefined> = {
@@ -18,25 +20,6 @@ export const typeAttrToStyleValueMap: typeof styleValueToTypeAttrMap =
   );
 
 // ---------------------------------------------------------------------------
-
-let inert: Document | undefined;
-
-/**
- * A document with no browsing context, for parsing HTML that may not be
- * trusted (a paste, the source dialog, a stored text). Nothing in it loads
- * or runs: `<img src=x onerror=…>` set as `innerHTML` here does nothing,
- * where in the page's own document it would run.
- */
-export const inertDocument = (): Document => {
-  if (!inert) {
-    inert = document.implementation.createHTMLDocument('');
-    inert.head.append(inert.createElement('base'));
-  }
-  // Relative URLs resolve against the page, as they did when this parsed
-  // with the page's own document (dirtyClean reads `img.src`, resolved).
-  inert.querySelector('base')!.href = document.baseURI;
-  return inert;
-};
 
 /** A `<div>` holding `html`, parsed in the inert document. */
 export const asDiv = (html: string) => {

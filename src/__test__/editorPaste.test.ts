@@ -467,6 +467,15 @@ describe('fixed pipeline problems', () => {
     ).toBe('<ol type="i" start="4"><li>fjórði</li><li>fimmti</li></ol>');
   });
 
+  test('5. a roman list resuming at "v." stays roman', () => {
+    expect(
+      fixAlphabeticalLists('<ol><li>v. fimmti</li><li>vi. sjötti</li></ol>'),
+    ).toBe('<ol type="i" start="5"><li>fimmti</li><li>sjötti</li></ol>');
+    expect(
+      fixAlphabeticalLists('<ol><li>v. vaff</li><li>w. tvöfalt vaff</li></ol>'),
+    ).toBe('<ol type="a" start="22"><li>vaff</li><li>tvöfalt vaff</li></ol>');
+  });
+
   test('5. "i." starts a roman list; other letters stay letters', () => {
     expect(
       fixAlphabeticalLists('<ol><li>i. fyrsti</li><li>ii. annar</li></ol>'),
@@ -528,6 +537,11 @@ describe('sanitizeClipboardHtml', () => {
     expect(sanitizeClipboardHtml('<a href="data:text/html,x">x</a>')).toBe(
       '<a>x</a>',
     );
+    // …and what belongs in a text survives, unchanged.
+    const keep =
+      '<p>keep <a href="/x">tengill</a> <a href="mailto:a@b.is">póstur</a></p>' +
+      '<p><img src="file:///C:/Users/x/clip_image001.png"></p>';
+    expect(sanitizeClipboardHtml(keep)).toBe(keep);
   });
 });
 
