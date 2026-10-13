@@ -29,9 +29,16 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
   paragraph.
 - **Security:** Pasted HTML could run script in both editors
   (`<img src=x onerror=…>` ran when the paste pipeline parsed it with the
-  page's own document). Clipboard HTML and imported Word documents are now
-  sanitised in an inert document first: active elements, `on*` handlers and
-  `javascript:` URLs are removed. Applies to `Editor` too.
+  page's own document). All parsing of outside HTML (`asDiv`, paste, Word
+  import) now uses an inert document, and clipboard HTML is sanitised first
+  (active elements, MathML/SVG and raw-text elements, `on*` handlers,
+  unsafe URL schemes), until stable, which also closes mutation XSS.
+  Applies to `Editor` too.
+- Fix: Pasted lettered lists that resume at "i." followed by "j." stay
+  lettered, and lists get `start` from their first marker ("c." starts at
+  3). Both editors.
+- Chore: `yarn publishdist` publishes pre-release versions under the `next`
+  tag.
 - Feat: `TextWarnings` takes an optional `highlight` function.
 - Note: `Editor` still uses `@tinymce/tinymce-react` 3.x, whose peer range
   stops at React 18, so installing on React 19 gives a peer-dependency
