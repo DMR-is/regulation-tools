@@ -1,0 +1,318 @@
+/*
+  EditorV2's behaviour on top of the schema: undo, list and table keys,
+  the block formats of the toolbar's format menu, highlighting what a
+  warning points at, and search.
+*/
+
+import {
+  combineTransactionSteps,
+  Editor,
+  Extension,
+  getChangedRanges,
+} from '@tiptap/core';
+import { ListKeymap } from '@tiptap/extension-list';
+import { Dropcursor, Gapcursor, UndoRedo } from '@tiptap/extensions';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
+
+import { regulationSchemaExtensions } from './schema';
+import { Search } from './search';
+
+// ---------------------------------------------------------------------------
+// Block formats
+
+/**
+ * The format menu, as TinyMCE's `style_formats` had it. Headings of the
+ * regulation's structure are only offered at the top level of the text.
+ */
+export const BLOCK_FORMATS = {
+  paragraph: { label: 'Málsgrein' },
+  articleTitle: { label: 'Grein', structural: true },
+  articleTitleWithName: { label: 'Grein m. heiti', structural: true },
+  chapterTitle: { label: 'Kafli', structural: true },
+  chapterTitleWithName: { label: 'Kafli m. heiti', structural: true },
+  subchapterTitle: { label: 'Undirkafli', structural: true },
+  provisional: { label: 'Bráðabirgðaákvæði', structural: true },
+  indented: { label: 'Inndregin málsgrein' },
+  Dags: { label: 'Dags' },
+  FHUndirskr: { label: 'FHUndirskr' },
+  Undirritun: { label: 'Undirritun' },
+} as const;
+
+export type BlockFormat = keyof typeof BLOCK_FORMATS;
+
+/** Paragraph variants, by class. */
+const PARAGRAPH_CLASSES: Partial<Record<BlockFormat, string | null>> = {
+  paragraph: null,
+  indented: 'indented',
+  Dags: 'Dags',
+  FHUndirskr: 'FHUndirskr',
+  Undirritun: 'Undirritun',
+};
+
+/** Which block format the selection is in, if it is one of the menu's. */
+export const currentBlockFormat = (editor: Editor): BlockFormat | undefined => {
+  const node = editor.state.selection.$from.parent;
+  switch (node.type.name) {
+    case 'articleTitle':
+      return node.attrs.provisional ? 'provisional' : 'articleTitle';
+    case 'chapterTitle':
+      return 'chapterTitle';
+    case 'subchapterTitle':
+      return 'subchapterTitle';
+    case 'paragraph': {
+      const cls = (node.attrs.class as string | null) || null;
+      const found = (Object.keys(PARAGRAPH_CLASSES) as Array<BlockFormat>).find(
+        (f) => PARAGRAPH_CLASSES[f] === cls,
+      );
+      return found;
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Whether every block the selection touches is at the top level of the
+ * text, where structure may go. A selection running from a paragraph into
+ * a list is not.
+ */
+export const atTopLevel = (editor: Editor) => {
+  const { from, to, $from } = editor.state.selection;
+  if ($from.depth !== 1) {
+    return false;
+  }
+  let topLevel = true;
+  editor.state.doc.nodesBetween(from, to, (node, _pos, parent) => {
+    if (node.isTextblock && parent !== editor.state.doc) {
+      topLevel = false;
+    }
+    return topLevel;
+  });
+  return topLevel;
+};
+
+/**
+ * "m. heiti": the heading gets a name, an `<em>` placeholder selected for
+ * typing over. TinyMCE replaced the line's text with `gr. <em>Titill</em>`;
+ * here an empty line gets that template and a line with text keeps it.
+ */
+const addName = (editor: Editor, template: string) => {
+  const { $from } = editor.state.selection;
+  const block = $from.parent;
+  const end = $from.end();
+  if (!block.textContent.trim()) {
+    editor
+      .chain()
+      .insertContentAt({ from: $from.start(), to: end }, template)
+      .run();
+    return;
+  }
+  let hasName = false;
+  block.descendants((n) => {
+    hasName ||= n.marks.some((m) => m.type.name === 'italic');
+  });
+  if (!hasName) {
+    editor
+      .chain()
+      .insertContentAt(end, ' <em>Titill</em>')
+      .setTextSelection({ from: end + 1, to: end + 7 })
+      .run();
+  }
+};
+
+export const setBlockFormat = (editor: Editor, format: BlockFormat) => {
+  if ('structural' in BLOCK_FORMATS[format] && !atTopLevel(editor)) {
+    return false;
+  }
+  const chain = editor.chain().focus();
+  switch (format) {
+    case 'articleTitle':
+    case 'articleTitleWithName':
+      chain.setNode('articleTitle', { provisional: false }).run();
+      format === 'articleTitleWithName' &&
+        addName(editor, 'gr. <em>Titill</em>');
+      return true;
+    case 'provisional':
+      return chain.setNode('articleTitle', { provisional: true }).run();
+    case 'chapterTitle':
+    case 'chapterTitleWithName':
+      chain.setNode('chapterTitle').run();
+      format === 'chapterTitleWithName' &&
+        addName(editor, 'Kafli <em>Titill</em>');
+      return true;
+    case 'subchapterTitle':
+      return chain.setNode('subchapterTitle').run();
+    default:
+      return chain
+        .setNode('paragraph')
+        .updateAttributes('paragraph', { class: PARAGRAPH_CLASSES[format] })
+        .run();
+  }
+};
+
+/**
+ * The block around the selection that dirtyClean flagged as generated
+ * (`data-autogenerated`, e.g. a list it built from numbered lines), if any.
+ */
+const autogeneratedAncestor = (editor: Editor) => {
+  const { $from } = editor.state.selection;
+  for (let depth = $from.depth; depth > 0; depth--) {
+    if ($from.node(depth).attrs.autogenerated != null) {
+      return { depth, pos: $from.before(depth) };
+    }
+  }
+  return undefined;
+};
+
+export const inAutogenerated = (editor: Editor) =>
+  !!autogeneratedAncestor(editor);
+
+/**
+ * Marks a generated block as checked, removing the flag, as the
+ * "Auto-generated List" format did in the current editor. The
+ * `autoGeneratedLists` warning asks editors to do this.
+ */
+export const clearAutogenerated = (editor: Editor) => {
+  const found = autogeneratedAncestor(editor);
+  if (!found) {
+    return false;
+  }
+  const node = editor.state.doc.nodeAt(found.pos)!;
+  editor.view.dispatch(
+    editor.state.tr.setNodeMarkup(found.pos, undefined, {
+      ...node.attrs,
+      autogenerated: null,
+    }),
+  );
+  return true;
+};
+
+// ---------------------------------------------------------------------------
+// One id per element
+
+/** Attributes that identify one element; a split must not copy them. */
+const UNIQUE_ATTRS = ['id', 'autogenerated'] as const;
+
+/**
+ * Tiptap only leaves `keepOnSplit: false` attributes off the new block when
+ * Enter is pressed at the end; mid-text, or at the start (the usual way to
+ * add a paragraph above), both halves keep them, and an `id` then anchors
+ * two places. After any change, where two neighbours share such a value,
+ * it stays on the one with the text: the first, unless that is empty.
+ * Only the changed ranges are looked at, not the whole text.
+ */
+const UniqueAttributes = Extension.create({
+  name: 'regulationUniqueAttributes',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        appendTransaction: (transactions, oldState, newState) => {
+          if (!transactions.some((tr) => tr.docChanged)) {
+            return null;
+          }
+          const transform = combineTransactionSteps(oldState.doc, [
+            ...transactions,
+          ]);
+          const tr = newState.tr;
+          getChangedRanges(transform).forEach(({ newRange }) => {
+            const from = Math.max(0, newRange.from - 1);
+            const to = Math.min(newState.doc.content.size, newRange.to + 1);
+            newState.doc.nodesBetween(from, to, (node, pos, parent, index) => {
+              const prev = index > 0 ? parent?.child(index - 1) : undefined;
+              if (!prev) {
+                return true;
+              }
+              UNIQUE_ATTRS.forEach((attr) => {
+                const value = node.attrs[attr] as string | null | undefined;
+                if (value != null && prev.attrs[attr] === value) {
+                  const [clearPos, clearNode] = prev.textContent
+                    ? [pos, node]
+                    : [pos - prev.nodeSize, prev];
+                  tr.setNodeMarkup(tr.mapping.map(clearPos), undefined, {
+                    ...clearNode.attrs,
+                    [attr]: null,
+                  });
+                }
+              });
+              return true;
+            });
+          });
+          return tr.docChanged ? tr : null;
+        },
+      }),
+    ];
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Highlighting what a warning points at
+
+const highlightKey = new PluginKey<DecorationSet>('regulationHighlight');
+
+/**
+ * Marks a node for a second, as TextWarnings' `data-highighted` attribute
+ * did. A decoration, because ProseMirror reverts attributes set on its DOM
+ * from outside.
+ */
+export const highlightElement = (editor: Editor, elm: Element) => {
+  const { view } = editor;
+  let from: number;
+  let to: number;
+  try {
+    from = view.posAtDOM(elm, 0);
+    to = view.posAtDOM(elm, elm.childNodes.length);
+  } catch {
+    return;
+  }
+  const { doc } = view.state;
+  // A node (a paragraph, a list) is decorated as a node; anything else
+  // (a link, which is a mark) as the text it covers.
+  const node = from > 0 ? doc.nodeAt(from - 1) : null;
+  const isNode = !!node && !node.isText && view.nodeDOM(from - 1) === elm;
+  const deco = isNode
+    ? Decoration.node(from - 1, from - 1 + node!.nodeSize, {
+        'data-highighted': '',
+      })
+    : Decoration.inline(from, to, { 'data-highighted': '' });
+  view.dispatch(
+    view.state.tr.setMeta(highlightKey, DecorationSet.create(doc, [deco])),
+  );
+  setTimeout(() => {
+    if (!view.isDestroyed) {
+      view.dispatch(view.state.tr.setMeta(highlightKey, DecorationSet.empty));
+    }
+  }, 1000);
+};
+
+const Highlight = Extension.create({
+  name: 'regulationHighlight',
+  addProseMirrorPlugins() {
+    return [
+      new Plugin<DecorationSet>({
+        key: highlightKey,
+        state: {
+          init: () => DecorationSet.empty,
+          apply: (tr, value) =>
+            (tr.getMeta(highlightKey) as DecorationSet | undefined) ??
+            value.map(tr.mapping, tr.doc),
+        },
+        props: {
+          decorations: (state) => highlightKey.getState(state),
+        },
+      }),
+    ];
+  },
+});
+
+// ---------------------------------------------------------------------------
+
+export const editorExtensions = [
+  ...regulationSchemaExtensions,
+  UndoRedo,
+  ListKeymap,
+  Dropcursor,
+  Gapcursor,
+  Highlight,
+  UniqueAttributes,
+  Search,
+];

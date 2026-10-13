@@ -14,7 +14,7 @@ import {
   safeHtmldiff,
 } from './render';
 import { EDIT_CONTAINMENT, containment, similarity } from './similarity';
-import { AsDiv, Block, BlockOp, SentenceOp, WordEdit } from './types';
+import { AsDiv, Block, BlockOp, OpType, SentenceOp, WordEdit } from './types';
 
 /** A list's items as blocks, or undefined if it holds anything but `<li>`s. */
 export const itemsOf = (
@@ -256,12 +256,27 @@ export const joinedSim = (one: Block, many: ReadonlyArray<Block>) =>
 export const joinHtml = (blocks: ReadonlyArray<Block>) =>
   blocks.map((b) => b.html).join('');
 
+/**
+ * Remembers a paired op — `modify`, `replace`, `split` or `merge` — which is
+ * a function of the blocks alone. The incremental differ passes one; the
+ * ops it returns are shared between runs, so never mutate them.
+ */
+export type PairMemo = (
+  type: OpType,
+  olds: ReadonlyArray<Block>,
+  news: ReadonlyArray<Block>,
+  make: () => BlockOp,
+) => BlockOp;
+
+const noMemo: PairMemo = (_type, _olds, _news, make) => make();
+
 export const diffBlocks = (
   oldBlocks: Array<Block>,
   newBlocks: Array<Block>,
   cutoff: number,
   replaceFloor: number,
   asDiv: AsDiv,
+  memo: PairMemo = noMemo,
 ): Array<BlockOp> => {
   const pairs = align(oldBlocks, newBlocks, sameBlock, blockSim, cutoff, {
     joinSim: joinedSim,
@@ -280,48 +295,50 @@ export const diffBlocks = (
       case 'insert':
         return { type, new: n, afterOldMgr };
       case 'modify':
-        return modifyOp(o!, n!, asDiv);
-      case 'replace': {
-        // Most of the shorter paragraph surviving, in order, in the longer is
-        // an edit — a phrase deleted or added — however much the length
-        // changed: 0785/2014 cut 2. mgr. 9.4. gr. from 37 words to 15, and
-        // 13 of the 15 are the old ones.
-        if (
-          o!.blockShape === n!.blockShape &&
-          containment(o!.text, n!.text) >= EDIT_CONTAINMENT
-        ) {
-          return modifyOp(o!, n!, asDiv);
-        }
-        return {
-          type,
-          old: o,
-          new: n,
-          diff:
-            o!.blockShape === n!.blockShape && blockSim(o!, n!) >= replaceFloor
-              ? safeHtmldiff(o!.html, n!.html, asDiv)
-              : replaceDiff(o!.html, n!.html, asDiv),
-        };
-      }
+        return memo(type, [o!], [n!], () => modifyOp(o!, n!, asDiv));
+      case 'replace':
+        return memo(type, [o!], [n!], (): BlockOp => {
+          // Most of the shorter paragraph surviving, in order, in the longer
+          // is an edit — a phrase deleted or added — however much the length
+          // changed: 0785/2014 cut 2. mgr. 9.4. gr. from 37 words to 15, and
+          // 13 of the 15 are the old ones.
+          if (
+            o!.blockShape === n!.blockShape &&
+            containment(o!.text, n!.text) >= EDIT_CONTAINMENT
+          ) {
+            return modifyOp(o!, n!, asDiv);
+          }
+          return {
+            type,
+            old: o,
+            new: n,
+            diff:
+              o!.blockShape === n!.blockShape &&
+              blockSim(o!, n!) >= replaceFloor
+                ? safeHtmldiff(o!.html, n!.html, asDiv)
+                : replaceDiff(o!.html, n!.html, asDiv),
+          };
+        });
       case 'split': {
         const news = newBlocks.slice(b, bEnd);
-        return {
+        return memo(type, [o!], news, () => ({
           type,
           old: o,
           new: n,
           newBlocks: news,
           diff: safeHtmldiff(o!.html, joinHtml(news), asDiv),
-        };
+        }));
       }
       case 'merge': {
         const olds = oldBlocks.slice(a, aEnd);
         afterOldMgr = olds[olds.length - 1]!.mgr;
-        return {
+        return memo(type, olds, [n!], () => ({
           type,
           old: o,
           new: n,
           oldBlocks: olds,
           diff: safeHtmldiff(joinHtml(olds), n!.html, asDiv),
-        };
+        }));
       }
       default:
         return { type, old: o, new: n };

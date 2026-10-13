@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false,
+    "types": [],
+    "paths": {
+      "@dmr.is/regulations-tools/*": ["./src/*"],
+      "react": ["./node_modules/types-react-18"],
+      "react/*": ["./node_modules/types-react-18/*"],
+      "react-dom": ["./node_modules/types-react-dom-18"],
+      "react-dom/*": ["./node_modules/types-react-dom-18/*"]
+    }
+  }
+}

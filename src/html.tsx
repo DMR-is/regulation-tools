@@ -36,7 +36,7 @@ export type HTMLDumpProps = {
   html: HTMLText;
   className?: string;
   /** Default: 'div' */
-  tag?: keyof JSX.IntrinsicElements;
+  tag?: keyof React.JSX.IntrinsicElements;
 };
 
 export const HTMLDump = (props: HTMLDumpProps) => {

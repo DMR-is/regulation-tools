@@ -1,5 +1,7 @@
 import qq from '@hugsmidjan/qj/qq';
 
+import { inertDocument } from './inert';
+
 import { HTMLText, Regulation } from '../types';
 
 export const styleValueToTypeAttrMap: Record<string, string | undefined> = {
@@ -19,8 +21,9 @@ export const typeAttrToStyleValueMap: typeof styleValueToTypeAttrMap =
 
 // ---------------------------------------------------------------------------
 
+/** A `<div>` holding `html`, parsed in the inert document. */
 export const asDiv = (html: string) => {
-  const div = document.createElement('div') as HTMLDivElement & {
+  const div = inertDocument().createElement('div') as HTMLDivElement & {
     qq: typeof qq;
   };
   div.innerHTML = html;

@@ -1,12 +1,69 @@
 # @dmr.is/regulations-tools
 
 Helper types and utilities to validate and clean regulation HTML texts, plus
-React components that provide a pre-configured TinyMCE editor and live-diff view
-for applying changes to older regulations.
+React components that provide a pre-configured editor (TinyMCE, or Tiptap in
+`EditorV2`) and live-diff view for applying changes to older regulations.
 
 ```sh
 yarn add @dmr.is/regulations-tools
 ```
+
+## EditorV2 (preview)
+
+`EditorV2` is the regulation editor rebuilt on
+[Tiptap](https://tiptap.dev/), next to the current `Editor` (TinyMCE 5,
+end-of-life). It takes the same props, the same `classes` and produces the
+same HTML, so a screen can switch by changing the import:
+
+```tsx
+import { EditorV2 } from '@dmr.is/regulations-tools/EditorV2';
+import '@dmr.is/regulations-tools/editorV2.css';
+
+<EditorV2
+  classes={editorClasses} // the same object you pass to Editor
+  valueRef={valueRef}
+  baseText={baseText}
+  fileUploader={fileUploader} // the same uploader
+  toolbar="bold italic underline | align numlist bullist | link"
+/>;
+```
+
+The only prop that changed is `config`, which held TinyMCE's settings and
+was only ever used for the toolbar: `toolbar` replaces it, and takes the
+same toolbar strings (or a typed array, or `false` for none).
+
+What is different for the people editing:
+
+- **Long texts are fast.** Typing does not rewrite the whole text to HTML
+  on every keystroke, and the comparison pane uses `createStructuredDiffer`
+  (below) after a pause in typing, re-diffing only the articles that
+  changed and updating only those in the pane. Automatic diffing no longer
+  switches itself off on long regulations.
+- **The regulation's structure is part of the editor.** Grein, Kafli,
+  Undirkafli and Bráðabirgðaákvæði are offered only at the top level of the
+  text.
+- **Loading a text and saving it untouched changes nothing.** Checked over
+  1,234 documents from 700 real regulations
+  (`scripts/editorFidelity.ts`); see `docs/plan-tiptap-editor.md`.
+
+Measured in Chromium on the longest regulations, typing into the middle of
+the text with the CPU slowed 4× (`scripts/editorSpeed.ts`):
+
+| Text | Slowest keystroke | Freeze after typing stops | Automatic diff |
+|---|---|---|---|
+| 0112/2012 (520 KB) | 752 ms → 72 ms | 3.3 s → none | turned off → on |
+| 0544/2015 (410 KB) | 264 ms → 40 ms | 13.0 s → none | turned off → on |
+| 1205/2021 (396 KB) | 248 ms → 72 ms | 12.7 s → none | turned off → on |
+
+Pasting articles or adding one freezes `Editor` for 0.8–15 s afterwards
+on these texts; `EditorV2` for none.
+
+`Editor` → `EditorV2`; "none" means no main-thread task over 50 ms. These
+are lab numbers from a page holding only the editor; the full results and
+their caveats are in `docs/plan-tiptap-editor.md`.
+
+`editorV2.css` styles the toolbar, menus and dialogs. Its selectors have
+zero specificity, so your own rules win.
 
 ## Structured diff (experimental)
 
@@ -25,7 +82,20 @@ import getStructuredDiff from '@dmr.is/regulations-tools/structuredDiff-server';
 const { diff, sections } = getStructuredDiff(olderHtml, newerHtml);
 ```
 
-`@dmr.is/regulations-tools/structuredDiff` exports the same function taking
+To diff one base text against a text being edited, again and again, use
+`createStructuredDiffer`. It keeps what it can between calls, so after a
+small edit only the changed articles are diffed again, and gives exactly
+what `getStructuredDiff` gives. `parts` is the diff one section at a time,
+with keys that stay the same while a section does:
+
+```ts
+import { createStructuredDiffer } from '@dmr.is/regulations-tools/structuredDiff-browser';
+
+const differ = createStructuredDiffer(baseHtml);
+const { diff, sections, parts } = differ.diff(editedHtml);
+```
+
+`@dmr.is/regulations-tools/structuredDiff` exports the same functions taking
 your own `asDiv` (`{ asDiv }` in the options), and the types. Everything under
 `_structuredDiff/` is internal.
 
