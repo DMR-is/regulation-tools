@@ -16,10 +16,6 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
   longest texts, where `Editor` froze for up to 13 s), and loading a text
   and saving it untouched changes nothing. Styles: `editorV2.css`. See the
   README and `docs/plan-tiptap-editor.md`.
-- Feat: `createStructuredDiffer` (`structuredDiff`, `-browser`, `-server`):
-  diffs one base text against a text being edited, again and again, redoing
-  only what changed. The same result as `getStructuredDiff`, plus the diff
-  per section (`parts`).
 - Fix: Pasting and importing Word documents (both editors): an ordinary
   image next to a pasted one is no longer dropped; GIF and WebP images are
   uploaded; unreadable image data becomes the "[Image upload failed]"
@@ -45,6 +41,34 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
   stops at React 18, so installing on React 19 gives a peer-dependency
   warning. It works (two of the apps already run it on 19); it goes away
   with `Editor` in 2.0.0.
+
+## 0.12.0
+
+_2026-10-14_
+
+- Feat: `createStructuredDiffer` (`structuredDiff`, `-browser`, `-server`):
+  diffs one base text against a text being edited, again and again, redoing
+  only what changed. The same result as `getStructuredDiff`, plus the diff
+  per section (`parts`).
+- Fix: `getStructuredDiff` no longer emits newline-only `<ins>`/`<del>`
+  marks, as `getDiff` already did not. In tables they sat between rows and
+  ended up hoisted out in front of the `<table>`.
+- Fix: `getStructuredDiff` renders a replaced paragraph, item or heading as
+  one element, `<p><del>old</del><ins>new</ins></p>`, as `getDiff` did.
+  Two siblings made readers that count elements count two paragraphs and
+  number every later one too high. A replace that changes the tag (`p` →
+  `ol`) is still the old element followed by the new.
+- Fix: `getStructuredDiff` renders a block whose formatting alone changed
+  (bold → italic over the whole block, a list made lettered) as the new
+  block only, its content in `<ins class="mod">`, not as the same text
+  deleted and inserted again.
+- Feat: Moved blocks are marked `diffins diffmove` / `diffdel diffmove`, so
+  readers that know only inserted and deleted see them too.
+- Fix: `getTextContentDiff` escaped `>` as `&lg;` (not an entity), so titles
+  showed a literal "&lg;". It is now `&gt;`.
+- Feat: `diff.css` styles inserted and deleted rules (`hr[data-diff]`):
+  solid for inserted, dashed for deleted. Colours:
+  `--regulation-diff-hr-ins`, `--regulation-diff-hr-del`.
 
 ## 0.11.0
 

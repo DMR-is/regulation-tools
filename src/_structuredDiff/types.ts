@@ -155,15 +155,18 @@ export type BlockOp = {
   change?: 'text' | 'format' | 'both';
   /**
    * Diff HTML, for every type but `equal`, `insert` and `delete`. A `move` /
-   * `moved` is marked `class="diffmove"` at both ends, or word-diffed at the
-   * new position if it was also edited. A `replace` is
+   * `moved` is marked `class="diffins diffmove"` / `"diffdel diffmove"`, or
+   * word-diffed at the new position if it was also edited. A `replace` is
    * word-level only when old and new share enough words; otherwise the old
-   * block deleted + the new inserted. For `modify`: word-level when only the text or the inline
-   * formatting changed — htmldiff marks the latter `<ins class="mod">`. When
-   * the block-level shape changed (`ol` → `ul`, a class, a list type), or
-   * htmldiff's output would be mis-nested, the old block as deleted followed
-   * by the new as inserted: htmldiff cannot express a changed block tag, and
-   * on `ol` → `ul` emits `<ol><ul>…</ol></ul>`.
+   * text deleted + the new inserted, in one element when both are the same
+   * tag with only inline content (`<p><del>…</del><ins>…</ins></p>`), else
+   * the old element followed by the new. For `modify`: word-level when only
+   * the text or the inline formatting changed — htmldiff marks the latter
+   * `<ins class="mod">`. When the block-level shape changed (`ol` → `ul`, a
+   * class, a list type), or htmldiff's output would be mis-nested: a format
+   * change is the new block only, its content in `<ins class="mod">`; a text
+   * change is replaced as above. htmldiff cannot express a changed block
+   * tag, and on `ol` → `ul` emits `<ol><ul>…</ol></ul>`.
    */
   diff?: string;
 };

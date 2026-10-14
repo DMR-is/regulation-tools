@@ -138,10 +138,10 @@ describe('getStructuredDiff', () => {
     );
     const ops = d.sections[0]!.blocks;
     expect(ops.map((b) => b.type)).toEqual(['replace', 'equal']);
-    // Nothing in common: shown as whole-block delete + insert.
+    // Nothing in common: whole-text delete + insert, in one paragraph.
     expect(ops[0]!.diff).toBe(
-      '<p><del class="diffdel">Gamall texti um eitt.</del></p>' +
-        '<p><ins class="diffins">Allt annað efni hér.</ins></p>',
+      '<p><del class="diffdel">Gamall texti um eitt.</del>' +
+        '<ins class="diffins">Allt annað efni hér.</ins></p>',
     );
     expect(describeChanges(d)).toEqual(['1. mgr. (inngangur) orðast svo.']);
   });
@@ -709,8 +709,8 @@ describe('annotations: the operations in the diff HTML', () => {
     expect(read(d.diff)).toEqual([
       { 'd-section': '3. gr.' },
       { d: 'modify', 'd-change': 'text', 'd-mgr': '1' },
-      { d: 'replace', 'd-mgr': '2', 'd-side': 'old' },
-      { d: 'replace', 'd-mgr': '2', 'd-side': 'new' },
+      // One element per old paragraph, so later paragraphs keep their numbers.
+      { d: 'replace', 'd-mgr': '2' },
       {},
       { d: 'insert', 'd-after-mgr': '3', 'd-side': 'new' },
     ]);
@@ -779,9 +779,10 @@ describe('moves', () => {
       ['move', { label: '', mgr: 5 }, undefined],
       ['moved', undefined, { label: '', mgr: 3 }],
     ]);
-    expect(d.diff).toContain('<ins class="diffmove">');
-    expect(d.diff).toContain('<del class="diffmove">');
-    expect(d.diff).not.toContain('diffins');
+    // The plain class too, for readers that know only inserted and deleted.
+    expect(d.diff).toContain('<ins class="diffins diffmove">');
+    expect(d.diff).toContain('<del class="diffdel diffmove">');
+    expect(d.diff).not.toContain('<ins class="diffins">');
     expect(describeChanges(d)).toEqual([
       '5. mgr. (inngangur) færist og verður 3. mgr. (inngangur).',
     ]);
@@ -1057,11 +1058,11 @@ describe('format changes', () => {
     ).toEqual([]);
   });
 
-  it('renders a format change as well-formed delete + insert', () => {
+  it('renders a format change as the new block only, marked as reformatted', () => {
     const rendered = asDiv(diff(list('<ol>'), list('<ul>')).diff);
-    expect(rendered.querySelectorAll('ol ul, ul ol')).toHaveLength(0);
-    expect(rendered.querySelector('del ol, ol del')).not.toBeNull();
-    expect(rendered.querySelector('ins ul, ul ins')).not.toBeNull();
+    expect(rendered.querySelector('ol')).toBeNull();
+    expect(rendered.querySelector('del')).toBeNull();
+    expect(rendered.querySelector('ul ins.mod')).not.toBeNull();
   });
 
   describe('inline formatting stays word-level', () => {
@@ -1094,24 +1095,33 @@ describe('format changes', () => {
       expect(op.diff).toContain('(<ins class="mod">type</ins>)');
     });
 
-    it('falls back to delete + insert when htmldiff mis-nests (em → strong)', () => {
+    it('marks the whole new block reformatted when htmldiff mis-nests (em → strong)', () => {
       const op = opOf(
         '<p><em>Heiti:</em> texti.</p>',
         '<p><strong>Heiti:</strong> texti.</p>',
       );
       expect(op.change).toBe('format');
-      expect(isWellNested(op.diff!)).toBe(true);
-      expect(op.diff).toContain('<del');
-      expect(op.diff).toContain('<ins');
+      expect(op.diff).toBe(
+        '<p><ins class="mod"><strong>Heiti:</strong> texti.</ins></p>',
+      );
     });
 
-    it('still replaces whole blocks for block-level changes', () => {
+    it('marks the whole new block reformatted for block-level changes', () => {
       const op = opOf(
         '<p>Texti hér.</p>',
         '<p class="indented">Texti <em>hér</em>.</p>',
       );
-      expect(op.diff).toContain('<del');
-      expect(op.diff).not.toContain('class="mod"');
+      expect(op.diff).toBe(
+        '<p class="indented"><ins class="mod">Texti <em>hér</em>.</ins></p>',
+      );
+    });
+
+    it('keeps the old and new block apart when the tag changes and the text does too', () => {
+      const op = opOf('<p>Texti hér.</p>', '<h4>Annar texti.</h4>');
+      expect(op.diff).toBe(
+        '<p><del class="diffdel">Texti hér.</del></p>' +
+          '<h4><ins class="diffins">Annar texti.</ins></h4>',
+      );
     });
   });
 
@@ -1124,6 +1134,25 @@ describe('format changes', () => {
     expect(op.diff).toBe(
       '<ol><li data-diff="modify" data-diff-change="text" data-diff-item="1">fyrsta<ins class="diffins">&nbsp;breytt</ins></li></ol>',
     );
+  });
+});
+
+describe('empty marks', () => {
+  const rows = (cells: Array<string>) =>
+    '<table>\n<tbody>\n' +
+    cells.map((c) => `<tr>\n<td>${c}</td>\n</tr>\n`).join('') +
+    '</tbody>\n</table>\n';
+
+  it.each([
+    ['a row added', rows(['A']), rows(['A', 'B'])],
+    ['a row removed', rows(['A', 'B', 'C']), rows(['A', 'C'])],
+    ['a line break added', '<p>einn tveir</p>\n', '<p>einn<br>\ntveir</p>\n'],
+  ])('emits none for %s', (_label, a, b) => {
+    expect(diff(a, b).diff).not.toMatch(/<(ins|del)\b[^>]*>\s*<\/\1>/);
+  });
+
+  it('leaves nothing hoisted out in front of a table', () => {
+    expect(diff(rows(['A']), rows(['A', 'B'])).diff).toMatch(/^<table/);
   });
 });
 

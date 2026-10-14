@@ -4,7 +4,7 @@ import { execute as htmldiff } from './htmldiff-js';
 import { HTMLText, PlainText } from './types';
 
 export const toHTML = (textContent: PlainText) =>
-  textContent.replace(/>/g, '&lg;') as HTMLText;
+  textContent.replace(/>/g, '&gt;') as HTMLText;
 
 const SLOW_DIFF_LIMIT = 1500;
 
