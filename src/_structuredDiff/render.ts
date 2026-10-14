@@ -103,9 +103,15 @@ export const markWhole = (
 export const replaceDiff = (older: string, newer: string, asDiv: AsDiv) =>
   markWhole(older, 'del', asDiv) + markWhole(newer, 'ins', asDiv);
 
+/**
+ * Marks holding only newlines, as `getDiff` drops them. In a table htmldiff
+ * puts them between rows, and parsing would hoist them out before the table.
+ */
+const EMPTY_MARK = /<(ins|del)\b[^>]*>\n*<\/\1>/g;
+
 /** htmldiff, unless its output would be mis-nested — then delete + insert. */
 export const safeHtmldiff = (older: string, newer: string, asDiv: AsDiv) => {
-  const wordLevel = htmldiff(older, newer);
+  const wordLevel = htmldiff(older, newer).replace(EMPTY_MARK, '');
   return isWellNested(wordLevel) ? wordLevel : replaceDiff(older, newer, asDiv);
 };
 

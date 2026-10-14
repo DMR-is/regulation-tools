@@ -76,7 +76,8 @@ import '@dmr.is/regulations-tools/diff.css';
 
 Selectors have zero specificity, so your own rules win. Retheme by setting
 `--regulation-diff-ins`, `--regulation-diff-del`, `--regulation-diff-del-line`,
-`--regulation-diff-format` and `--regulation-diff-move`. The class names are
+`--regulation-diff-format`, `--regulation-diff-move`, and for inserted and
+deleted rules (`hr`), `--regulation-diff-hr-ins` and `--regulation-diff-hr-del`. The class names are
 exported as `DIFF_CLASSES` from `@dmr.is/regulations-tools/diffClasses`.
 
 Note `ins.mod`: htmldiff's mark for _formatting changed, text did not_. A

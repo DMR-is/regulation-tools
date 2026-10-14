@@ -13,6 +13,7 @@
     del.diffmod + ins.diffmod   a word replaced: old, then new
     ins.mod                     formatting changed, text did not
     ins.diffmove / del.diffmove a block moved: new position / old position
+    hr[data-diff]               a rule inserted / deleted
 */
 
 :where(:root) {
@@ -21,6 +22,8 @@
   --regulation-diff-del-line: rgb(0 0 0 / 0.5);
   --regulation-diff-format: #d39200;
   --regulation-diff-move: #d6e2f7;
+  --regulation-diff-hr-ins: #2e9e6a;
+  --regulation-diff-hr-del: #d64545;
 }
 
 :where(ins, del):where(.diffins, .diffdel, .diffmod, .diffmove) {
@@ -65,4 +68,12 @@
   text-decoration: line-through;
   text-decoration-color: var(--regulation-diff-del-line);
   opacity: 0.7;
+}
+
+/* A rule has no text to wrap in ins/del; the differ marks the element itself. */
+:where(hr[data-diff='insert']) {
+  border-top: 3px solid var(--regulation-diff-hr-ins);
+}
+:where(hr[data-diff='delete']) {
+  border-top: 3px dashed var(--regulation-diff-hr-del);
 }

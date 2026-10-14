@@ -1127,6 +1127,25 @@ describe('format changes', () => {
   });
 });
 
+describe('empty marks', () => {
+  const rows = (cells: Array<string>) =>
+    '<table>\n<tbody>\n' +
+    cells.map((c) => `<tr>\n<td>${c}</td>\n</tr>\n`).join('') +
+    '</tbody>\n</table>\n';
+
+  it.each([
+    ['a row added', rows(['A']), rows(['A', 'B'])],
+    ['a row removed', rows(['A', 'B', 'C']), rows(['A', 'C'])],
+    ['a line break added', '<p>einn tveir</p>\n', '<p>einn<br>\ntveir</p>\n'],
+  ])('emits none for %s', (_label, a, b) => {
+    expect(diff(a, b).diff).not.toMatch(/<(ins|del)\b[^>]*>\s*<\/\1>/);
+  });
+
+  it('leaves nothing hoisted out in front of a table', () => {
+    expect(diff(rows(['A']), rows(['A', 'B'])).diff).toMatch(/^<table/);
+  });
+});
+
 describe('isWellNested', () => {
   it.each([
     ['<p>a <em>b</em></p>', true],
