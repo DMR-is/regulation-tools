@@ -7,7 +7,7 @@ import { align } from '../_structuredDiff/align';
 import { describeChanges } from '../_structuredDiff/describe';
 import { parseSections } from '../_structuredDiff/parse';
 import { isWellNested } from '../_structuredDiff/render';
-import { getStructuredDiff } from '../structuredDiff';
+import { createStructuredDiffer, getStructuredDiff } from '../structuredDiff';
 import getStructuredDiffServer from '../structuredDiff-server';
 import { HTMLText } from '../types';
 
@@ -34,6 +34,35 @@ describe('entry points', () => {
     expect(getStructuredDiffServer(a, b).diff).toBe(
       getStructuredDiff(a, b, { asDiv }).diff,
     );
+  });
+});
+
+describe('never throws', () => {
+  // Nesting this deep overflows the call stack in parsing (and in jsdom).
+  const deep = (word: string) =>
+    '<ol><li>'.repeat(2000) + word + '</li></ol>'.repeat(2000);
+
+  it('falls back to the flat word diff, and says so', () => {
+    const d = diff(deep('a'), deep('b'));
+    expect(d.fallback).toBe(true);
+    expect(d.sections).toEqual([]);
+    expect(d.diff).toContain('<del class="diffmod">a</del>');
+    expect(d.diff).not.toContain('data-diff');
+  });
+
+  it('createStructuredDiffer falls back too, whichever text is too deep', () => {
+    const fromDeep = createStructuredDiffer(deep('a') as HTMLText, { asDiv });
+    expect(fromDeep.diff(deep('b') as HTMLText).fallback).toBe(true);
+    const differ = createStructuredDiffer('<p>a</p>' as HTMLText, { asDiv });
+    const d = differ.diff(deep('b') as HTMLText);
+    expect(d.fallback).toBe(true);
+    expect(d.parts.map((p) => p.html)).toEqual([d.diff]);
+    // And recovers on the next call.
+    expect(differ.diff('<p>b</p>' as HTMLText).fallback).toBeUndefined();
+  });
+
+  it('is not set on an ordinary diff', () => {
+    expect(diff('<p>a</p>', '<p>b</p>').fallback).toBeUndefined();
   });
 });
 

@@ -188,6 +188,13 @@ export type StructuredDiff = {
   sections: Array<SectionOp>;
   /** Diff HTML in the same `<ins class="diffins">` markup `getDiff` emits. */
   diff: HTMLText;
+  /**
+   * Set when the texts could not be diffed structurally (HTML nested deeper
+   * than the call stack allows). `diff` is then `getDiff`'s flat word diff —
+   * or, should that fail too, the new text unmarked — with no `data-diff-*`
+   * attributes, and `sections` is empty.
+   */
+  fallback?: true;
 };
 
 export type StructuredDiffOptions = {

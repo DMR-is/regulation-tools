@@ -31,6 +31,7 @@ import {
   joinPieces,
   plainCaches,
 } from './_structuredDiff/sections';
+import { fallbackDiff } from './_structuredDiff/render';
 import { StructuredDiff, StructuredDiffOptions } from './_structuredDiff/types';
 
 export type {
@@ -57,13 +58,18 @@ export const getStructuredDiff = (
   newer: HTMLText,
   opts: StructuredDiffOptions,
 ): StructuredDiff => {
-  const oldSections = parseSections(older, opts.asDiv);
-  const newSections = parseSections(newer, opts.asDiv);
-  const { sections, pieces } = diffSections(
-    oldSections,
-    newSections,
-    opts,
-    plainCaches(opts),
-  );
-  return joinPieces(sections, pieces);
+  try {
+    const oldSections = parseSections(older, opts.asDiv);
+    const newSections = parseSections(newer, opts.asDiv);
+    const { sections, pieces } = diffSections(
+      oldSections,
+      newSections,
+      opts,
+      plainCaches(opts),
+    );
+    return joinPieces(sections, pieces);
+  } catch {
+    // Never throws: see `fallback`.
+    return fallbackDiff(older, newer);
+  }
 };

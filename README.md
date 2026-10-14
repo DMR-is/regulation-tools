@@ -107,6 +107,12 @@ your own `asDiv` (`{ asDiv }` in the options), and the types. Everything under
 
 `getDiff` is unchanged.
 
+Neither function throws. Should a text be impossible to diff structurally —
+HTML nested deeper than the call stack allows — the result has
+`fallback: true`, `diff` is `getDiff`'s flat word diff with no `data-diff-*`
+attributes (or, should that fail too, the new text unmarked), and `sections`
+is empty.
+
 ### Reading the annotations
 
 A consumer that keeps only the diff HTML — as the amending-text generator
