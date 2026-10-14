@@ -168,6 +168,53 @@ describe('getStructuredDiff', () => {
     expect([op.type, op.change]).toEqual(['modify', 'text']);
   });
 
+  describe('a row added to or removed from a table', () => {
+    const row = (...c: Array<string>) =>
+      '<tr>' + c.map((x) => `<td>${x}</td>`).join('') + '</tr>';
+    const table = (...r: Array<string>) =>
+      `<table><tbody>${r.join('')}</tbody></table>`;
+    const H = row('Tegund', 'Afli');
+    const base =
+      '<h3 class="article__title">1. gr.</h3><p>Heildarafli er sem hér segir:</p>' +
+      table(H, row('Loðna', '100'), row('Þorskur', '200'));
+    const tableOp = (neu: string) =>
+      diff(base, neu).sections[0]!.blocks.find((op) => op.type !== 'equal')!;
+
+    it('marks only the added row, in one table', () => {
+      const op = tableOp(
+        base.replace(
+          row('Þorskur', '200'),
+          row('Þorskur', '200') + row('Ýsa', '300'),
+        ),
+      );
+      expect([op.type, op.change]).toEqual(['modify', 'text']);
+      expect(op.diff).toContain(
+        '<tr><td>Þorskur</td><td>200</td></tr>' +
+          '<tr><td><ins class="diffins">Ýsa</ins></td><td><ins class="diffins">300</ins></td></tr>',
+      );
+      expect(op.diff.match(/<table/g)).toHaveLength(1);
+    });
+
+    it('marks only the removed row, in one table', () => {
+      const op = tableOp(base.replace(row('Loðna', '100'), ''));
+      expect([op.type, op.change]).toEqual(['modify', 'text']);
+      expect(op.diff).toContain(
+        '<tr><td><del class="diffdel">Loðna</del></td><td><del class="diffdel">100</del></td></tr>' +
+          '<tr><td>Þorskur</td><td>200</td></tr>',
+      );
+      expect(op.diff.match(/<table/g)).toHaveLength(1);
+    });
+  });
+
+  it('sees an item added to a short list written without whitespace', () => {
+    const op = diff(
+      '<ol><li>Loðna</li><li>Þorskur</li></ol>',
+      '<ol><li>Loðna</li><li>Þorskur</li><li>Ýsa</li></ol>',
+    ).sections[0]!.blocks[0]!;
+    expect(op.type).toBe('modify');
+    expect(op.items!.map((i) => i.type)).toEqual(['equal', 'equal', 'insert']);
+  });
+
   it('keeps an unrelated paragraph in the same position as one replace', () => {
     const d = diff(
       '<p>Gamall texti um eitt.</p><p>Óbreytt.</p>',
@@ -211,7 +258,7 @@ describe('loose top-level text', () => {
       asDiv,
     );
     expect(section!.blocks.map((b) => [b.kind, b.mgr, b.text])).toEqual([
-      ['text', 1, 'Laus texti hér.Meira.'],
+      ['text', 1, 'Laus texti hér. Meira.'],
       ['paragraph', 2, 'Næsta.'],
     ]);
   });

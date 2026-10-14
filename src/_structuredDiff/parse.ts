@@ -193,6 +193,18 @@ export const contentOf = (el: Element) =>
     .replace(new RegExp(`^${BOUNDARY}|${BOUNDARY}$`, 'g'), '')
     .trim();
 
+/**
+ * A block's text, a space between cells, items, paragraphs and `<br>`s:
+ * `textContent` runs `<td>Loðna</td><td>100</td>` into one word, "Loðna100",
+ * so a table or list with a row or item added shared no words with itself.
+ */
+export const textOf = (el: Element) =>
+  normalize(
+    contentOf(el)
+      .replace(new RegExp(BOUNDARY, 'g'), ' ')
+      .replace(/\ufffc/g, ''),
+  );
+
 /** "Seljandi" from `<p><em>Seljandi:</em> Framleiðandi …</p>`. */
 export const definedTerm = (el: Element, text: string): string | undefined => {
   const lead = el.firstElementChild;
@@ -303,7 +315,7 @@ export const itemOf = (node: ChildNode): Item => {
     fields: {
       kind: blockKind(el),
       html: el.outerHTML,
-      text,
+      text: textOf(el),
       content: contentOf(el),
       canon: canonOf(el).replace(/^<div>|<\/div>$/g, ''),
       shape: shapeOf(el),
@@ -333,7 +345,7 @@ export const runFields = (
   return {
     kind: 'text',
     html: wrap.innerHTML,
-    text,
+    text: textOf(wrap),
     content: contentOf(wrap),
     canon: canonOf(wrap).replace(/^<div>|<\/div>$/g, ''),
     shape: shapeOf(wrap).replace(/^div/, '#text'),
