@@ -163,7 +163,7 @@ export const canonOf = (el: Element) =>
     .trim();
 
 /** Marks a cell, item or paragraph boundary inside `contentOf`. */
-const BOUNDARY = '\u241f';
+export const BOUNDARY = '\u241f';
 
 const contentNode = (node: Node): string => {
   if (node.nodeType === 3) {
