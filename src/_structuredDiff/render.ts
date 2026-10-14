@@ -9,7 +9,15 @@ import { DIFF_CLASSES } from '../diffClasses';
 import { execute } from '../htmldiff-js';
 import { HTMLText } from '../types';
 import { INLINE_TAGS, isInline } from './parse';
-import { AsDiv, BlockOp, MoveEnd, SectionOp } from './types';
+import {
+  AsDiv,
+  BlockOp,
+  DiffPart,
+  IncrementalDiff,
+  MoveEnd,
+  SectionOp,
+  StructuredDiff,
+} from './types';
 
 /** Block HTML is sliced from an `HTMLText`, so it is HTML too. */
 export const htmldiff = (a: string, b: string) =>
@@ -134,6 +142,29 @@ export const replaceDiff = (older: string, newer: string, asDiv: AsDiv) => {
  * puts them between rows, and parsing would hoist them out before the table.
  */
 const EMPTY_MARK = /<(ins|del)\b[^>]*>\n*<\/\1>/g;
+
+/**
+ * What the structured diff gives when it cannot diff structurally — HTML
+ * nested deeper than the call stack allows: `getDiff`'s flat word diff, or,
+ * should that fail too, the new text unmarked. `fallback` marks both: there
+ * are no `sections` and no `data-diff-*` attributes.
+ */
+export const fallbackDiff = (older: string, newer: string): StructuredDiff => {
+  let diff: string;
+  try {
+    diff = htmldiff(older, newer).replace(EMPTY_MARK, '');
+  } catch {
+    diff = newer;
+  }
+  return { sections: [], diff: diff as HTMLText, fallback: true };
+};
+
+/** `fallbackDiff` as the incremental differ's result: one part, the whole diff. */
+export const fallbackParts = (older: string, newer: string): IncrementalDiff => {
+  const d = fallbackDiff(older, newer);
+  const part: DiffPart = { key: 'fallback', html: d.diff };
+  return { ...d, parts: [part] };
+};
 
 /** htmldiff, unless its output would be mis-nested — then `fallback`. */
 export const safeHtmldiff = (

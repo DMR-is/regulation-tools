@@ -59,7 +59,7 @@ import {
   joinPieces,
   sectionSimilarity,
 } from './sections';
-import { RenderMemo } from './render';
+import { fallbackParts, RenderMemo } from './render';
 
 /** A memo that forgets whatever the previous run did not use. */
 const generations = <V>() => {
@@ -293,7 +293,13 @@ export const createStructuredDiffer = (
   opts: StructuredDiffOptions,
 ): StructuredDiffer => {
   const id = identities();
-  const oldSections = parseSections(older, opts.asDiv);
+  let oldSections: Array<Section>;
+  try {
+    oldSections = parseSections(older, opts.asDiv);
+  } catch {
+    // The base cannot be parsed, so no version can be diffed against it.
+    return { diff: (newer) => fallbackParts(older, newer) };
+  }
   const newSide = newSideParser(opts.asDiv, id);
   const { caches, next } = incrementalCaches(opts, id);
   return {
@@ -313,6 +319,10 @@ export const createStructuredDiffer = (
               : [],
         );
         return { ...joinPieces(sections, pieces), parts };
+      } catch {
+        // Never throws: see `fallback`. The caches hold only results that
+        // were computed in full, so the next call can use them.
+        return fallbackParts(older, newer);
       } finally {
         newSide.next();
         next();
