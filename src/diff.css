@@ -13,6 +13,7 @@
     del.diffmod + ins.diffmod   a word replaced: old, then new
     ins.mod                     formatting changed, text did not
     ins.diffmove / del.diffmove a block moved: new position / old position
+                                (with diffins / diffdel as well)
     hr[data-diff]               a rule inserted / deleted
 */
 

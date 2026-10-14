@@ -13,6 +13,10 @@ import { AsDiv, Block, BlockOp, SectionOp } from './types';
 /** Moves shorter than this are left as delete + insert: too likely chance. */
 export const MIN_MOVE_WORDS = 5;
 
+// The plain class as well, for readers that know only inserted and deleted.
+const MOVED_FROM = `${DIFF_CLASSES.del} ${DIFF_CLASSES.move}`;
+const MOVED_TO = `${DIFF_CLASSES.ins} ${DIFF_CLASSES.move}`;
+
 /**
  * Pairs blocks deleted in one place and inserted in another — across the
  * whole regulation, not just one gap — as `moved` (old position) and `move`
@@ -69,7 +73,7 @@ export const detectMoves = (
     Object.assign(del.op, {
       type: 'moved',
       movedTo: { label: ins.label, mgr: n.mgr },
-      diff: markWhole(o.html, 'del', asDiv, DIFF_CLASSES.move),
+      diff: markWhole(o.html, 'del', asDiv, MOVED_FROM),
     });
     Object.assign(ins.op, {
       type: 'move',
@@ -78,7 +82,7 @@ export const detectMoves = (
       change,
       diff: change
         ? modifyDiff(o, n, asDiv)
-        : markWhole(n.html, 'ins', asDiv, DIFF_CLASSES.move),
+        : markWhole(n.html, 'ins', asDiv, MOVED_TO),
     });
     deletes.splice(deletes.indexOf(del), 1);
   };

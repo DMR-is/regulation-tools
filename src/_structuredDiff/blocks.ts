@@ -3,11 +3,13 @@
   word diff, list items, changed sentences and word edits.
 */
 
+import { DIFF_CLASSES } from '../diffClasses';
 import { splitSentences } from './sentences';
 import { align } from './align';
 import { canonOf, contentOf, normalize, shapeOf } from './parse';
 import {
   annotate,
+  markWhole,
   opAttrs,
   renderOp,
   replaceDiff,
@@ -55,8 +57,15 @@ export const modifyResult = (
   n: Block,
   asDiv: AsDiv,
 ): { diff: string; items?: Array<BlockOp> } => {
+  // Formatting only (bold → italic, a list made lettered): the text is the
+  // same, so the new block once, marked as reformatted — never the same
+  // text deleted and inserted again.
+  const fallback = () =>
+    changeOf(o, n) === 'format'
+      ? markWhole(n.html, 'ins', asDiv, DIFF_CLASSES.format)
+      : replaceDiff(o.html, n.html, asDiv);
   if (o.blockShape !== n.blockShape) {
-    return { diff: replaceDiff(o.html, n.html, asDiv) };
+    return { diff: fallback() };
   }
   if (o.kind === 'list' && n.kind === 'list') {
     const oldItems = itemsOf(o, asDiv);
@@ -79,12 +88,10 @@ export const modifyResult = (
       return { diff: list.outerHTML, items };
     }
   }
-  const diff = safeHtmldiff(o.html, n.html, asDiv);
+  const diff = safeHtmldiff(o.html, n.html, asDiv, fallback);
   // A change htmldiff cannot mark — an attribute (href, src), an image —
-  // must still show: the old block deleted, the new inserted.
-  return {
-    diff: /<(ins|del)\b/.test(diff) ? diff : replaceDiff(o.html, n.html, asDiv),
-  };
+  // must still show.
+  return { diff: /<(ins|del)\b/.test(diff) ? diff : fallback() };
 };
 
 export const modifyDiff = (o: Block, n: Block, asDiv: AsDiv): string =>
