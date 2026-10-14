@@ -123,7 +123,7 @@ is: `data-diff-to` and `data-diff-renumbered-to`.
 | `data-diff-mgr` | paragraphs | its paragraph number; `1,2` for a merge |
 | `data-diff-after-mgr` | inserted paragraphs, the arriving end of a move | the old paragraph it follows; `0` = at the top |
 | `data-diff-item` / `data-diff-after-item` | list items | the same, for töluliðir / stafliðir |
-| `data-diff-side` | elements showing only one version | `old` or `new` (a whole-block replace, either end of a move) |
+| `data-diff-side` | elements showing only one version | `old` or `new`: either end of a move, a replace that changed the tag (`p` → `ol`), `new` for a block whose formatting alone changed |
 | `data-diff-from` | `move` (where it arrived) | where it came from, old numbering: `11.2. gr., 3. mgr.` |
 | `data-diff-to` | `moved` (where it left) | where it went, **new** numbering |
 | `data-diff-sentences` | a modified paragraph or item | changed sentences: `replace:2 delete:3`; an `insert:N` follows old sentence N |

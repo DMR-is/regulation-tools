@@ -100,8 +100,34 @@ export const markWhole = (
   return root.innerHTML;
 };
 
-export const replaceDiff = (older: string, newer: string, asDiv: AsDiv) =>
-  markWhole(older, 'del', asDiv) + markWhole(newer, 'ins', asDiv);
+/** The one element `html` is, if it is nothing else and holds only inline content. */
+const loneInline = (html: string, asDiv: AsDiv) => {
+  const root = asDiv(html);
+  const el = root.firstElementChild;
+  const alone = Array.from(root.childNodes).every(
+    (node) => node === el || (node.nodeType === 3 && !node.textContent!.trim()),
+  );
+  return el && alone && Array.from(el.childNodes).every(isInline)
+    ? el
+    : undefined;
+};
+
+/**
+ * The old block deleted and the new inserted. Two paragraphs (or items, or
+ * headings) of the same tag become one element holding both, as `getDiff`
+ * placed them, so a reader counting elements counts one paragraph, not two.
+ */
+export const replaceDiff = (older: string, newer: string, asDiv: AsDiv) => {
+  const o = loneInline(older, asDiv);
+  const n = loneInline(newer, asDiv);
+  if (o && n && o.tagName === n.tagName) {
+    n.innerHTML =
+      markWhole(o.innerHTML, 'del', asDiv) +
+      markWhole(n.innerHTML, 'ins', asDiv);
+    return n.outerHTML;
+  }
+  return markWhole(older, 'del', asDiv) + markWhole(newer, 'ins', asDiv);
+};
 
 /**
  * Marks holding only newlines, as `getDiff` drops them. In a table htmldiff
@@ -109,10 +135,15 @@ export const replaceDiff = (older: string, newer: string, asDiv: AsDiv) =>
  */
 const EMPTY_MARK = /<(ins|del)\b[^>]*>\n*<\/\1>/g;
 
-/** htmldiff, unless its output would be mis-nested — then delete + insert. */
-export const safeHtmldiff = (older: string, newer: string, asDiv: AsDiv) => {
+/** htmldiff, unless its output would be mis-nested — then `fallback`. */
+export const safeHtmldiff = (
+  older: string,
+  newer: string,
+  asDiv: AsDiv,
+  fallback = () => replaceDiff(older, newer, asDiv),
+) => {
   const wordLevel = htmldiff(older, newer).replace(EMPTY_MARK, '');
-  return isWellNested(wordLevel) ? wordLevel : replaceDiff(older, newer, asDiv);
+  return isWellNested(wordLevel) ? wordLevel : fallback();
 };
 
 export type Attrs = Record<string, string | number | undefined>;

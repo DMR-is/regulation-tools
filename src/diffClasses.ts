@@ -12,6 +12,9 @@ export const DIFF_CLASSES = {
   mod: 'diffmod',
   /** `<ins>`: formatting changed, text did not. */
   format: 'mod',
-  /** `<ins>` at the new position, `<del>` at the old: a block moved. */
+  /**
+   * `<ins>` at the new position, `<del>` at the old: a block moved. The
+   * structured diff sets `ins` / `del` beside it.
+   */
   move: 'diffmove',
 } as const;
