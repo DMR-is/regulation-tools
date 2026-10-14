@@ -2,6 +2,12 @@
 
 ## Upcoming...
 
+- Fix: `getStructuredDiff`: a row added to or removed from a table is one
+  modified table with only that row marked, not the old and new tables
+  side by side. Likewise an item added to a short list. Cells, items and
+  `<br>`s ran their text together ("Loðna100"), so a table shared no words
+  with itself once a row changed.
+
 ## 1.0.0
 
 _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._

@@ -17,7 +17,7 @@ export type BlockKind =
 export type Block = {
   kind: BlockKind;
   html: string;
-  /** Normalized text, for similarity and phrasing. Flattened: cell and item boundaries are lost. */
+  /** Normalized text, for similarity and phrasing. Cell, item and paragraph boundaries are spaces. */
   text: string;
   /**
    * The text with cell, item and paragraph boundaries kept, so `[1, 23]` and

@@ -6,7 +6,7 @@
 import { DIFF_CLASSES } from '../diffClasses';
 import { splitSentences } from './sentences';
 import { align } from './align';
-import { BOUNDARY, canonOf, contentOf, normalize, shapeOf } from './parse';
+import { BOUNDARY, canonOf, contentOf, shapeOf, textOf } from './parse';
 import {
   annotate,
   markWhole,
@@ -36,7 +36,7 @@ export const itemsOf = (
   return children.map((li, i) => ({
     kind: 'item',
     html: li.outerHTML,
-    text: normalize(li.textContent || ''),
+    text: textOf(li),
     content: contentOf(li),
     canon: canonOf(li),
     shape: shapeOf(li),
@@ -263,6 +263,13 @@ const sameCells = (x: Block, y: Block) => {
     : 0;
 };
 
+/**
+ * The same characters, cut into cells or items differently — `[1, 23]` and
+ * `[12, 3]`: an edit of one block, though no word is shared.
+ */
+const sameLetters = (x: Block, y: Block) =>
+  x.text.replace(/ /g, '') === y.text.replace(/ /g, '');
+
 export const blockSim = (x: Block, y: Block) =>
   x.kind === y.kind || (isProse(x) && isProse(y))
     ? similarity(x.text, y.text)
@@ -325,7 +332,8 @@ export const diffBlocks = (
           if (
             o!.blockShape === n!.blockShape &&
             (containment(o!.text, n!.text) >= EDIT_CONTAINMENT ||
-              sameCells(o!, n!) >= 0.5)
+              sameCells(o!, n!) >= 0.5 ||
+              sameLetters(o!, n!))
           ) {
             return modifyOp(o!, n!, asDiv);
           }
