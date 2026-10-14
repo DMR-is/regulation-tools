@@ -2,18 +2,6 @@
 
 ## Upcoming...
 
-- Fix: `getStructuredDiff` and `createStructuredDiffer` never throw. HTML
-  nested deeper than the call stack allows (lists 1,000 deep) threw a
-  `RangeError`; such texts now get `getDiff`'s flat word diff, flagged
-  `fallback: true`, with empty `sections`.
-- Fix: An untitled article inserted before others no longer reads as every
-  later article rewritten. Untitled articles with the same number pair only
-  when they keep a block unchanged or are similar; one whose body was
-  rewritten still pairs by number as a last resort.
-- Fix: A one-cell edit in a small table is `modify`, not `replace`: a table
-  with the same rows and columns and at least half its cells unchanged is
-  the same table.
-
 ## 1.0.0
 
 _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
@@ -53,6 +41,22 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
   stops at React 18, so installing on React 19 gives a peer-dependency
   warning. It works (two of the apps already run it on 19); it goes away
   with `Editor` in 2.0.0.
+
+## 0.13.0
+
+_2026-10-14_
+
+- Feat: `getStructuredDiff` and `createStructuredDiffer` never throw. HTML
+  nested deeper than the call stack allows (lists 1,000 deep) threw a
+  `RangeError`; such texts now get `getDiff`'s flat word diff, flagged
+  `fallback: true`, with empty `sections`.
+- Fix: An untitled article inserted before others no longer reads as every
+  later article rewritten. Untitled articles with the same number pair only
+  when they keep a block unchanged or are similar; one whose body was
+  rewritten still pairs by number as a last resort.
+- Fix: A one-cell edit in a small table is `modify`, not `replace`: a table
+  with the same rows and columns and at least half its cells unchanged is
+  the same table.
 
 ## 0.12.0
 
