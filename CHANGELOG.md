@@ -2,7 +2,11 @@
 
 ## Upcoming...
 
-- Fix: `getStructuredDiff` and `createStructuredDiffer` never throw. HTML
+## 0.13.0
+
+_2026-10-14_
+
+- Feat: `getStructuredDiff` and `createStructuredDiffer` never throw. HTML
   nested deeper than the call stack allows (lists 1,000 deep) threw a
   `RangeError`; such texts now get `getDiff`'s flat word diff, flagged
   `fallback: true`, with empty `sections`.
@@ -13,7 +17,6 @@
 - Fix: A one-cell edit in a small table is `modify`, not `replace`: a table
   with the same rows and columns and at least half its cells unchanged is
   the same table.
-
 
 ## 0.12.0
 
