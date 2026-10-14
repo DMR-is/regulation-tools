@@ -6,7 +6,7 @@
 import { DIFF_CLASSES } from '../diffClasses';
 import { splitSentences } from './sentences';
 import { align } from './align';
-import { canonOf, contentOf, normalize, shapeOf } from './parse';
+import { BOUNDARY, canonOf, contentOf, normalize, shapeOf } from './parse';
 import {
   annotate,
   markWhole,
@@ -250,6 +250,19 @@ export const modifyOp = (o: Block, n: Block, asDiv: AsDiv): BlockOp => {
 export const isProse = (b: Block) =>
   b.kind === 'paragraph' || b.kind === 'text';
 
+/**
+ * The share of cells left as they were, for two tables of the same rows and
+ * columns: a small table is the same table after a one-cell edit, though
+ * too few words for similarity to say so.
+ */
+const sameCells = (x: Block, y: Block) => {
+  const a = x.content.split(BOUNDARY);
+  const b = y.content.split(BOUNDARY);
+  return x.kind === 'table' && y.kind === 'table' && a.length === b.length
+    ? a.filter((cell, i) => cell === b[i]).length / a.length
+    : 0;
+};
+
 export const blockSim = (x: Block, y: Block) =>
   x.kind === y.kind || (isProse(x) && isProse(y))
     ? similarity(x.text, y.text)
@@ -311,7 +324,8 @@ export const diffBlocks = (
           // 13 of the 15 are the old ones.
           if (
             o!.blockShape === n!.blockShape &&
-            containment(o!.text, n!.text) >= EDIT_CONTAINMENT
+            (containment(o!.text, n!.text) >= EDIT_CONTAINMENT ||
+              sameCells(o!, n!) >= 0.5)
           ) {
             return modifyOp(o!, n!, asDiv);
           }

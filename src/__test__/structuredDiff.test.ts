@@ -7,7 +7,7 @@ import { align } from '../_structuredDiff/align';
 import { describeChanges } from '../_structuredDiff/describe';
 import { parseSections } from '../_structuredDiff/parse';
 import { isWellNested } from '../_structuredDiff/render';
-import { getStructuredDiff } from '../structuredDiff';
+import { createStructuredDiffer, getStructuredDiff } from '../structuredDiff';
 import getStructuredDiffServer from '../structuredDiff-server';
 import { HTMLText } from '../types';
 
@@ -34,6 +34,35 @@ describe('entry points', () => {
     expect(getStructuredDiffServer(a, b).diff).toBe(
       getStructuredDiff(a, b, { asDiv }).diff,
     );
+  });
+});
+
+describe('never throws', () => {
+  // Nesting this deep overflows the call stack in parsing (and in jsdom).
+  const deep = (word: string) =>
+    '<ol><li>'.repeat(2000) + word + '</li></ol>'.repeat(2000);
+
+  it('falls back to the flat word diff, and says so', () => {
+    const d = diff(deep('a'), deep('b'));
+    expect(d.fallback).toBe(true);
+    expect(d.sections).toEqual([]);
+    expect(d.diff).toContain('<del class="diffmod">a</del>');
+    expect(d.diff).not.toContain('data-diff');
+  });
+
+  it('createStructuredDiffer falls back too, whichever text is too deep', () => {
+    const fromDeep = createStructuredDiffer(deep('a') as HTMLText, { asDiv });
+    expect(fromDeep.diff(deep('b') as HTMLText).fallback).toBe(true);
+    const differ = createStructuredDiffer('<p>a</p>' as HTMLText, { asDiv });
+    const d = differ.diff(deep('b') as HTMLText);
+    expect(d.fallback).toBe(true);
+    expect(d.parts.map((p) => p.html)).toEqual([d.diff]);
+    // And recovers on the next call.
+    expect(differ.diff('<p>b</p>' as HTMLText).fallback).toBeUndefined();
+  });
+
+  it('is not set on an ordinary diff', () => {
+    expect(diff('<p>a</p>', '<p>b</p>').fallback).toBeUndefined();
   });
 });
 
@@ -129,6 +158,14 @@ describe('getStructuredDiff', () => {
     ]);
     expect(d.diff).toContain('<p>Óbreytt.</p>');
     expect(d.diff).toContain('<ins class="diffins">');
+  });
+
+  it('sees a one-cell edit in a small table as a modify, not a replace', () => {
+    const op = diff(
+      '<table><tbody><tr><td>Fólksbifreið</td><td>4 ár</td></tr></tbody></table>',
+      '<table><tbody><tr><td>Fólksbifreið</td><td>3 ár</td></tr></tbody></table>',
+    ).sections[0]!.blocks[0]!;
+    expect([op.type, op.change]).toEqual(['modify', 'text']);
   });
 
   it('keeps an unrelated paragraph in the same position as one replace', () => {
@@ -518,6 +555,36 @@ describe('renumbering', () => {
         ['equal', '1. gr.', '1. gr.'],
         ['modify', '2. gr.', '2. gr.'],
       ],
+    );
+  });
+
+  it('sees an untitled article inserted, not every later one rewritten', () => {
+    const g = (n: number, text: string) => `<h3>${n}. gr.</h3><p>${text}</p>`;
+    const A = 'Ákvæði um skoðun ökutækja og gjaldtöku fyrir hana.';
+    const B = 'Skoðunarstofa skal hafa faggildingu til starfseminnar.';
+    const C = 'Ráðherra getur sett nánari reglur um framkvæmd.';
+    const N = 'Eigandi ökutækis ber ábyrgð á að færa það til skoðunar.';
+    const d = diff(
+      g(1, A) + g(2, B) + g(3, C),
+      g(1, A) + g(2, N) + g(3, B) + g(4, C),
+    );
+    expect(
+      d.sections.map((s) => [s.type, s.old?.label, s.new?.label, !!s.renumbered]),
+    ).toEqual([
+      ['equal', '1. gr.', '1. gr.', false],
+      ['insert', undefined, '2. gr.', false],
+      ['modify', '2. gr.', '3. gr.', true],
+      ['modify', '3. gr.', '4. gr.', true],
+    ]);
+  });
+
+  it('still pairs an untitled article whose body was rewritten', () => {
+    const d = diff(
+      '<h3>1. gr.</h3><p>Reglugerðin gildir um rafföng.</p>',
+      '<h3>1. gr.</h3><p>Markmið reglugerðarinnar er öryggi fólks.</p>',
+    );
+    expect(d.sections.map((s) => [s.type, s.old?.label, s.new?.label])).toEqual(
+      [['modify', '1. gr.', '1. gr.']],
     );
   });
 });

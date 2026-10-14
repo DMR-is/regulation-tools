@@ -38,6 +38,12 @@ export const sectionText = (s: Section) =>
 export const sectionSimilarity = (x: Section, y: Section) =>
   similarity(sectionText(x), sectionText(y));
 
+/** Whether any block of `x` is in `y` unchanged. */
+const keepsBlock = (x: Section, y: Section) => {
+  const kept = new Set(x.blocks.map((b) => b.content + '\0' + b.canon));
+  return y.blocks.some((b) => kept.has(b.content + '\0' + b.canon));
+};
+
 /** Section similarity, remembered per pair: alignment asks for the same pair repeatedly. */
 export const memoSimilarity = () => {
   const memo = new Map<Section, Map<Section, number>>();
@@ -96,7 +102,13 @@ export const diffSections = (
   // when neither has a title. When the heading is ambiguous — the title
   // recurs ("Almennt." in every chapter), or one side has a title and the
   // other not — the bodies must also be similar, or a new 3.1 "Almennt."
-  // would take the place of the old 3.1 "Almennt." now numbered 4.1.
+  // would take the place of the old 3.1 "Almennt." now numbered 4.1. With
+  // no title on either side, the number alone is not enough either: the
+  // two must keep a block unchanged, or be similar, or a new bare 2. gr.
+  // would take the place of the old 2. gr. now numbered 3. (Not similarity
+  // alone: a paragraph moved out of a short article leaves it unlike
+  // itself.) A number whose title and body were both rewritten still
+  // pairs, as a last resort (`pairLast`).
   const { sectionSim } = caches;
   const titles = (sections: Array<Section>) => {
     const counts = new Map<string, number>();
@@ -116,10 +128,14 @@ export const diffSections = (
     if (byTitle ? x.title !== y.title : x.key !== y.key) {
       return false;
     }
-    const ambiguous = byTitle
-      ? oldTitles(x) > 1 || newTitles(y) > 1
-      : !!(x.title || y.title);
-    return !ambiguous || sectionSim(x, y) >= sectionCutoff;
+    if (byTitle) {
+      const ambiguous = oldTitles(x) > 1 || newTitles(y) > 1;
+      return !ambiguous || sectionSim(x, y) >= sectionCutoff;
+    }
+    return (
+      (!x.title && !y.title && keepsBlock(x, y)) ||
+      sectionSim(x, y) >= sectionCutoff
+    );
   };
   const pairs = align(
     oldSections,
