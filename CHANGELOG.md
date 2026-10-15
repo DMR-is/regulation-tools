@@ -2,12 +2,6 @@
 
 ## Upcoming...
 
-- Fix: `getStructuredDiff`: a row added to or removed from a table is one
-  modified table with only that row marked, not the old and new tables
-  side by side. Likewise an item added to a short list. Cells, items and
-  `<br>`s ran their text together ("Loðna100"), so a table shared no words
-  with itself once a row changed.
-
 ## 1.0.0
 
 _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
@@ -51,6 +45,16 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
   stops at React 18, so installing on React 19 gives a peer-dependency
   warning. It works (two of the apps already run it on 19); it goes away
   with `Editor` in 2.0.0.
+
+## 0.13.1
+
+_2026-10-15_
+
+- Fix: `getStructuredDiff`: a row added to or removed from a table is one
+  modified table with only that row marked, not the old and new tables
+  side by side. Likewise an item added to a short list. Cells, items and
+  `<br>`s ran their text together ("Loðna100"), so a table shared no words
+  with itself once a row changed.
 
 ## 0.13.0
 
