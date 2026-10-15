@@ -65,7 +65,7 @@ their caveats are in `docs/plan-tiptap-editor.md`.
 `editorV2.css` styles the toolbar, menus and dialogs. Its selectors have
 zero specificity, so your own rules win.
 
-## Structured diff (experimental)
+## Structured diff
 
 `getStructuredDiff` diffs two versions of a regulation the way amendments are
 written: article by article, paragraph by paragraph, and word by word only
@@ -112,6 +112,10 @@ HTML nested deeper than the call stack allows — the result has
 `fallback: true`, `diff` is `getDiff`'s flat word diff with no `data-diff-*`
 attributes (or, should that fail too, the new text unmarked), and `sections`
 is empty.
+
+The functions, the exported types, the `data-diff-*` attributes and their
+values, and the classes follow semver. Which paragraphs get paired, and where
+exactly the word marks fall, may improve in minor versions.
 
 ### Reading the annotations
 

@@ -34,6 +34,10 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
   mid-list ("i." then "j." stays lettered, "v." then "vi." stays roman),
   and get `start` from their first marker ("c." starts at 3). Both
   editors.
+- Feat: `getStructuredDiff` and `createStructuredDiffer` are no longer
+  experimental. The functions, exported types, `data-diff-*` attributes and
+  their values, and the classes follow semver; pairing and the exact
+  placement of word marks may still improve in minor versions.
 - Chore: `yarn publishdist` publishes pre-release versions under the `next`
   tag.
 - Feat: `TextWarnings` takes an optional `highlight` function.
