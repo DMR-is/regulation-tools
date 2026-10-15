@@ -44,11 +44,10 @@ import {
 } from './extensions';
 import { GROUPS, ToolbarItem } from './toolbarItems';
 
-export type DialogName = 'link' | 'charmap' | 'code' | 'searchreplace';
+export type DialogName = 'link' | 'image' | 'charmap' | 'code' | 'searchreplace';
 
 export type ToolbarActions = {
   openDialog: (name: DialogName) => void;
-  insertImage: () => void;
   importWord: () => void;
 };
 
@@ -210,6 +209,7 @@ const useToolbarState = (editor: Editor) =>
       superscript: e.isActive('superscript'),
       subscript: e.isActive('subscript'),
       link: e.isActive('link'),
+      image: e.isActive('image'),
       align: (e.getAttributes(e.state.selection.$from.parent.type.name).align ||
         null) as string | null,
       bulletList: e.isActive('bulletList'),
@@ -588,10 +588,11 @@ export const Toolbar = (props: {
         return (
           <Button
             key={key}
-            label="Setja inn mynd"
+            label="Setja inn/breyta mynd"
             icon={<Image size={ICON_SIZE} />}
+            active={s.image}
             disabled={disabled}
-            onClick={actions.insertImage}
+            onClick={() => actions.openDialog('image')}
           />
         );
       case 'hr':

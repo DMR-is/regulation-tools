@@ -1,7 +1,8 @@
 /*
   EditorV2's dialogs: link (with uploading a PDF to link to, as the
-  current editor's link dialog does), special characters, the HTML source,
-  and search and replace. Native `<dialog>` elements.
+  current editor's link dialog does), image (upload and alt text), special
+  characters, the HTML source, and search and replace. Native `<dialog>`
+  elements.
 */
 
 import React, {
@@ -181,6 +182,116 @@ const LinkDialog = (props: {
           Hætta við
         </button>
         <button type="button" onClick={save} disabled={uploading}>
+          Vista
+        </button>
+      </Buttons>
+    </Dialog>
+  );
+};
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Insert an image, or edit the selected one, as the current editor's image
+ * dialog does: the address (uploading sets it) and the alt text, which
+ * starts as the file name.
+ */
+const ImageDialog = (props: {
+  editor: Editor;
+  uploadFile: UploadFile;
+  onClose: () => void;
+}) => {
+  const { editor } = props;
+  const isImage = editor.isActive('image');
+  const [src, setSrc] = useState(() =>
+    isImage ? (editor.getAttributes('image').src as string) || '' : '',
+  );
+  const [alt, setAlt] = useState(() =>
+    isImage ? (editor.getAttributes('image').alt as string) || '' : '',
+  );
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const save = () => {
+    if (!src || uploading) {
+      return;
+    }
+    const chain = editor.chain().focus();
+    if (isImage) {
+      chain.updateAttributes('image', { src, alt }).run();
+    } else {
+      chain.setImage({ src, alt }).run();
+    }
+    props.onClose();
+  };
+
+  const upload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) {
+        return;
+      }
+      setUploading(true);
+      setError(undefined);
+      props
+        .uploadFile(file)
+        .then((url) => {
+          setSrc(url);
+          alt || setAlt(file.name.replace(/\.[^.]+$/, ''));
+        })
+        .catch((e) => {
+          console.error('Image upload failed:', e);
+          setError('Ekki tókst að hlaða upp myndinni.');
+        })
+        .finally(() => setUploading(false));
+    };
+    input.click();
+  };
+
+  const onEnter = (e: React.KeyboardEvent) => e.key === 'Enter' && save();
+
+  return (
+    <Dialog
+      title={isImage ? 'Breyta mynd' : 'Setja inn mynd'}
+      onClose={props.onClose}
+    >
+      <label className="regtools-dialog__field">
+        Slóð myndar
+        <span className="regtools-dialog__row">
+          <input
+            type="url"
+            value={src}
+            autoFocus={!isImage}
+            onChange={(e) => setSrc(e.target.value)}
+            onKeyDown={onEnter}
+          />
+          <button type="button" onClick={upload} disabled={uploading}>
+            {uploading ? 'Hleð upp…' : 'Hlaða upp mynd ↑'}
+          </button>
+        </span>
+      </label>
+      <label className="regtools-dialog__field">
+        Lýsing myndar (alt-texti)
+        <input
+          value={alt}
+          autoFocus={isImage}
+          onChange={(e) => setAlt(e.target.value)}
+          onKeyDown={onEnter}
+        />
+      </label>
+      {error && (
+        <p className="regtools-dialog__error" role="alert">
+          {error}
+        </p>
+      )}
+      <Buttons>
+        <button type="button" onClick={props.onClose}>
+          Hætta við
+        </button>
+        <button type="button" onClick={save} disabled={!src || uploading}>
           Vista
         </button>
       </Buttons>
@@ -425,6 +536,14 @@ export const Dialogs = (props: {
     case 'link':
       return (
         <LinkDialog
+          editor={editor}
+          uploadFile={props.uploadFile}
+          onClose={onClose}
+        />
+      );
+    case 'image':
+      return (
+        <ImageDialog
           editor={editor}
           uploadFile={props.uploadFile}
           onClose={onClose}

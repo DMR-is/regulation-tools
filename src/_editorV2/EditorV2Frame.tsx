@@ -93,7 +93,6 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
   );
   const lastCopied = useRef<string>(undefined);
   const wordInput = useRef<HTMLInputElement>(null);
-  const imageInput = useRef<HTMLInputElement>(null);
   const propsRef = useRef(props);
   propsRef.current = props;
 
@@ -263,24 +262,6 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
     }
   };
 
-  const insertImage = async (file: File) => {
-    if (!editor) {
-      return;
-    }
-    setError(undefined);
-    try {
-      const src = await uploadFile(file);
-      editor
-        .chain()
-        .focus()
-        .setImage({ src, alt: file.name.replace(/\.[^.]+$/, '') })
-        .run();
-    } catch (error) {
-      console.error('Image upload failed:', error);
-      setError('Ekki tókst að hlaða upp myndinni.');
-    }
-  };
-
   return (
     <>
       <div
@@ -295,7 +276,6 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
             items={props.toolbar}
             actions={{
               openDialog: setDialog,
-              insertImage: () => imageInput.current?.click(),
               importWord: () => wordInput.current?.click(),
             }}
           />
@@ -310,17 +290,6 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
           const file = e.target.files?.[0];
           e.target.value = ''; // so the same file can be chosen again
           file && void importWord(file);
-        }}
-      />
-      <input
-        ref={imageInput}
-        type="file"
-        accept="image/*"
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          e.target.value = '';
-          file && void insertImage(file);
         }}
       />
       {loadingWord && (

@@ -69,11 +69,9 @@ test.describe('links', () => {
 });
 
 test.describe('images', () => {
-  test('upload an image', async ({ page }) => {
-    await openEditor(page, { html: TEXT, uploads: 'ok' });
-    await clickEnd(page, 'innflutning.');
+  const chooseImage = async (page: Page) => {
     const chooser = page.waitForEvent('filechooser');
-    await tool(page, 'Setja inn mynd').click();
+    await dialog(page).getByRole('button', { name: 'Hlaða upp mynd ↑' }).click();
     await (
       await chooser
     ).setFiles({
@@ -81,13 +79,61 @@ test.describe('images', () => {
       mimeType: 'image/png',
       buffer: Buffer.from('fake'),
     });
-    // ProseMirror adds a hidden separator image after an inline image at the
-    // end of a line, for the cursor.
-    await expect(
-      page.locator('.editor[contenteditable] img:not(.ProseMirror-separator)'),
-    ).toHaveAttribute('src', '/files/kort.png');
+  };
+  // ProseMirror adds a hidden separator image after an inline image at the
+  // end of a line, for the cursor.
+  const image = (page: Page) =>
+    page.locator('.editor[contenteditable] img:not(.ProseMirror-separator)');
+
+  test('upload an image, its alt text from the file name', async ({ page }) => {
+    await openEditor(page, { html: TEXT, uploads: 'ok' });
+    await clickEnd(page, 'innflutning.');
+    await tool(page, 'Setja inn/breyta mynd').click();
+    await chooseImage(page);
+    await expect(dialog(page).getByLabel('Slóð myndar')).toHaveValue(
+      '/files/kort.png',
+    );
+    await expect(dialog(page).getByLabel('Lýsing myndar')).toHaveValue('kort');
+    await dialog(page).getByRole('button', { name: 'Vista' }).click();
+    await expect(image(page)).toHaveAttribute('src', '/files/kort.png');
     expect(await value(page)).toContain(
       '<img src="/files/kort.png" alt="kort">',
+    );
+  });
+
+  test('alt text typed before inserting', async ({ page }) => {
+    await openEditor(page, { html: TEXT, uploads: 'ok' });
+    await clickEnd(page, 'innflutning.');
+    await tool(page, 'Setja inn/breyta mynd').click();
+    await dialog(page).getByLabel('Lýsing myndar').fill('Kort af svæðinu');
+    await chooseImage(page);
+    // A description already typed is kept, not replaced by the file name.
+    await expect(dialog(page).getByLabel('Lýsing myndar')).toHaveValue(
+      'Kort af svæðinu',
+    );
+    await dialog(page).getByLabel('Lýsing myndar').press('Enter');
+    expect(await value(page)).toContain(
+      '<img src="/files/kort.png" alt="Kort af svæðinu">',
+    );
+  });
+
+  test('edit the alt text of an image already in the text', async ({
+    page,
+  }) => {
+    await openEditor(page, {
+      html: '<p>Sjá kort: <img src="/files/kort.png" alt="kort"> hér.</p>',
+    });
+    await image(page).click();
+    await expect(tool(page, 'Setja inn/breyta mynd')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await tool(page, 'Setja inn/breyta mynd').click();
+    await expect(dialog(page).getByLabel('Lýsing myndar')).toHaveValue('kort');
+    await dialog(page).getByLabel('Lýsing myndar').fill('Kort af svæðinu');
+    await dialog(page).getByRole('button', { name: 'Vista' }).click();
+    expect(await value(page)).toBe(
+      '<p>Sjá kort: <img src="/files/kort.png" alt="Kort af svæðinu"> hér.</p>',
     );
   });
 
@@ -96,19 +142,16 @@ test.describe('images', () => {
     const errors: Array<string> = [];
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
     await clickEnd(page, 'innflutning.');
-    const chooser = page.waitForEvent('filechooser');
-    await tool(page, 'Setja inn mynd').click();
-    await (
-      await chooser
-    ).setFiles({
-      name: 'kort.png',
-      mimeType: 'image/png',
-      buffer: Buffer.from('fake'),
-    });
+    await tool(page, 'Setja inn/breyta mynd').click();
+    await chooseImage(page);
     await expect.poll(() => errors.length).toBeGreaterThan(0);
-    expect(await value(page)).toBe(TEXT);
     // Shown to the person editing, not only logged.
-    await expect(page.getByRole('alert')).toContainText('myndinni');
+    await expect(dialog(page).getByRole('alert')).toContainText('myndinni');
+    await expect(
+      dialog(page).getByRole('button', { name: 'Vista' }),
+    ).toBeDisabled();
+    await dialog(page).getByRole('button', { name: 'Hætta við' }).click();
+    expect(await value(page)).toBe(TEXT);
   });
 });
 

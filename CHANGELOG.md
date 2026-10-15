@@ -4,7 +4,9 @@
 
 ## 1.0.0
 
-_Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
+_Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`,
+`1.0.0-next.2` (the image dialog below, and the 0.12.0–0.13.1 diff
+fixes)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -16,6 +18,12 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`._
   longest texts, where `Editor` froze for up to 13 s), and loading a text
   and saving it untouched changes nothing. Styles: `editorV2.css`. See the
   README and `docs/plan-tiptap-editor.md`.
+- Feat: `EditorV2`'s image button opens an image dialog, as `Editor`'s
+  does: the image's address, an upload button and its alt text, which
+  starts as the file name and can be edited. With an image selected, the
+  same button edits that image. (`next.1` inserted the image straight
+  from the file picker, with the file name as alt text and no way to
+  change it.)
 - Fix: Pasting and importing Word documents (both editors): an ordinary
   image next to a pasted one is no longer dropped; GIF and WebP images are
   uploaded; unreadable image data becomes the "[Image upload failed]"
