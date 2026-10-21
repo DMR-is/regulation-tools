@@ -40,7 +40,7 @@ test.describe('links', () => {
     await tool(page, 'Setja inn/breyta hlekk').click();
     const chooser = page.waitForEvent('filechooser');
     await dialog(page)
-      .getByRole('button', { name: 'Hlaða upp skjali ↑' })
+      .getByRole('button', { name: 'Hlaða upp skjali' })
       .click();
     const fc = await chooser;
     expect(fc.isMultiple()).toBe(false);
@@ -71,7 +71,7 @@ test.describe('links', () => {
 test.describe('images', () => {
   const chooseImage = async (page: Page) => {
     const chooser = page.waitForEvent('filechooser');
-    await dialog(page).getByRole('button', { name: 'Hlaða upp mynd ↑' }).click();
+    await dialog(page).getByRole('button', { name: 'Hlaða upp mynd' }).click();
     await (
       await chooser
     ).setFiles({

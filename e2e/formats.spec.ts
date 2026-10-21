@@ -186,6 +186,66 @@ test.describe('the toolbar prop', () => {
     ]);
   });
 
+  test('one row at any width: what does not fit is under "more"', async ({
+    page,
+  }) => {
+    // Nothing sticks out past the toolbar's edge, the "more" button
+    // included: shrinking from wide, and loading narrow.
+    const insideEdge = () =>
+      page.evaluate(() => {
+        const el = document.querySelector('.regtools-toolbar')!;
+        const right =
+          el.getBoundingClientRect().right -
+          parseFloat(getComputedStyle(el).paddingRight);
+        return (
+          el.lastElementChild!.getBoundingClientRect().right <= right + 0.5
+        );
+      });
+    await openEditor(page, { html: TEXT });
+    for (const width of [1000, 800, 700, 600, 500, 400]) {
+      await page.setViewportSize({ width, height: 700 });
+      await expect.poll(insideEdge).toBe(true);
+    }
+    await page.setViewportSize({ width: 600, height: 700 });
+    await page.reload();
+    const toolbar = page.locator('.regtools-toolbar');
+    const more = tool(page, 'Fleiri aðgerðir');
+    await expect(more).toBeVisible();
+    expect(await insideEdge()).toBe(true);
+    const height = (await toolbar.boundingBox())!.height;
+    expect(height).toBeLessThan(60);
+    // An item from the "more" menu works, a dropdown inside it included.
+    await more.click();
+    await page
+      .locator('.regtools-toolbar__menu')
+      .getByRole('button', { name: 'Annað', exact: true })
+      .click();
+    await page
+      .locator('.regtools-toolbar__menu')
+      .getByRole('button', { name: 'Lárétt lína', exact: true })
+      .click();
+    expect(await value(page)).toContain('<hr>');
+    // Wide enough, everything is in the row.
+    await page.setViewportSize({ width: 1400, height: 700 });
+    await expect(more).toHaveCount(0);
+  });
+
+  test("the app's toolbar class wins, whatever the load order", async ({
+    page,
+  }) => {
+    await openEditor(page, { html: TEXT });
+    // `classes.toolbar` is "toolbar" in the test page. Its rule goes in
+    // first, before editorV2.css, as an app's CSS can be bundled.
+    await page.evaluate(() => {
+      const style = document.createElement('style');
+      style.textContent = '.toolbar { padding: 0; border-radius: 0; }';
+      document.head.prepend(style);
+    });
+    const toolbar = page.locator('.regtools-toolbar');
+    await expect(toolbar).toHaveCSS('padding-top', '0px');
+    await expect(toolbar).toHaveCSS('border-top-left-radius', '0px');
+  });
+
   test('false shows no toolbar items', async ({ page }) => {
     await openEditor(page, { html: TEXT, toolbar: false });
     await expect(page.locator('.regtools-toolbar button')).toHaveCount(0);

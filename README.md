@@ -62,8 +62,20 @@ on these texts; `EditorV2` for none.
 are lab numbers from a page holding only the editor; the full results and
 their caveats are in `docs/plan-tiptap-editor.md`.
 
-`editorV2.css` styles the toolbar, menus and dialogs. Its selectors have
-zero specificity, so your own rules win.
+`editorV2.css` styles the toolbar, menus and dialogs. The rules for the toolbar
+element (which `classes.toolbar` styles) and for the text have zero specificity,
+so your own rules win whatever the load order. The buttons, menus and dialogs
+have one class's specificity, so an app's element resets (`button { border:
+none; padding: 0 }`) do not undo them; override them with two classes
+(`.yourToolbar .regtools-toolbar__button`) or the `--regtools-*` custom
+properties at the top of the file.
+
+When switching a screen, check what your `classes.toolbar` sets. It styles
+`EditorV2`'s toolbar frame too, and wins over `editorV2.css`, so rules
+written for TinyMCE's toolbar carry over: a `padding: 0` there, for
+example, puts the buttons against the frame. Remove what you set only for
+TinyMCE to get the default frame (padding, a light border, rounded
+corners); keep what is your own layout, such as `position: sticky`.
 
 ## Structured diff
 

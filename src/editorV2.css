@@ -4,22 +4,32 @@
 
     import '@dmr.is/regulations-tools/editorV2.css';
 
-  Every selector is wrapped in :where(), so it has zero specificity: any rule
-  of your own wins without !important. The editing area itself is styled by
-  the `classes.editor` class you pass, as with `Editor`. To change the
-  colours, set the custom properties below on any ancestor (or on :root).
+  The buttons, menus and dialogs inside the toolbar are styled with one
+  class each (anything more is wrapped in :where()), so an app's element
+  resets such as `button { border: none; padding: 0 }` do not undo them;
+  to override one, use two classes (`.yourToolbar .regtools-toolbar__button`)
+  or the custom properties below. The rest has zero specificity, so any
+  rule of yours wins, whatever the load order: the toolbar element itself,
+  which you style with `classes.toolbar`, and the text inside the editor,
+  styled by the `classes.editor` class you pass, as with `Editor`. To
+  change the colours, set the custom properties below on any ancestor (or
+  on :root).
 */
 
 :where(:root) {
+  /* Lines that only group or frame: the toolbar's frame and separators. */
+  --regtools-editor-line: #dfe3ea;
   /* 3.66:1 on white: borders that identify controls need 3:1 (WCAG 1.4.11). */
   --regtools-editor-border: #7b8794;
   --regtools-editor-hover: #eef1f5;
-  --regtools-editor-active: #dde6f3;
+  --regtools-editor-active: #e3ecfc;
   --regtools-editor-accent: #0061ff;
+  --regtools-editor-accent-hover: #0050d4;
   --regtools-editor-surface: #fff;
   --regtools-editor-text: #1b1d21;
   --regtools-editor-muted: #5f6b7a;
   --regtools-editor-danger: #b3261e;
+  --regtools-editor-danger-hover: #fdeeed;
   --regtools-search-match: #fdeca6;
   --regtools-search-current: #f6c343;
   --regtools-highlight: #ffe58a;
@@ -27,85 +37,128 @@
 
 /* Toolbar ---------------------------------------------------------------- */
 
+/* Zero specificity: `classes.toolbar` styles this element, and wins. */
 :where(.regtools-toolbar) {
   display: flex;
-  flex-wrap: wrap;
+  /* One row: what does not fit is in the "more" dropdown at the end. */
+  flex-wrap: nowrap;
+  min-width: 0;
   align-items: center;
   gap: 2px;
-  padding: 4px;
-  border: 1px solid var(--regtools-editor-border);
-  border-radius: 4px;
+  padding: 6px;
+  border: 1px solid var(--regtools-editor-line);
+  border-radius: 8px;
   background: var(--regtools-editor-surface);
   color: var(--regtools-editor-text);
 }
 
-:where(.regtools-toolbar__group, .regtools-toolbar__menurow) {
+:where(.regtools-toolbar > *) {
+  flex-shrink: 0;
+}
+
+.regtools-toolbar__group,
+.regtools-toolbar__menurow {
   display: inline-flex;
   align-items: center;
   gap: 2px;
 }
 
-:where(.regtools-toolbar__separator) {
+.regtools-toolbar__separator {
   width: 1px;
-  align-self: stretch;
-  margin: 2px 4px;
-  background: var(--regtools-editor-border);
+  height: 20px;
+  margin: 0 6px;
+  background: var(--regtools-editor-line);
 }
 
-:where(.regtools-toolbar__button) {
+.regtools-toolbar__button {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 4px;
   min-width: 32px;
   height: 32px;
+  margin: 0;
   padding: 0 6px;
-  justify-content: center;
   border: 0;
-  border-radius: 3px;
+  border-radius: 6px;
   background: none;
   color: inherit;
   font: inherit;
+  line-height: 1;
   cursor: pointer;
 }
-:where(.regtools-toolbar__button:hover:not(:disabled)) {
+.regtools-toolbar__button:where(:hover:not(:disabled)) {
   background: var(--regtools-editor-hover);
 }
-:where(.regtools-toolbar__button--active) {
+.regtools-toolbar__button--active {
   background: var(--regtools-editor-active);
+  color: var(--regtools-editor-accent);
   /* Not by colour alone: an underline in the accent colour (5:1). */
   box-shadow: inset 0 -2px 0 var(--regtools-editor-accent);
 }
-:where(.regtools-toolbar__button:disabled) {
+.regtools-toolbar__button:where(:disabled) {
   opacity: 0.4;
   cursor: default;
 }
-:where(.regtools-toolbar__button:focus-visible) {
+.regtools-toolbar__button:where(:focus-visible) {
   outline: 2px solid var(--regtools-editor-accent);
   outline-offset: -2px;
 }
+.regtools-toolbar__button:where([aria-expanded='true']) {
+  background: var(--regtools-editor-hover);
+}
+/* A dropdown's chevron. */
+.regtools-toolbar__chevron {
+  flex-shrink: 0;
+  color: var(--regtools-editor-muted);
+}
 
-:where(.regtools-toolbar__text) {
+/* B, I, U and S are letters in the app's font, as type is what they change. */
+.regtools-toolbar__glyph {
+  display: inline-block;
+  width: 18px;
+  font-size: 1.0625rem;
+  line-height: 1;
+  text-align: center;
+}
+.regtools-toolbar__glyph--bold {
+  font-weight: 700;
+}
+.regtools-toolbar__glyph--italic {
+  font-style: italic;
+}
+.regtools-toolbar__glyph--underline {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.regtools-toolbar__glyph--strike {
+  text-decoration: line-through;
+}
+
+.regtools-toolbar__text {
   font-size: 0.875rem;
   min-width: 1em;
 }
-
-:where(.regtools-toolbar__select) {
-  height: 32px;
-  max-width: 14em;
-  border: 1px solid var(--regtools-editor-border);
-  border-radius: 3px;
-  background: var(--regtools-editor-surface);
-  color: inherit;
-  font: inherit;
-  font-size: 0.875rem;
+/* The block format: one width, so the toolbar does not move as the cursor
+   does. It fits every name but the two longest, which end in "…" (the
+   menu and the tooltip show them whole). The line height and padding
+   leave room for descenders, which overflow: hidden would cut off. */
+.regtools-toolbar__text--format {
+  width: 6.25em;
+  padding: 2px 0;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
 }
 
-:where(.regtools-toolbar__dropdown) {
+.regtools-toolbar__dropdown {
   position: relative;
   display: inline-flex;
 }
 
-:where(.regtools-toolbar__menu) {
+.regtools-toolbar__menu {
   position: absolute;
   top: 100%;
   left: 0;
@@ -113,160 +166,320 @@
   display: flex;
   flex-direction: column;
   min-width: 12em;
-  margin-top: 2px;
+  margin-top: 4px;
   padding: 4px;
-  border: 1px solid var(--regtools-editor-border);
-  border-radius: 4px;
+  border: 1px solid var(--regtools-editor-line);
+  border-radius: 8px;
   background: var(--regtools-editor-surface);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
 }
-:where(.regtools-toolbar__menu:has(> .regtools-toolbar__menurow)) {
+.regtools-toolbar__menu:where(:has(> .regtools-toolbar__menurow)) {
   min-width: 0;
 }
 
-:where(.regtools-toolbar__menuitem) {
-  padding: 6px 10px;
+.regtools-toolbar__menuitem {
+  margin: 0;
+  padding: 7px 10px;
   border: 0;
-  border-radius: 3px;
+  border-radius: 4px;
   background: none;
   color: inherit;
   font: inherit;
   font-size: 0.875rem;
+  line-height: 1.25;
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
 }
-:where(.regtools-toolbar__menuitem:hover:not(:disabled)) {
+.regtools-toolbar__menuitem:where(:hover:not(:disabled)) {
   background: var(--regtools-editor-hover);
 }
-:where(.regtools-toolbar__menuitem--active) {
+.regtools-toolbar__menuitem--active {
   font-weight: 600;
   box-shadow: inset 3px 0 0 var(--regtools-editor-accent);
 }
-:where(.regtools-toolbar__menuitem:disabled) {
+.regtools-toolbar__menuitem:where(:disabled) {
   opacity: 0.4;
   cursor: default;
+}
+.regtools-toolbar__menuitem:where(:focus-visible) {
+  outline: 2px solid var(--regtools-editor-accent);
+  outline-offset: -2px;
+}
+
+/* A chevron alone: the dropdown half of a split button. */
+.regtools-toolbar__button--chevron {
+  min-width: 20px;
+  padding: 0 2px;
+  margin-left: -4px;
+}
+.regtools-toolbar__menu--end {
+  right: 0;
+  left: auto;
+}
+.regtools-toolbar__menuheading {
+  padding: 8px 10px 4px;
+  color: var(--regtools-editor-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.regtools-toolbar__menuheading:first-child {
+  padding-top: 4px;
+}
+.regtools-toolbar__menuseparator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--regtools-editor-line);
+}
+.regtools-toolbar__menuitem--danger {
+  color: var(--regtools-editor-danger);
+}
+.regtools-toolbar__menuitem--danger:where(:hover:not(:disabled)) {
+  background: var(--regtools-editor-danger-hover);
+}
+
+/* The size grid for a new table. */
+.regtools-tablesize {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px;
+}
+.regtools-tablesize__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.regtools-tablesize__row {
+  display: flex;
+  gap: 2px;
+}
+.regtools-tablesize__cell {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--regtools-editor-line);
+  border-radius: 2px;
+  background: var(--regtools-editor-surface);
+  cursor: pointer;
+}
+.regtools-tablesize__cell--on {
+  border-color: var(--regtools-editor-accent);
+  background: var(--regtools-editor-active);
+}
+.regtools-tablesize__cell:where(:focus-visible) {
+  outline: 2px solid var(--regtools-editor-accent);
+  outline-offset: 1px;
+}
+.regtools-tablesize__label {
+  color: var(--regtools-editor-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/* Bar over the table the cursor is in ----------------------------------- */
+
+.regtools-contextbar {
+  position: fixed;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--regtools-editor-line);
+  border-radius: 8px;
+  background: var(--regtools-editor-surface);
+  color: var(--regtools-editor-text);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+}
+.regtools-contextbar__check {
+  padding: 0 10px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+/* The right-click menu in a table. */
+.regtools-contextmenu {
+  position: fixed;
+  z-index: 30;
+  margin: 0;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
 }
 
 /* Dialogs ---------------------------------------------------------------- */
 
-:where(.regtools-dialog) {
+.regtools-dialog {
   width: min(32rem, calc(100vw - 32px));
-  padding: 16px 20px;
-  border: 1px solid var(--regtools-editor-border);
-  border-radius: 6px;
+  padding: 20px 24px;
+  border: 1px solid var(--regtools-editor-line);
+  border-radius: 10px;
   background: var(--regtools-editor-surface);
   color: var(--regtools-editor-text);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.16);
 }
-:where(.regtools-dialog::backdrop) {
+.regtools-dialog::backdrop {
   background: rgb(0 0 0 / 0.3);
 }
 /* Search and replace stays open beside the text, without a backdrop. */
-:where(.regtools-dialog--panel) {
+.regtools-dialog--panel {
   position: fixed;
   top: 16px;
   right: 16px;
   left: auto;
   margin: 0;
   z-index: 20;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
 }
 
-:where(.regtools-dialog__title) {
-  margin: 0 0 12px;
+.regtools-dialog__title {
+  margin: 0 0 16px;
   font-size: 1.125rem;
+  font-weight: 600;
 }
 
-:where(.regtools-dialog__field) {
+.regtools-dialog__field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 14px;
   font-size: 0.875rem;
 }
-:where(.regtools-dialog__row) {
+.regtools-dialog__row {
   display: flex;
   gap: 8px;
 }
-:where(.regtools-dialog__row > input) {
+.regtools-dialog__row :where(input) {
   flex: 1;
+  min-width: 0;
 }
-:where(.regtools-dialog input:not([type='checkbox']), .regtools-dialog__code) {
-  padding: 6px 8px;
+.regtools-dialog :where(input:not([type='checkbox'])),
+.regtools-dialog__code {
+  height: 36px;
+  margin: 0;
+  padding: 0 10px;
   border: 1px solid var(--regtools-editor-border);
-  border-radius: 3px;
+  border-radius: 6px;
+  background: var(--regtools-editor-surface);
+  color: inherit;
   font: inherit;
+  font-size: 0.9375rem;
 }
-:where(.regtools-dialog__check) {
+.regtools-dialog :where(input:focus-visible),
+.regtools-dialog__code:where(:focus-visible) {
+  outline: 2px solid var(--regtools-editor-accent);
+  outline-offset: -1px;
+  border-color: var(--regtools-editor-accent);
+}
+.regtools-dialog__check {
   display: block;
   margin-bottom: 8px;
   font-size: 0.875rem;
 }
 
-:where(.regtools-dialog__code) {
+.regtools-dialog__code {
   box-sizing: border-box;
   width: 100%;
+  height: auto;
   min-height: 50vh;
+  padding: 8px 10px;
   font-family: ui-monospace, monospace;
   font-size: 0.8125rem;
 }
-:where(.regtools-dialog:has(.regtools-dialog__code)) {
+.regtools-dialog:where(:has(.regtools-dialog__code)) {
   width: min(60rem, calc(100vw - 32px));
 }
 
-:where(.regtools-dialog__charmap) {
+.regtools-dialog__charmap {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
   gap: 4px;
 }
-:where(.regtools-dialog__charmap > button) {
+.regtools-dialog__charmap :where(button) {
   height: 40px;
-  border: 1px solid var(--regtools-editor-border);
-  border-radius: 3px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--regtools-editor-line);
+  border-radius: 6px;
   background: none;
+  color: inherit;
+  font: inherit;
   font-size: 1.125rem;
   cursor: pointer;
 }
-:where(.regtools-dialog__charmap > button:hover) {
+.regtools-dialog__charmap :where(button:hover) {
+  border-color: var(--regtools-editor-border);
   background: var(--regtools-editor-hover);
 }
 
-:where(.regtools-dialog__status) {
+.regtools-dialog__status {
   min-height: 1.25em;
   margin: 0 0 8px;
   color: var(--regtools-editor-muted);
   font-size: 0.875rem;
 }
-:where(.regtools-dialog__error) {
+.regtools-dialog__error {
   color: var(--regtools-editor-danger);
   font-size: 0.875rem;
 }
 
-:where(.regtools-dialog__buttons) {
+.regtools-dialog__buttons {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 20px;
 }
-:where(.regtools-dialog__buttons > button, .regtools-dialog__row > button) {
-  padding: 6px 12px;
+
+/* Secondary by default; --primary is the main action, --danger removes. */
+.regtools-dialog__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  margin: 0;
+  padding: 0 14px;
   border: 1px solid var(--regtools-editor-border);
-  border-radius: 3px;
+  border-radius: 6px;
   background: var(--regtools-editor-surface);
-  color: inherit;
+  color: var(--regtools-editor-text);
   font: inherit;
   font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
 }
-:where(.regtools-dialog__buttons > button:last-child) {
+.regtools-dialog__button:where(:hover:not(:disabled)) {
+  background: var(--regtools-editor-hover);
+}
+.regtools-dialog__button:where(:focus-visible) {
+  outline: 2px solid var(--regtools-editor-accent);
+  outline-offset: 2px;
+}
+.regtools-dialog__button:where(:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+.regtools-dialog__button--primary {
   border-color: var(--regtools-editor-accent);
   background: var(--regtools-editor-accent);
   color: #fff;
 }
-:where(.regtools-dialog__buttons > button:disabled) {
-  opacity: 0.5;
-  cursor: default;
+.regtools-dialog__button--primary:where(:hover:not(:disabled)) {
+  border-color: var(--regtools-editor-accent-hover);
+  background: var(--regtools-editor-accent-hover);
+}
+/* Kept apart from the others, on the far side. */
+.regtools-dialog__button--danger {
+  margin-right: auto;
+  border-color: var(--regtools-editor-danger);
+  color: var(--regtools-editor-danger);
+}
+.regtools-dialog__button--danger:where(:hover:not(:disabled)) {
+  background: var(--regtools-editor-danger-hover);
 }
 
 /* Inside the text -------------------------------------------------------- */
@@ -332,16 +545,17 @@
 
 /* Failures the person editing should see (Word import, image upload) ---- */
 
-:where(.regtools-editor__error) {
+.regtools-editor__error {
   margin: 4px 0;
   padding: 8px 12px;
   border: 1px solid var(--regtools-editor-danger);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--regtools-editor-danger);
   font-size: 0.875rem;
 }
-:where(.regtools-editor__error > button) {
-  margin-left: 8px;
+.regtools-editor__error :where(button) {
+  margin: 0 0 0 8px;
+  padding: 0;
   border: 0;
   background: none;
   color: inherit;

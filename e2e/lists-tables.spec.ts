@@ -1,6 +1,7 @@
 /*
-  Lists (numbering styles, nesting) and tables (the table menu), and
-  clearing dirtyClean's "auto-generated" flag.
+  Lists (numbering styles, nesting) and tables (the size grid, the table
+  menu, the bar over the table and the right-click menu), and clearing
+  dirtyClean's "auto-generated" flag.
 */
 
 import { expect, test } from '@playwright/test';
@@ -23,6 +24,25 @@ test.describe('lists', () => {
     expect(await value(page)).toBe(
       '<ol type="a"><li>fyrsti liður</li><li>annar liður</li></ol>',
     );
+  });
+
+  test('a numbering style chosen outside a list starts a list', async ({
+    page,
+  }) => {
+    await openEditor(page, { html: '<p>liður</p>' });
+    await clickEnd(page, 'liður');
+    await tool(page, 'Tegund númera').click();
+    await menuItem(page, 'i, ii, iii').click();
+    expect(await value(page)).toBe('<ol type="i"><li>liður</li></ol>');
+  });
+
+  test('the toolbar keeps its width in and out of a list', async ({ page }) => {
+    await openEditor(page, { html: '<p>texti</p><ol><li>liður</li></ol>' });
+    const buttons = page.locator('.regtools-toolbar button');
+    await clickEnd(page, 'texti');
+    const outside = await buttons.count();
+    await clickEnd(page, 'liður');
+    await expect(buttons).toHaveCount(outside);
   });
 
   test('bullet list, and Tab nests an item', async ({ page }) => {
@@ -60,7 +80,8 @@ test.describe('tables', () => {
   }) => {
     await openEditor(page, { html: '<p>Fyrir.</p>' });
     await clickEnd(page, 'Fyrir.');
-    await tableMenu(page, 'Setja inn töflu');
+    await tool(page, 'Tafla').click();
+    await page.getByRole('gridcell', { name: '3 × 3' }).click();
     const rows = page.locator('.editor[contenteditable] table tr');
     await expect(rows).toHaveCount(3);
     await tableMenu(page, 'Röð fyrir neðan');
@@ -87,6 +108,97 @@ test.describe('tables', () => {
     expect(await value(page)).toContain('<table class="layout layout--list">');
   });
 
+  test('the size grid inserts the size picked', async ({ page }) => {
+    await openEditor(page, { html: '<p>Fyrir.</p>' });
+    await clickEnd(page, 'Fyrir.');
+    await tool(page, 'Tafla').click();
+    await page.getByRole('gridcell', { name: '2 × 4' }).click();
+    const rows = page.locator('.editor[contenteditable] table tr');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.first().locator('td')).toHaveCount(4);
+  });
+
+  test('the size grid by keyboard', async ({ page }) => {
+    await openEditor(page, { html: '<p>Fyrir.</p>' });
+    await clickEnd(page, 'Fyrir.');
+    await tool(page, 'Tafla').click();
+    // Starts at 3 × 3.
+    await page.getByRole('gridcell', { name: '3 × 3' }).focus();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
+    const rows = page.locator('.editor[contenteditable] table tr');
+    await expect(rows).toHaveCount(4);
+    await expect(rows.first().locator('td')).toHaveCount(5);
+  });
+
+  test('the bar over the table: rows, columns, style, delete', async ({
+    page,
+  }) => {
+    await openEditor(page, {
+      html:
+        '<p>Fyrir.</p><p>Meira.</p><p>Enn meira.</p>' +
+        '<table><tbody><tr><td>reitur1</td><td>reitur2</td></tr></tbody></table>',
+    });
+    const bar = page.getByRole('toolbar', { name: 'Tafla' });
+    await clickEnd(page, 'Fyrir.');
+    await expect(bar).toHaveCount(0);
+    await clickEnd(page, 'reitur1');
+    await expect(bar).toBeVisible();
+    // Above the table, with room for it there.
+    const barBox = (await bar.boundingBox())!;
+    const tableBox = (await page
+      .locator('.editor[contenteditable] table')
+      .boundingBox())!;
+    expect(barBox.y + barBox.height).toBeLessThanOrEqual(tableBox.y);
+
+    const rows = page.locator('.editor[contenteditable] table tr');
+    await bar.getByRole('button', { name: 'Raðir' }).click();
+    await bar.getByRole('button', { name: 'Röð fyrir neðan' }).click();
+    await expect(rows).toHaveCount(2);
+    await bar.getByRole('button', { name: 'Dálkar' }).click();
+    await bar.getByRole('button', { name: 'Dálkur til vinstri' }).click();
+    await expect(rows.first().locator('td')).toHaveCount(3);
+    await bar.getByRole('button', { name: 'Útlit töflu' }).click();
+    await bar.getByRole('button', { name: 'Uppsetning (án ramma)' }).click();
+    expect(await value(page)).toContain('<table class="layout">');
+    await bar.getByRole('button', { name: 'Eyða töflu' }).click();
+    await expect(rows).toHaveCount(0);
+    await expect(bar).toHaveCount(0);
+  });
+
+  test('the right-click menu', async ({ page }) => {
+    await openEditor(page, {
+      html: '<table><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>',
+    });
+    const cells = page.locator('.editor[contenteditable] td');
+    await cells.nth(3).click({ button: 'right' });
+    const menu = page.getByRole('group', { name: 'Tafla' });
+    await expect(menu).toBeVisible();
+    // The first item has focus; Escape closes it.
+    await expect(
+      menu.getByRole('button', { name: 'Röð fyrir ofan' }),
+    ).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    // Right-clicking "d" moved the cursor there: its column goes.
+    await cells.nth(3).click({ button: 'right' });
+    await menu.getByRole('button', { name: 'Eyða dálki' }).click();
+    expect(await value(page)).toBe(
+      '<table><tbody><tr><td>a</td></tr><tr><td>c</td></tr></tbody></table>',
+    );
+    await expect(menu).toHaveCount(0);
+  });
+
+  test("outside a table, right-click is the browser's own", async ({
+    page,
+  }) => {
+    await openEditor(page, { html: '<p>texti</p>' });
+    await page.getByText('texti').click({ button: 'right' });
+    await expect(page.getByRole('group', { name: 'Tafla' })).toHaveCount(0);
+  });
+
   test('merge and split cells', async ({ page }) => {
     await openEditor(page, {
       html: '<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>',
@@ -108,7 +220,11 @@ test('a flagged auto-generated list can be marked as checked', async ({
   await openEditor(page, {
     html: '<ol data-autogenerated=""><li>liður</li></ol><p>Annað.</p>',
   });
-  const check = tool(page, 'Sjálfvirkt myndað: merkja yfirfarið');
+  // On the bar over the flagged block, not in the toolbar, so the toolbar
+  // does not change width.
+  const check = page.getByRole('button', {
+    name: 'Sjálfvirkt myndað: merkja yfirfarið',
+  });
   await clickEnd(page, 'Annað.');
   await expect(check).toHaveCount(0);
   await clickEnd(page, 'liður');

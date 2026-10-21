@@ -14,6 +14,7 @@ import React, {
   useState,
 } from 'react';
 import { Editor, useEditorState } from '@tiptap/react';
+import { Upload } from 'lucide-react';
 
 import { HTMLText } from '../types';
 import { importText } from '../_editorText';
@@ -77,6 +78,44 @@ const Dialog = (props: {
 
 const Buttons = (props: { children: ReactNode }) => (
   <div className="regtools-dialog__buttons">{props.children}</div>
+);
+
+/** `primary` is the dialog's main action, `danger` one that removes
+ * something; any other button is secondary. */
+const DialogButton = (props: {
+  variant?: 'primary' | 'danger';
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) => (
+  <button
+    type="button"
+    className={
+      'regtools-dialog__button' +
+      (props.variant ? ` regtools-dialog__button--${props.variant}` : '')
+    }
+    disabled={props.disabled}
+    onClick={props.onClick}
+  >
+    {props.children}
+  </button>
+);
+
+const UploadButton = (props: {
+  label: string;
+  uploading: boolean;
+  onClick: () => void;
+}) => (
+  <DialogButton disabled={props.uploading} onClick={props.onClick}>
+    {props.uploading ? (
+      'Hleð upp…'
+    ) : (
+      <>
+        <Upload size={16} aria-hidden />
+        {props.label}
+      </>
+    )}
+  </DialogButton>
 );
 
 // ---------------------------------------------------------------------------
@@ -154,9 +193,11 @@ const LinkDialog = (props: {
             onChange={(e) => setHref(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !uploading && save()}
           />
-          <button type="button" onClick={upload} disabled={uploading}>
-            {uploading ? 'Hleð upp…' : 'Hlaða upp skjali ↑'}
-          </button>
+          <UploadButton
+            label="Hlaða upp skjali"
+            uploading={uploading}
+            onClick={upload}
+          />
         </span>
       </label>
       {empty && !isLink && (
@@ -168,22 +209,20 @@ const LinkDialog = (props: {
       {error && <p className="regtools-dialog__error">{error}</p>}
       <Buttons>
         {isLink && (
-          <button
-            type="button"
+          <DialogButton
+            variant="danger"
             onClick={() => {
               editor.chain().focus().extendMarkRange('link').unsetLink().run();
               props.onClose();
             }}
           >
             Fjarlægja hlekk
-          </button>
+          </DialogButton>
         )}
-        <button type="button" onClick={props.onClose}>
-          Hætta við
-        </button>
-        <button type="button" onClick={save} disabled={uploading}>
+        <DialogButton onClick={props.onClose}>Hætta við</DialogButton>
+        <DialogButton variant="primary" onClick={save} disabled={uploading}>
           Vista
-        </button>
+        </DialogButton>
       </Buttons>
     </Dialog>
   );
@@ -268,9 +307,11 @@ const ImageDialog = (props: {
             onChange={(e) => setSrc(e.target.value)}
             onKeyDown={onEnter}
           />
-          <button type="button" onClick={upload} disabled={uploading}>
-            {uploading ? 'Hleð upp…' : 'Hlaða upp mynd ↑'}
-          </button>
+          <UploadButton
+            label="Hlaða upp mynd"
+            uploading={uploading}
+            onClick={upload}
+          />
         </span>
       </label>
       <label className="regtools-dialog__field">
@@ -288,12 +329,14 @@ const ImageDialog = (props: {
         </p>
       )}
       <Buttons>
-        <button type="button" onClick={props.onClose}>
-          Hætta við
-        </button>
-        <button type="button" onClick={save} disabled={!src || uploading}>
+        <DialogButton onClick={props.onClose}>Hætta við</DialogButton>
+        <DialogButton
+          variant="primary"
+          onClick={save}
+          disabled={!src || uploading}
+        >
           Vista
-        </button>
+        </DialogButton>
       </Buttons>
     </Dialog>
   );
@@ -354,9 +397,7 @@ const CharMapDialog = (props: { editor: Editor; onClose: () => void }) => (
       ))}
     </div>
     <Buttons>
-      <button type="button" onClick={props.onClose}>
-        Loka
-      </button>
+      <DialogButton onClick={props.onClose}>Loka</DialogButton>
     </Buttons>
   </Dialog>
 );
@@ -405,17 +446,15 @@ const CodeDialog = (props: {
         </div>
       )}
       <Buttons>
-        <button type="button" onClick={props.onClose}>
-          Hætta við
-        </button>
+        <DialogButton onClick={props.onClose}>Hætta við</DialogButton>
         {unsupported.length > 0 ? (
-          <button type="button" onClick={() => save(true)}>
+          <DialogButton variant="primary" onClick={() => save(true)}>
             Vista samt
-          </button>
+          </DialogButton>
         ) : (
-          <button type="button" onClick={() => save()}>
+          <DialogButton variant="primary" onClick={() => save()}>
             Vista
-          </button>
+          </DialogButton>
         )}
       </Buttons>
     </Dialog>
@@ -486,37 +525,32 @@ const SearchDialog = (props: { editor: Editor; onClose: () => void }) => {
         {query ? `${count ? current + 1 : 0} af ${count}` : ''}
       </p>
       <Buttons>
-        <button
-          type="button"
+        <DialogButton
           onClick={() => editor.commands.findPrevious()}
           disabled={!count}
         >
           Fyrri
-        </button>
-        <button
-          type="button"
+        </DialogButton>
+        <DialogButton
+          variant="primary"
           onClick={() => editor.commands.findNext()}
           disabled={!count}
         >
           Næsta
-        </button>
-        <button
-          type="button"
+        </DialogButton>
+        <DialogButton
           onClick={() => editor.commands.replaceCurrent(replacement)}
           disabled={!count || !editor.isEditable}
         >
           Skipta út
-        </button>
-        <button
-          type="button"
+        </DialogButton>
+        <DialogButton
           onClick={() => editor.commands.replaceAll(replacement)}
           disabled={!count || !editor.isEditable}
         >
           Skipta út öllum
-        </button>
-        <button type="button" onClick={props.onClose}>
-          Loka
-        </button>
+        </DialogButton>
+        <DialogButton onClick={props.onClose}>Loka</DialogButton>
       </Buttons>
     </Dialog>
   );

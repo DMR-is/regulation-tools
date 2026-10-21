@@ -1,0 +1,316 @@
+/*
+  The playground's own page and the editing area. The toolbar, menus and
+  dialogs are styled only by src/editorV2.css, as in the apps, so what you
+  see there is what the package ships.
+
+  The editor parts carry their class names as-is (`.wrapper`, `.editor`,
+  `.comparisonpane`, …), see app.tsx.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root {
+  --pg-bg: #f6f7fb;
+  --pg-surface: #fff;
+  --pg-text: #00003c;
+  --pg-muted: #5f6b7a;
+  --pg-line: #ccdfff;
+  --pg-accent: #0061ff;
+  --pg-legend: #dde9cc;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  color: var(--pg-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--pg-bg);
+}
+
+button,
+input,
+select {
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+/* The apps' element reset (dmr-ui's global.css.ts), so the package's
+   styles are seen against it, as they are in ojoi. */
+button {
+  display: inline-block;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
+}
+
+/* Bar ------------------------------------------------------------------- */
+
+.pg-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--pg-line);
+  background: var(--pg-surface);
+  font-size: 0.875rem;
+}
+.pg-bar__title {
+  font-weight: 600;
+}
+.pg-bar__end {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.pg-bar button,
+.pg-bar input,
+.pg-bar select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--pg-line);
+  border-radius: 6px;
+  background: var(--pg-surface);
+  color: inherit;
+}
+.pg-bar button {
+  cursor: pointer;
+}
+.pg-bar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pg-field,
+.pg-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pg-switch {
+  display: inline-flex;
+}
+.pg-switch button {
+  border-radius: 0;
+}
+.pg-switch button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+.pg-switch button:last-child {
+  margin-left: -1px;
+  border-radius: 0 6px 6px 0;
+}
+.pg-switch button[aria-pressed='true'] {
+  position: relative;
+  border-color: var(--pg-accent);
+  background: var(--pg-accent);
+  color: #fff;
+}
+
+/* Page ------------------------------------------------------------------ */
+
+.pg-main {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+.pg-heading {
+  margin: 0 0 16px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.pg-loading,
+.pg-error {
+  color: var(--pg-muted);
+}
+.pg-error {
+  color: #b3261e;
+}
+.pg-output {
+  max-height: 40vh;
+  overflow: auto;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid var(--pg-line);
+  border-radius: 8px;
+  background: var(--pg-surface);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+}
+
+/* The editor ------------------------------------------------------------ */
+
+.wrapper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (min-width: 1000px) {
+  .wrapper:has(.comparisonpane) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.editingpane,
+.comparisonpane {
+  border: 1px solid var(--pg-line);
+  border-radius: 8px;
+  background: var(--pg-surface);
+}
+.editingpane {
+  display: flex;
+  flex-direction: column;
+}
+.comparisonpane {
+  position: sticky;
+  top: 72px;
+  max-height: calc(100vh - 88px);
+  overflow: auto;
+}
+.comparisonpaneContainer {
+  padding: 16px 24px;
+}
+.headline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+.diffmodes {
+  display: flex;
+  gap: 4px;
+}
+.modeButton,
+.diffNowBtn {
+  padding: 4px 10px;
+  border: 1px solid var(--pg-line);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+.editorBooting {
+  height: 10em;
+}
+
+.toolbar {
+  position: sticky;
+  top: 53px;
+  z-index: 10;
+}
+
+.editor {
+  min-height: 400px;
+  padding: 16px 24px;
+  outline: none;
+}
+.wrapperReadonly .editor {
+  background: var(--pg-bg);
+}
+
+/* The regulation text, as the apps show it */
+
+.editor,
+.result {
+  line-height: 1.6;
+}
+.editor :is(h2, h3, h4),
+.result :is(h2, h3, h4) {
+  position: relative;
+}
+.chapter__title {
+  margin: 2em 0 0.5em;
+  font-size: 1.2rem;
+  text-align: center;
+}
+.section__title,
+.subchapter__title {
+  font-size: 1.1rem;
+  text-align: center;
+}
+.article__title {
+  margin: 1.5em 0 0.5em;
+  font-size: 1rem;
+  text-align: center;
+}
+:is(.chapter__name, .article__name, .section__name, .subchapter__name) {
+  display: block;
+  font-weight: 400;
+}
+.editor :is(.chapter__title, .article__title, .section__title)::after {
+  position: absolute;
+  top: -0.2rem;
+  right: 0;
+  padding: 0 0.33em;
+  background: var(--pg-legend);
+  color: #555;
+  font-size: 0.67rem;
+  font-weight: 400;
+  line-height: 1.4;
+  pointer-events: none;
+}
+.editor .chapter__title::after {
+  content: 'Kafli';
+}
+.editor .article__title::after {
+  content: 'Grein';
+}
+.editor .section__title::after {
+  content: 'Hluti';
+}
+.indented {
+  padding-left: 2em;
+}
+.Dags,
+.FHUndirskr,
+.Undirritun {
+  text-align: center;
+}
+.editor table,
+.result table {
+  border-collapse: collapse;
+}
+.editor :is(td, th),
+.result :is(td, th) {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  vertical-align: top;
+}
+.editor img {
+  max-width: 100%;
+}
+
+/* Warnings */
+
+.warnings {
+  padding: 12px 24px;
+  border-top: 1px solid var(--pg-line);
+  font-size: 0.875rem;
+}
+.warnings__list {
+  margin: 0;
+  padding-left: 1.25em;
+}
+.warnings__item_high {
+  color: #b3261e;
+}
+.warnings__item_medium {
+  color: #8a5a00;
+}
+.warnings__instance__button {
+  border: 0;
+  background: none;
+  color: var(--pg-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}

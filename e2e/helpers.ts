@@ -49,29 +49,34 @@ export const clickEnd = async (page: Page, text: string) => {
   await page.keyboard.press('End');
 };
 
-/** Selects `text` inside the editor, by searching the DOM for it. */
+/**
+ * Selects the first `text` in EditorV2's document. Through the editor (Tiptap
+ * puts it on its element), not the DOM: after the focusing click,
+ * ProseMirror finishes the mouseup a moment later and can put the selection
+ * back where the click was, over a DOM selection made meanwhile.
+ */
 export const selectText = async (page: Page, text: string) => {
   await page.locator('.editor[contenteditable]').click();
   await page.evaluate((needle) => {
-    const root = document.querySelector('.editor[contenteditable]')!;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    while (walker.nextNode()) {
-      const node = walker.currentNode as Text;
-      const at = node.data.indexOf(needle);
+    const dom = document.querySelector(
+      '.editor[contenteditable]',
+    ) as Element & {
+      editor: import('@tiptap/core').Editor;
+    };
+    const { editor } = dom;
+    let found: { from: number; to: number } | undefined;
+    editor.state.doc.descendants((node, pos) => {
+      const at = found || !node.isText ? -1 : node.text!.indexOf(needle);
       if (at >= 0) {
-        const range = document.createRange();
-        range.setStart(node, at);
-        range.setEnd(node, at + needle.length);
-        const sel = getSelection()!;
-        sel.removeAllRanges();
-        sel.addRange(range);
-        return;
+        found = { from: pos + at, to: pos + at + needle.length };
       }
+      return !found;
+    });
+    if (!found) {
+      throw new Error(`"${needle}" not found in the editor`);
     }
-    throw new Error(`"${needle}" not found in the editor`);
+    editor.chain().focus().setTextSelection(found).run();
   }, text);
-  // Let ProseMirror pick up the DOM selection.
-  await page.waitForTimeout(50);
 };
 
 /** Pastes as the clipboard would, with HTML and/or plain text. */

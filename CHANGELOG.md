@@ -6,7 +6,8 @@
 
 _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`,
 `1.0.0-next.2` (the image dialog below, and the 0.12.0–0.13.1 diff
-fixes)._
+fixes), `1.0.0-next.3` (the first trial round: the toolbar, dialogs and
+tables below)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -24,6 +25,30 @@ fixes)._
   same button edits that image. (`next.1` inserted the image straight
   from the file picker, with the file name as alt text and no way to
   change it.)
+- Feat: `EditorV2`'s tables, as `Editor` offered them: a size grid to
+  insert one, the table menu grouped (rows, columns, cells, style), a bar
+  over the table the cursor is in, and a right-click menu.
+- Fix: `EditorV2`'s toolbar is one row at any width: what does not fit
+  goes into a "more" (⋯) dropdown at the end, as with `Editor`'s toolbar.
+- Fix: `EditorV2`'s toolbar keeps its width as the cursor moves: the
+  numbering style is always beside the numbered list button (a style
+  chosen outside a list starts one), and "mark as checked" for an
+  auto-generated block is on the bar over the block.
+- **Changed:** `editorV2.css`: the buttons, menus and dialogs are no
+  longer undone by an app's element resets (`button { border: none;
+  padding: 0 }` flattened the dialog buttons and cramped the toolbar).
+  Their rules now have one class's specificity, so a single class of an
+  app's own wins over them only when it loads later; override with two
+  classes (`.yourToolbar .regtools-toolbar__button`) or the
+  `--regtools-*` custom properties. The toolbar element itself
+  (`classes.toolbar`) and the text keep zero specificity.
+  **When switching a screen to `EditorV2`**, check your `classes.toolbar`:
+  it styles the new toolbar's frame and wins over the defaults, so rules
+  set for TinyMCE carry over (`padding: 0` puts the buttons against the
+  frame). Remove those to get the default frame; see the README. A
+  lighter toolbar; B, I, U and S as letters; dialog buttons as primary,
+  secondary and danger; the "insert" group as "+" and the format group
+  as "T".
 - Fix: Pasting and importing Word documents (both editors): an ordinary
   image next to a pasted one is no longer dropped; GIF and WebP images are
   uploaded; unreadable image data becomes the "[Image upload failed]"
