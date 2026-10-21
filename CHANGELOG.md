@@ -41,7 +41,11 @@ tables below)._
   app's own wins over them only when it loads later; override with two
   classes (`.yourToolbar .regtools-toolbar__button`) or the
   `--regtools-*` custom properties. The toolbar element itself
-  (`classes.toolbar`) and the text keep zero specificity. A
+  (`classes.toolbar`) and the text keep zero specificity.
+  **When switching a screen to `EditorV2`**, check your `classes.toolbar`:
+  it styles the new toolbar's frame and wins over the defaults, so rules
+  set for TinyMCE carry over (`padding: 0` puts the buttons against the
+  frame). Remove those to get the default frame; see the README. A
   lighter toolbar; B, I, U and S as letters; dialog buttons as primary,
   secondary and danger; the "insert" group as "+" and the format group
   as "T".
