@@ -10,6 +10,6 @@
     "allowSyntheticDefaultImports": true,
     "jsx": "preserve",
   },
-  "exclude": ["dist", "src/__test__", "scripts", "e2e", "playwright.config.ts", "tsconfig.tsbuildinfo", "node_modules"],
+  "exclude": ["dist", "src/__test__", "scripts", "e2e", "playground", "playwright.config.ts", "tsconfig.tsbuildinfo", "node_modules"],
   "include": ["src/**/*.ts", "src/**/*.tsx", "**/*.ts", "**/*.tsx"]
 }
