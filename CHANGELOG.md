@@ -6,7 +6,8 @@
 
 _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`,
 `1.0.0-next.2` (the image dialog below, and the 0.12.0–0.13.1 diff
-fixes)._
+fixes), `1.0.0-next.3` (the first trial round: the toolbar, dialogs and
+tables below)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -24,6 +25,22 @@ fixes)._
   same button edits that image. (`next.1` inserted the image straight
   from the file picker, with the file name as alt text and no way to
   change it.)
+- Feat: `EditorV2`'s tables, as `Editor` offered them: a size grid to
+  insert one, the table menu grouped (rows, columns, cells, style), a bar
+  over the table the cursor is in, and a right-click menu.
+- Fix: `EditorV2`'s toolbar is one row at any width: what does not fit
+  goes into a "more" (⋯) dropdown at the end, as with `Editor`'s toolbar.
+- Fix: `EditorV2`'s toolbar keeps its width as the cursor moves: the
+  numbering style is always beside the numbered list button (a style
+  chosen outside a list starts one), and "mark as checked" for an
+  auto-generated block is on the bar over the block.
+- Fix: `editorV2.css`: the toolbar, menus and dialogs are no longer
+  undone by an app's element resets (`button { border: none; padding: 0 }`
+  flattened the dialog buttons and cramped the toolbar). Those rules now
+  have one class's specificity; the rules for the text keep zero. A
+  lighter toolbar; B, I, U and S as letters; dialog buttons as primary,
+  secondary and danger; the "insert" group as "+" and the format group
+  as "T".
 - Fix: Pasting and importing Word documents (both editors): an ordinary
   image next to a pasted one is no longer dropped; GIF and WebP images are
   uploaded; unreadable image data becomes the "[Image upload failed]"
