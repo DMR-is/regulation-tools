@@ -688,8 +688,11 @@ const measureTable = async (page: Page, url: string) => {
   // The cursor is still in the cell.
   const r0 = await now(page);
   if (EDITOR === 'v2') {
-    await page.click('button[aria-label="Tafla"]');
-    await page.getByRole('menuitem', { name: 'Röð fyrir neðan' }).click();
+    await page.click('.regtools-toolbar button[aria-label="Tafla"]');
+    await page
+      .locator('.regtools-toolbar__menu')
+      .getByRole('button', { name: 'Röð fyrir neðan' })
+      .click();
   } else {
     // TinyMCE's table menu is a context toolbar; its command is the same.
     await page.evaluate(() =>

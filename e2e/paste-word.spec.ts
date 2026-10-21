@@ -134,8 +134,6 @@ test.describe('paste', () => {
   });
 
   test.describe('copying within the editor', () => {
-    test.use({ permissions: ['clipboard-read', 'clipboard-write'] });
-
     test('keeps the structure', async ({ page }) => {
       await openEditor(page, {
         html: '<h3 class="article__title">1. gr.</h3><p>Texti.</p><p>Endir.</p>',
@@ -152,10 +150,27 @@ test.describe('paste', () => {
         getSelection()!.addRange(range);
       });
       await page.waitForTimeout(50);
-      await page.keyboard.press('ControlOrMeta+c');
+      // Copied and pasted through the editor's own handlers, with the data
+      // carried here: the system clipboard is shared by the tests running
+      // in parallel, and another test's copy could land in between.
+      const copied = await page.evaluate(() => {
+        const clipboardData = new DataTransfer();
+        document.querySelector('.editor[contenteditable]')!.dispatchEvent(
+          new ClipboardEvent('copy', {
+            clipboardData,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+        return {
+          html: clipboardData.getData('text/html'),
+          text: clipboardData.getData('text/plain'),
+        };
+      });
+      expect(copied.html).toContain('article__title');
       await clickEnd(page, 'Endir.');
       await page.keyboard.press('Enter');
-      await page.keyboard.press('ControlOrMeta+v');
+      await paste(page, copied);
       await expect
         .poll(() => value(page))
         .toBe(
