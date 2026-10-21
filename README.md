@@ -62,8 +62,12 @@ on these texts; `EditorV2` for none.
 are lab numbers from a page holding only the editor; the full results and
 their caveats are in `docs/plan-tiptap-editor.md`.
 
-`editorV2.css` styles the toolbar, menus and dialogs. Its selectors have
-zero specificity, so your own rules win.
+`editorV2.css` styles the toolbar, menus and dialogs. Their rules have one
+class's specificity: enough that an app's element resets (`button { border:
+none; padding: 0 }`) do not undo them, while one class of your own, loaded
+after it, still overrides them. Its rules for the text inside the editor have
+zero specificity, so your own rules win there. Retheme with the
+`--regtools-*` custom properties at the top of the file.
 
 ## Structured diff
 

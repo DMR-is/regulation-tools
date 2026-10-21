@@ -186,6 +186,50 @@ test.describe('the toolbar prop', () => {
     ]);
   });
 
+  test('one row at any width: what does not fit is under "more"', async ({
+    page,
+  }) => {
+    // Nothing sticks out past the toolbar's edge, the "more" button
+    // included: shrinking from wide, and loading narrow.
+    const insideEdge = () =>
+      page.evaluate(() => {
+        const el = document.querySelector('.regtools-toolbar')!;
+        const right =
+          el.getBoundingClientRect().right -
+          parseFloat(getComputedStyle(el).paddingRight);
+        return (
+          el.lastElementChild!.getBoundingClientRect().right <= right + 0.5
+        );
+      });
+    await openEditor(page, { html: TEXT });
+    for (const width of [1000, 800, 700, 600, 500, 400]) {
+      await page.setViewportSize({ width, height: 700 });
+      await expect.poll(insideEdge).toBe(true);
+    }
+    await page.setViewportSize({ width: 600, height: 700 });
+    await page.reload();
+    const toolbar = page.locator('.regtools-toolbar');
+    const more = tool(page, 'Fleiri aðgerðir');
+    await expect(more).toBeVisible();
+    expect(await insideEdge()).toBe(true);
+    const height = (await toolbar.boundingBox())!.height;
+    expect(height).toBeLessThan(60);
+    // An item from the "more" menu works, a dropdown inside it included.
+    await more.click();
+    await page
+      .locator('.regtools-toolbar__menu')
+      .getByRole('button', { name: 'Annað', exact: true })
+      .click();
+    await page
+      .locator('.regtools-toolbar__menu')
+      .getByRole('button', { name: 'Lárétt lína', exact: true })
+      .click();
+    expect(await value(page)).toContain('<hr>');
+    // Wide enough, everything is in the row.
+    await page.setViewportSize({ width: 1400, height: 700 });
+    await expect(more).toHaveCount(0);
+  });
+
   test('false shows no toolbar items', async ({ page }) => {
     await openEditor(page, { html: TEXT, toolbar: false });
     await expect(page.locator('.regtools-toolbar button')).toHaveCount(0);
