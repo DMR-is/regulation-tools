@@ -34,10 +34,14 @@ tables below)._
   numbering style is always beside the numbered list button (a style
   chosen outside a list starts one), and "mark as checked" for an
   auto-generated block is on the bar over the block.
-- Fix: `editorV2.css`: the toolbar, menus and dialogs are no longer
-  undone by an app's element resets (`button { border: none; padding: 0 }`
-  flattened the dialog buttons and cramped the toolbar). Those rules now
-  have one class's specificity; the rules for the text keep zero. A
+- **Changed:** `editorV2.css`: the buttons, menus and dialogs are no
+  longer undone by an app's element resets (`button { border: none;
+  padding: 0 }` flattened the dialog buttons and cramped the toolbar).
+  Their rules now have one class's specificity, so a single class of an
+  app's own wins over them only when it loads later; override with two
+  classes (`.yourToolbar .regtools-toolbar__button`) or the
+  `--regtools-*` custom properties. The toolbar element itself
+  (`classes.toolbar`) and the text keep zero specificity. A
   lighter toolbar; B, I, U and S as letters; dialog buttons as primary,
   secondary and danger; the "insert" group as "+" and the format group
   as "T".

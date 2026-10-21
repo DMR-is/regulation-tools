@@ -115,10 +115,18 @@ const useFittingCount = (
   container: MutableRefObject<HTMLElement | null>,
   items: Array<ToolbarItem>,
 ) => {
-  const [count, setCount] = useState(items.length);
+  // Kept with the items it was measured for: a new `toolbar` prop starts
+  // again with every item shown, and forgets the widths of the old ones.
+  const [fit, setFit] = useState({ items, count: items.length });
+  const count = fit.items === items ? fit.count : items.length;
   const countRef = useRef(count);
   countRef.current = count;
   const widths = useRef<Array<number>>([]);
+  const measuredFor = useRef(items);
+  if (measuredFor.current !== items) {
+    measuredFor.current = items;
+    widths.current = [];
+  }
   const moreWidth = useRef(52);
 
   useLayoutEffect(() => {
@@ -162,7 +170,7 @@ const useFittingCount = (
           fits--;
         }
       }
-      fits !== shown && setCount(fits);
+      fits !== shown && setFit({ items, count: fits });
     };
     measure();
     // The items too: they change width without the toolbar doing so, as
@@ -174,7 +182,7 @@ const useFittingCount = (
     // Not on every render: reading widths forces a layout, and the toolbar
     // re-renders as the cursor moves. The observer sees any size change.
   }, [container, items, count]);
-  return Math.min(count, items.length);
+  return count;
 };
 
 export const Toolbar = (props: {

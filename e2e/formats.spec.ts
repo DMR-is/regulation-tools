@@ -230,6 +230,22 @@ test.describe('the toolbar prop', () => {
     await expect(more).toHaveCount(0);
   });
 
+  test("the app's toolbar class wins, whatever the load order", async ({
+    page,
+  }) => {
+    await openEditor(page, { html: TEXT });
+    // `classes.toolbar` is "toolbar" in the test page. Its rule goes in
+    // first, before editorV2.css, as an app's CSS can be bundled.
+    await page.evaluate(() => {
+      const style = document.createElement('style');
+      style.textContent = '.toolbar { padding: 0; border-radius: 0; }';
+      document.head.prepend(style);
+    });
+    const toolbar = page.locator('.regtools-toolbar');
+    await expect(toolbar).toHaveCSS('padding-top', '0px');
+    await expect(toolbar).toHaveCSS('border-top-left-radius', '0px');
+  });
+
   test('false shows no toolbar items', async ({ page }) => {
     await openEditor(page, { html: TEXT, toolbar: false });
     await expect(page.locator('.regtools-toolbar button')).toHaveCount(0);

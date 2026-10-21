@@ -4,15 +4,16 @@
 
     import '@dmr.is/regulations-tools/editorV2.css';
 
-  The toolbar, menus and dialogs are styled with one class each (anything
-  more is wrapped in :where()), so an app's element resets such as
-  `button { border: none; padding: 0 }` do not undo them, and one class
-  of your own, loaded after this file, still overrides them. The rules for
-  the text inside the editor are all in :where(), with zero specificity,
-  since the app styles the text itself: any rule of yours wins there. The
-  editing area is styled by the `classes.editor` class you pass, as with
-  `Editor`. To change the colours, set the custom properties below on any
-  ancestor (or on :root).
+  The buttons, menus and dialogs inside the toolbar are styled with one
+  class each (anything more is wrapped in :where()), so an app's element
+  resets such as `button { border: none; padding: 0 }` do not undo them;
+  to override one, use two classes (`.yourToolbar .regtools-toolbar__button`)
+  or the custom properties below. The rest has zero specificity, so any
+  rule of yours wins, whatever the load order: the toolbar element itself,
+  which you style with `classes.toolbar`, and the text inside the editor,
+  styled by the `classes.editor` class you pass, as with `Editor`. To
+  change the colours, set the custom properties below on any ancestor (or
+  on :root).
 */
 
 :where(:root) {
@@ -36,7 +37,8 @@
 
 /* Toolbar ---------------------------------------------------------------- */
 
-.regtools-toolbar {
+/* Zero specificity: `classes.toolbar` styles this element, and wins. */
+:where(.regtools-toolbar) {
   display: flex;
   /* One row: what does not fit is in the "more" dropdown at the end. */
   flex-wrap: nowrap;
@@ -50,7 +52,7 @@
   color: var(--regtools-editor-text);
 }
 
-.regtools-toolbar > * {
+:where(.regtools-toolbar > *) {
   flex-shrink: 0;
 }
 

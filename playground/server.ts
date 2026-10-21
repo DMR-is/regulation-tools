@@ -230,7 +230,9 @@ const main = async () => {
     res.writeHead(404);
     res.end();
   });
-  server.listen(PORT, () => {
+  // This machine only: with REGULATIONS_API_URL set, a request makes it
+  // fetch from that API and write to the cache.
+  server.listen(PORT, '127.0.0.1', () => {
     console.info(`Editor playground: http://localhost:${PORT}`);
   });
 };
