@@ -7,7 +7,8 @@
 _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`,
 `1.0.0-next.2` (the image dialog below, and the 0.12.0–0.13.1 diff
 fixes), `1.0.0-next.3` (the first trial round: the toolbar, dialogs and
-tables below)._
+tables below), `1.0.0-next.4` (large tables load fast; the text scrolls in
+a height-capped frame)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -34,6 +35,16 @@ tables below)._
   numbering style is always beside the numbered list button (a style
   chosen outside a list starts one), and "mark as checked" for an
   auto-generated block is on the bar over the block.
+- Fix: `EditorV2` loads texts with large tables fast. Tiptap's table
+  cells looked up their column width in the whole table once per cell, so
+  a table of 10,000 cells took 14 s to load (4× CPU slowdown); now 4 s.
+- Fix: `EditorV2`'s text element (`classes.editor`) is a child of
+  `classes.editingpane` again, as in `Editor`, so a height cap with
+  `overflow-y: auto` on it scrolls the text instead of letting it run past
+  the frame, and a wide table's scrollbar is at the bottom of the frame.
+  If you worked around this in `next.3` (scrolling `classes.editingpane`
+  instead), you can put it back. The README now says where each of the
+  `classes` lands, and what changed inside the toolbar.
 - **Changed:** `editorV2.css`: the buttons, menus and dialogs are no
   longer undone by an app's element resets (`button { border: none;
   padding: 0 }` flattened the dialog buttons and cramped the toolbar).

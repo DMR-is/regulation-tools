@@ -70,6 +70,14 @@ none; padding: 0 }`) do not undo them; override them with two classes
 (`.yourToolbar .regtools-toolbar__button`) or the `--regtools-*` custom
 properties at the top of the file.
 
+The `classes` land where they did in `Editor`: `wrapper` and `editingpane`
+on the same elements, `toolbar` on the toolbar's frame, and `editor` on the
+text element, a child of the editing pane as before (Tiptap's own wrapper
+div around it has `display: contents`). So a layout written for `Editor`
+works unchanged, for example a height cap with `overflow-y: auto` on
+`classes.editor` to scroll the text. What is inside the toolbar is new:
+rules for TinyMCE's own elements (`.tox-*`, `.mce-*`) no longer apply.
+
 When switching a screen, check what your `classes.toolbar` sets. It styles
 `EditorV2`'s toolbar frame too, and wins over `editorV2.css`, so rules
 written for TinyMCE's toolbar carry over: a `padding: 0` there, for

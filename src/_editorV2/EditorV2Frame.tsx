@@ -325,7 +325,7 @@ const EditorV2FrameInner = (props: EditorV2FrameProps) => {
           </button>
         </div>
       )}
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor} className="regtools-editor-content" />
       {editor && (
         <ContextBar
           editor={editor}

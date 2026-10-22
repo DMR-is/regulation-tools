@@ -1,8 +1,8 @@
 # Editor v2 on Tiptap
 
 Status: **phases 0–3 done**; trial in the apps (phase 4) on
-`1.0.0-next.3`, with the first round of trial findings fixed (see phase
-4). `1.0.0-next.2` closed the alt-text gap (exit criterion 6). PR #7,
+`1.0.0-next.4`, with the first two rounds of trial findings fixed (see
+phase 4). `1.0.0-next.2` closed the alt-text gap (exit criterion 6). PR #7,
 reviewed; see *Review of PR #7* below.
 
 The goal is to replace the TinyMCE 5 editor (end-of-life since April 2023) with
@@ -793,6 +793,18 @@ unchanged sections in place when sections are added. Pre-release
   odd; "+" and "Sértákn" shared an icon; the toolbar wrapped when the
   numbering dropdown appeared; `Editor`'s tables did more. All fixed, none
   touching `EditorV2`'s props (see the changelog).
+- **Trial findings, for `1.0.0-next.4`** (ojoi admin web, an advert with
+  one table of 2,130 rows and 10,650 cells): it took 14.5 s to load at
+  4× CPU slowdown, most of it Tiptap's `colwidth` parse, which searched the
+  whole table once per cell; the schema now reads the `<col>` widths once
+  per table (3.9 s; `Editor` takes 3.5 s, then stays busy for 1.8 s). Typing
+  there is 145 ms a key, all of it the browser's style and layout of the
+  table, not script (`Editor`: up to 784 ms, and a 13.5 s freeze after).
+  The text also ran out of a height-capped frame: Tiptap's wrapper div put
+  `classes.editor` one level below `classes.editingpane`; it now has
+  `display: contents`. Not done: a horizontal scroll container per table
+  (a node view; it changes the DOM that app styles and the table tools
+  see).
 - **Exit criteria: 1.0.0 is released when all of these hold.** After 1.0.0,
   changing `EditorV2`'s props is a 2.0.0, so it goes out only when nothing
   in the trial points to an API change.
