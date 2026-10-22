@@ -484,6 +484,16 @@
 
 /* Inside the text -------------------------------------------------------- */
 
+/*
+  Tiptap puts the text element (`classes.editor`) in a div of its own. With
+  no box, the text element is a child of `classes.editingpane` as in
+  `Editor`, so an app's layout for it carries over: in a flex column with a
+  height cap, `overflow-y: auto` on `classes.editor` makes the text scroll.
+*/
+:where(.regtools-editor-content) {
+  display: contents;
+}
+
 :where(.ProseMirror) {
   outline: none;
   white-space: pre-wrap;

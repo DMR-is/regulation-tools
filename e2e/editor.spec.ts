@@ -9,6 +9,37 @@ import { clickEnd, openEditor, tool, value } from './helpers';
 
 const TEXT = '<h3 class="article__title">1. gr.</h3><p>Texti greinar.</p>';
 
+// An app's layout for `Editor`, as in ojoi: a height cap on the wrapper,
+// the editing pane a flex column, and the text scrolling inside it.
+for (const editorVersion of ['v1', 'v2'] as const) {
+  test(`${editorVersion}: a long text scrolls inside a height-capped frame`, async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      document.addEventListener('DOMContentLoaded', () => {
+        const style = document.createElement('style');
+        style.textContent =
+          '.wrapper { display: flex; max-height: 300px; }' +
+          '.editingpane { display: flex; flex-flow: column; width: 100%; }' +
+          '.editor { overflow-y: auto; }';
+        document.head.append(style);
+      });
+    });
+    const editor = await openEditor(page, {
+      editor: editorVersion,
+      html: '<p>Málsgrein.</p>'.repeat(60),
+    });
+    const wrapper = (await page.locator('.wrapper').boundingBox())!;
+    const box = (await editor.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(
+      wrapper.y + wrapper.height + 1,
+    );
+    expect(
+      await editor.evaluate((el) => el.scrollHeight > el.clientHeight),
+    ).toBe(true);
+  });
+}
+
 test.describe('read-only and disabled', () => {
   for (const mode of ['readOnly', 'disabled'] as const) {
     test(mode, async ({ page }) => {

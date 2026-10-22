@@ -359,10 +359,54 @@ const RegulationTable = Table.extend({
   },
 }).configure({ resizable: false });
 
+const colWidthsByTable = new WeakMap<Element, Array<string | null>>();
+
+/**
+ * Tiptap's own `colwidth` parse, without its cost: for a cell with no
+ * `colwidth` it looks the width up in the table's `<colgroup>`, searching the
+ * whole table again for every cell, so a table with thousands of cells took
+ * seconds to load. Here the `<col>` widths are read once per table.
+ */
+const parseColwidth = (elm: HTMLElement) => {
+  const colwidth = elm.getAttribute('colwidth');
+  if (colwidth) {
+    return colwidth.split(',').map((width) => parseInt(width, 10));
+  }
+  const row = elm.parentElement;
+  const table = elm.closest('table');
+  if (!row || !table) {
+    return null;
+  }
+  let widths = colWidthsByTable.get(table);
+  if (!widths) {
+    widths = Array.from(table.querySelectorAll('colgroup > col'), (col) =>
+      col.getAttribute('width'),
+    );
+    colWidthsByTable.set(table, widths);
+  }
+  const width =
+    widths.length > 0 && widths[Array.from(row.children).indexOf(elm)];
+  return width ? [parseInt(width, 10)] : null;
+};
+
+/** Cell attributes as Tiptap's, with the faster `colwidth` parse. */
+const cellAttributes = (
+  parent: Record<string, Attribute> | undefined,
+): Record<string, Attribute> => ({
+  ...parent,
+  colwidth: { ...parent?.colwidth, parseHTML: parseColwidth },
+});
+
+const RegulationTableCell = TableCell.extend({
+  addAttributes() {
+    return cellAttributes(this.parent?.());
+  },
+});
+
 /** `scope` on header cells, which cleanup keeps. */
 const RegulationTableHeader = TableHeader.extend({
   addAttributes() {
-    return { ...this.parent?.(), scope: htmlAttr('scope') };
+    return { ...cellAttributes(this.parent?.()), scope: htmlAttr('scope') };
   },
 });
 
@@ -503,7 +547,7 @@ export const regulationSchemaExtensions = [
   RegulationListItem,
   RegulationTable,
   TableRow,
-  TableCell,
+  RegulationTableCell,
   RegulationTableHeader,
   Image.configure({ inline: true, allowBase64: true }),
   HardBreak,

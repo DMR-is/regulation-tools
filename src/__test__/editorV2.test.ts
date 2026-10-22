@@ -126,6 +126,33 @@ describe('cached serializer', () => {
 
 // ---------------------------------------------------------------------------
 
+describe('table cell widths', () => {
+  const colwidths = (html: string) => {
+    const editor = makeEditor(html);
+    const widths: Array<unknown> = [];
+    editor.state.doc.descendants((node) => {
+      node.type.spec.tableRole?.includes('cell') &&
+        widths.push(node.attrs.colwidth);
+    });
+    editor.destroy();
+    return widths;
+  };
+
+  test('reads colwidth, else the table’s colgroup, as Tiptap does', () => {
+    expect(
+      colwidths(
+        '<table><colgroup><col width="40"><col></colgroup><tbody>' +
+          '<tr><th>a</th><td>b</td><td>c</td></tr>' +
+          '<tr><td colwidth="10,20">d</td><td>e</td></tr>' +
+          '</tbody></table>' +
+          '<table><tbody><tr><td>f</td></tr></tbody></table>',
+      ),
+    ).toEqual([[40], null, null, [10, 20], null, null]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
 describe('block formats', () => {
   test('Grein, Kafli, Bráðabirgðaákvæði at the top level', () => {
     const editor = makeEditor('<p>1. gr.</p><p>II. KAFLI</p><p>Ákvæði</p>');
