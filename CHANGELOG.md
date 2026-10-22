@@ -8,7 +8,7 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`,
 `1.0.0-next.2` (the image dialog below, and the 0.12.0–0.13.1 diff
 fixes), `1.0.0-next.3` (the first trial round: the toolbar, dialogs and
 tables below), `1.0.0-next.4` (large tables load fast; the text scrolls in
-a height-capped frame)._
+a height-capped frame), `1.0.0-next.5` (tables keep their markup)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -17,9 +17,10 @@ a height-capped frame)._
   `Editor`. The same props, `classes` and uploader; `toolbar` takes the
   place of `config` and accepts the same toolbar strings. Every feature of
   `Editor`, fast on long regulations (no keystroke or pause freezes on the
-  longest texts, where `Editor` froze for up to 13 s), and loading a text
-  and saving it untouched changes nothing. Styles: `editorV2.css`. See the
-  README and `docs/plan-tiptap-editor.md`.
+  longest texts, where `Editor` froze for up to 13 s), and loading a
+  regulation and saving it untouched changes nothing, once saved through
+  `cleanupEditorOutput`. Styles: `editorV2.css`. See the README and
+  `docs/plan-tiptap-editor.md`.
 - Feat: `EditorV2`'s image button opens an image dialog, as `Editor`'s
   does: the image's address, an upload button and its alt text, which
   starts as the file name and can be edited. With an image selected, the
@@ -45,6 +46,18 @@ a height-capped frame)._
   If you worked around this in `next.3` (scrolling `classes.editingpane`
   instead), you can put it back. The README now says where each of the
   `classes` lands, and what changed inside the toolbar.
+- Fix: `EditorV2` keeps a table's markup as `Editor` did: every
+  attribute (`width`, `border`, `valign`, `cellpadding`, `style`, …; event
+  handlers aside), `<colgroup>`, and `<thead>` and `<tfoot>` (earlier
+  pre-releases moved their rows into the `<tbody>`). It also keeps `left` and `justify`
+  alignment. Apps that store the editor's output uncleaned (ojoi) lost
+  these on the first edit; for regulations, cleanup removes them on save as
+  before. Styles are written normalized (`width: 100%;`). `<font>` is still
+  dropped, keeping its text. Earlier pre-releases also wrote a
+  `colwidth` attribute for tables with a `<colgroup>`; no longer.
+- Fix: `EditorV2`'s warning on load ("can't keep everything in this
+  text") names dropped attributes too, not only elements, one line per
+  element and attribute with a count.
 - **Changed:** `editorV2.css`: the buttons, menus and dialogs are no
   longer undone by an app's element resets (`button { border: none;
   padding: 0 }` flattened the dialog buttons and cramped the toolbar).

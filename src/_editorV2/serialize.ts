@@ -14,6 +14,8 @@ import {
 import { HTMLText } from '../types';
 import { inertDocument } from '../_utils/inert';
 
+import { ROW_SECTION } from './schema';
+
 /**
  * A lone paragraph without attributes inside a list item or table cell is
  * written without its `<p>`, as TinyMCE wrote it and as the stored texts
@@ -30,13 +32,61 @@ const unwrapLoneParagraphs = (root: Element) => {
   });
 };
 
+/**
+ * The editor holds all of a table's rows in its `<tbody>`; rows that were
+ * in a `<thead>` or `<tfoot>` are marked (`ROW_SECTION`). The leading run
+ * of head rows goes back in a `<thead>`, the trailing run of foot rows in a
+ * `<tfoot>`; a marked row elsewhere (rows were moved or added around it)
+ * stays in the body.
+ */
+const regroupTableSections = (root: Element) => {
+  root.querySelectorAll('tbody').forEach((tbody) => {
+    const marked = tbody.querySelectorAll(`:scope > tr[${ROW_SECTION}]`);
+    if (marked.length === 0) {
+      return;
+    }
+    const rows = Array.from(tbody.children);
+    const sectionOf = (row: Element | undefined) =>
+      row?.getAttribute(ROW_SECTION);
+    let headEnd = 0;
+    while (sectionOf(rows[headEnd]) === 'head') {
+      headEnd++;
+    }
+    let footStart = rows.length;
+    while (footStart > headEnd && sectionOf(rows[footStart - 1]) === 'foot') {
+      footStart--;
+    }
+    marked.forEach((row) => row.removeAttribute(ROW_SECTION));
+    const doc = tbody.ownerDocument;
+    if (headEnd > 0) {
+      const thead = doc.createElement('thead');
+      thead.append(...rows.slice(0, headEnd));
+      tbody.before(thead);
+    }
+    if (footStart < rows.length) {
+      const tfoot = doc.createElement('tfoot');
+      tfoot.append(...rows.slice(footStart));
+      tbody.after(tfoot);
+    }
+    if (tbody.children.length === 0) {
+      tbody.remove();
+    }
+  });
+};
+
+/** What the schema's DOM needs before it is the stored format. */
+const toStoredForm = (root: Element) => {
+  unwrapLoneParagraphs(root);
+  regroupTableSections(root);
+};
+
 export const toRegulationHTML = (
   fragment: Fragment,
   schema: Schema,
 ): HTMLText => {
   const container = document.createElement('div');
   container.innerHTML = getHTMLFromFragment(fragment, schema);
-  unwrapLoneParagraphs(container);
+  toStoredForm(container);
   return container.innerHTML as HTMLText;
 };
 
@@ -54,7 +104,7 @@ export const createRegulationSerializer = (schema: Schema) => {
     if (html == null) {
       const container = document.createElement('div');
       container.appendChild(serializer.serializeNode(node));
-      unwrapLoneParagraphs(container);
+      toStoredForm(container);
       html = container.innerHTML;
       cache.set(node, html);
     }

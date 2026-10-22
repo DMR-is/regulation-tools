@@ -26,6 +26,7 @@ import {
   setBlockFormat,
   currentBlockFormat,
 } from '../_editorV2/extensions';
+import { findUnsupportedElements, roundTrip } from '../_editorV2/fidelity';
 import { searchKey } from '../_editorV2/search';
 import {
   createRegulationSerializer,
@@ -126,28 +127,113 @@ describe('cached serializer', () => {
 
 // ---------------------------------------------------------------------------
 
-describe('table cell widths', () => {
-  const colwidths = (html: string) => {
-    const editor = makeEditor(html);
-    const widths: Array<unknown> = [];
-    editor.state.doc.descendants((node) => {
-      node.type.spec.tableRole?.includes('cell') &&
-        widths.push(node.attrs.colwidth);
-    });
-    editor.destroy();
-    return widths;
-  };
-
-  test('reads colwidth, else the table’s colgroup, as Tiptap does', () => {
+describe('table markup', () => {
+  // ojoi stores the editor's output as it is, so a table must come out
+  // with the markup TinyMCE kept: it sets how the table prints.
+  test('keeps attributes, colgroups, and head and foot rows', () => {
     expect(
-      colwidths(
-        '<table><colgroup><col width="40"><col></colgroup><tbody>' +
-          '<tr><th>a</th><td>b</td><td>c</td></tr>' +
-          '<tr><td colwidth="10,20">d</td><td>e</td></tr>' +
-          '</tbody></table>' +
-          '<table><tbody><tr><td>f</td></tr></tbody></table>',
+      roundTrip(
+        '<table style="width:100%;border-collapse:collapse" border="1">' +
+          '<colgroup><col width="120"><col style="width:70%"></colgroup>' +
+          '<thead><tr valign="top"><th width="50%" scope="col">H</th><th>I</th></tr></thead>' +
+          '<tbody><tr><td style="width:30%;text-align:right" width="120" valign="top">a</td>' +
+          '<td align="right" height="20">b</td></tr></tbody>' +
+          '<tfoot><tr><td colspan="2">f</td></tr></tfoot></table>',
       ),
-    ).toEqual([[40], null, null, [10, 20], null, null]);
+    ).toBe(
+      '<table style="width: 100%; border-collapse: collapse;" border="1">' +
+        '<colgroup><col width="120"><col style="width: 70%;"></colgroup>' +
+        '<thead><tr valign="top"><th width="50%" scope="col">H</th><th>I</th></tr></thead>' +
+        '<tbody><tr><td style="text-align: right; width: 30%;" width="120" valign="top">a</td>' +
+        '<td style="text-align: right;" height="20">b</td></tr></tbody>' +
+        '<tfoot><tr><td colspan="2">f</td></tr></tfoot></table>',
+    );
+  });
+
+  test('a table of head rows only; no event handlers', () => {
+    expect(roundTrip('<table><thead><tr><th>H</th></tr></thead></table>')).toBe(
+      '<table><thead><tr><th>H</th></tr></thead></table>',
+    );
+    expect(
+      roundTrip(
+        '<table><tbody><tr onclick="x()"><td onmouseover="y()" nowrap="">a</td></tr></tbody></table>',
+      ),
+    ).toBe('<table><tbody><tr><td nowrap="">a</td></tr></tbody></table>');
+  });
+
+  test('a row added in the head goes in the body, after the head', () => {
+    const editor = makeEditor(
+      '<table><thead><tr><th>H</th></tr></thead><tbody><tr><td>a</td></tr></tbody></table>',
+    );
+    cursorAt(editor, 'H');
+    editor.commands.addRowAfter();
+    const serialize = createRegulationSerializer(editor.schema);
+    expect(serialize(editor.state.doc)).toBe(
+      '<table><thead><tr><th>H</th></tr></thead>' +
+        '<tbody><tr><td></td></tr><tr><td>a</td></tr></tbody></table>',
+    );
+    editor.destroy();
+  });
+
+  test('keeps left and justified alignment', () => {
+    expect(
+      roundTrip('<p align="justify">a</p><p style="text-align:left">b</p>'),
+    ).toBe(
+      '<p style="text-align: justify;">a</p><p style="text-align: left;">b</p>',
+    );
+  });
+});
+
+describe('the warning about what the editor drops', () => {
+  // Each case: an attribute (`marker` is how it shows in the output) and
+  // whether the schema drops it. The warning's list must agree with the
+  // schema: it says lost exactly when the round trip loses it.
+  const cases: Array<[html: string, marker: string, lost: boolean]> = [
+    ['<p class="zz">a</p>', 'zz', false],
+    ['<p style="margin-left: 9px">a</p>', 'margin-left', false],
+    ['<p style="color: red">a</p>', 'color', true],
+    ['<p lang="en">a</p>', 'lang', true],
+    ['<p dir="rtl">a</p>', 'rtl', true],
+    ['<p align="justify">a</p>', 'justify', false],
+    ['<p align="middle">a</p>', 'middle', true],
+    ['<h4 align="center">a</h4>', 'center', false],
+    ['<h4 class="zz">a</h4>', 'zz', true],
+    ['<h3 class="article__title" align="center">a</h3>', 'center', true],
+    ['<h2 class="appendix__title" align="center">a</h2>', 'center', false],
+    ['<ol start="3" type="a"><li value="7">a</li></ol>', 'value="7"', false],
+    ['<ol style="list-style: square"><li>a</li></ol>', 'square', true],
+    ['<li style="text-align: right">a</li>', 'right', true],
+    ['<blockquote cite="zz">a</blockquote>', 'zz', true],
+    ['<p><img src="a.png" alt="zz" width="9"></p>', 'zz', false],
+    ['<p><img src="a.png" style="float: left"></p>', 'float', true],
+    ['<p><a href="/a" title="zz">a</a></p>', 'zz', false],
+    ['<p><a href="/a" style="color: red">a</a></p>', 'color', true],
+    ['<p><a id="x" class="zz">a</a></p>', 'zz', true],
+    ['<p><strong class="zz">a</strong></p>', 'zz', true],
+    ['<p><sup class="zz">a</sup></p>', 'zz', false],
+    ['<p><s id="zz">a</s></p>', 'zz', true],
+    [
+      '<table><tbody><tr><td bgcolor="zz">a</td></tr></tbody></table>',
+      'zz',
+      false,
+    ],
+    [
+      '<table><tbody class="zz"><tr><td>a</td></tr></tbody></table>',
+      'zz',
+      true,
+    ],
+  ];
+  test.each(cases)('%s', (html, marker, lost) => {
+    expect(roundTrip(html).includes(marker)).toBe(!lost);
+    expect(findUnsupportedElements(html).length > 0).toBe(lost);
+  });
+
+  test('one line per element and attribute, with a count', () => {
+    expect(
+      findUnsupportedElements(
+        '<p lang="en">a</p><p lang="is">b</p><p style="color: red; margin-left: 2px">c</p>',
+      ),
+    ).toEqual(['<p lang="en"> (2×)', '<p style="color: red">']);
   });
 });
 

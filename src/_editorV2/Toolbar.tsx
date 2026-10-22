@@ -91,8 +91,12 @@ const useToolbarState = (editor: Editor) =>
       subscript: e.isActive('subscript'),
       link: e.isActive('link'),
       image: e.isActive('image'),
-      align: (e.getAttributes(e.state.selection.$from.parent.type.name).align ||
-        null) as string | null,
+      // A stored `left` is left, as no alignment is; a stored `justify`
+      // has no button, and any choice replaces it.
+      align: ((a) => (a === 'left' ? null : a))(
+        (e.getAttributes(e.state.selection.$from.parent.type.name).align ||
+          null) as string | null,
+      ),
       bulletList: e.isActive('bulletList'),
       orderedList: e.isActive('orderedList'),
       listType: (e.getAttributes('orderedList').type || null) as string | null,
