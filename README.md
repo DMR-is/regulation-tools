@@ -42,9 +42,13 @@ What is different for the people editing:
 - **The regulation's structure is part of the editor.** Grein, Kafli,
   Undirkafli and Bráðabirgðaákvæði are offered only at the top level of the
   text.
-- **Loading a text and saving it untouched changes nothing.** Checked over
+- **Loading a regulation and saving it untouched changes nothing**, once
+  saved through `cleanupEditorOutput` as regulations are. Checked over
   1,234 documents from 700 real regulations
-  (`scripts/editorFidelity.ts`); see `docs/plan-tiptap-editor.md`.
+  (`scripts/editorFidelity.ts`); see `docs/plan-tiptap-editor.md`. Texts
+  saved without cleanup, such as adverts, keep their text and their table
+  markup; styles are written normalized and `<font>` is dropped. On load,
+  the editor warns about any other element or attribute it would drop.
 
 Measured in Chromium on the longest regulations, typing into the middle of
 the text with the CPU slowed 4× (`scripts/editorSpeed.ts`):

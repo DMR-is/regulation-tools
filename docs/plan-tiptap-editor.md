@@ -1,7 +1,7 @@
 # Editor v2 on Tiptap
 
 Status: **phases 0–3 done**; trial in the apps (phase 4) on
-`1.0.0-next.4`, with the first two rounds of trial findings fixed (see
+`1.0.0-next.5`, with the first three rounds of trial findings fixed (see
 phase 4). `1.0.0-next.2` closed the alt-text gap (exit criterion 6). PR #7,
 reviewed; see *Review of PR #7* below.
 
@@ -165,7 +165,8 @@ in Node (jsdom), max 4 s (0112/2012).
   order follows the majority in the corpus: `strong` outside `em` (15
   documents against 4), `sup` outside `a` (6 against 1); `strong`/`u` is
   split 8 to 7.
-- **`colgroup`/`col` without widths are dropped** (5 documents).
+- **The spaces between `<col>`s are dropped** (5 documents; the
+  `colgroup` itself is kept since `1.0.0-next.5`, before which it was dropped).
 - **`font` is unwrapped, keeping its text** (3 documents, all empty
   leftovers with no attributes).
 
@@ -184,9 +185,10 @@ in Node (jsdom), max 4 s (0112/2012).
 - `<sup class="footnote__marker"><sup class="footnote-reference">` (1
   document): the marker is a mark type of its own, as one mark type cannot
   nest in itself.
-- Tiptap's table writes a `<colgroup>` and width styles, and its link adds
-  `target` and `rel`: both overridden, so the output holds only what the
-  stored format has.
+- Tiptap's table writes a `<colgroup>` and width styles from its column
+  widths, and its link adds `target` and `rel`: both overridden. Since
+  `1.0.0-next.5` a table keeps its own markup instead, as TinyMCE did
+  (see the trial findings in phase 4).
 
 **Found in cleanup, unchanged:** cleanup is not stable around legacy
 indenters. Run on its own output it adds a space on each side once
@@ -805,6 +807,22 @@ unchanged sections in place when sections are added. Pre-release
   `display: contents`. Not done: a horizontal scroll container per table
   (a node view; it changes the DOM that app styles and the table tools
   see).
+- **Trial findings, for `1.0.0-next.5`** (ojoi admin web, 300 legacy
+  adverts through `roundTrip`): no text lost, but table markup was:
+  `width`, `border`, `valign` and `style` on tables and cells, `<colgroup>`,
+  `<thead>`/`<tfoot>` (rows moved into the body), and `left`/`justify`
+  alignment. ojoi stores the editor's output uncleaned, so the first edit
+  (an autosave) saved the loss, into the PDF too. The schema was built for
+  regulations, whose saves go through cleanup, and so kept only what cleanup
+  keeps. Now tables keep every attribute (event handlers aside), their
+  `<colgroup>`s and head and foot rows; alignment keeps `left` and
+  `justify`. Regulations are unchanged: cleanup still removes all of it,
+  and the corpus check gives the same result. Styles come out normalized
+  (`width:100%` → `width: 100%;`, `#ccc` → `rgb(…)`): ProseMirror sets them
+  through `style.cssText`. `<font>` is still dropped (ojoi: fine). The
+  load warning (`findUnsupportedElements`) now names dropped attributes
+  too, one line per element and attribute; its list of what the schema
+  keeps is pinned against the schema in `editorV2.test.ts`.
 - **Exit criteria: 1.0.0 is released when all of these hold.** After 1.0.0,
   changing `EditorV2`'s props is a 2.0.0, so it goes out only when nothing
   in the trial points to an API change.

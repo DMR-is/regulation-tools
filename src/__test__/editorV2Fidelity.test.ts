@@ -162,12 +162,14 @@ describe('editor v2: allowed changes', () => {
     );
   });
 
-  test('a <colgroup> without widths is dropped', () => {
+  test('a <colgroup> is kept, without the spaces between its <col>s', () => {
     expect(
       after(
         '<table><colgroup><col> <col></colgroup><tbody><tr><td>a</td><td>b</td></tr></tbody></table>',
       ),
-    ).toBe('<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>');
+    ).toBe(
+      '<table><colgroup><col><col></colgroup><tbody><tr><td>a</td><td>b</td></tr></tbody></table>',
+    );
   });
 
   test('<font> is unwrapped, keeping its text', () => {
