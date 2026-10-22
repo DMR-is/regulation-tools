@@ -8,7 +8,8 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`,
 `1.0.0-next.2` (the image dialog below, and the 0.12.0–0.13.1 diff
 fixes), `1.0.0-next.3` (the first trial round: the toolbar, dialogs and
 tables below), `1.0.0-next.4` (large tables load fast; the text scrolls in
-a height-capped frame), `1.0.0-next.5` (tables keep their markup)._
+a height-capped frame), `1.0.0-next.5` (tables keep their markup), `1.0.0-next.6` (and their rows'
+and cells' classes)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -55,9 +56,13 @@ a height-capped frame), `1.0.0-next.5` (tables keep their markup)._
   before. Styles are written normalized (`width: 100%;`). `<font>` is still
   dropped, keeping its text. Earlier pre-releases also wrote a
   `colwidth` attribute for tables with a `<colgroup>`; no longer.
+- Fix: `EditorV2` keeps `class` on table rows and cells too (`next.5`
+  dropped it, unreported), and leaves out event handlers on `<colgroup>`
+  and `<col>`, as on the other table elements (`next.5` kept them).
 - Fix: `EditorV2`'s warning on load ("can't keep everything in this
   text") names dropped attributes too, not only elements, one line per
-  element and attribute with a count.
+  element and attribute with a count; on table elements, event handlers
+  and a cell alignment it does not keep (`align="middle"`).
 - **Changed:** `editorV2.css`: the buttons, menus and dialogs are no
   longer undone by an app's element resets (`button { border: none;
   padding: 0 }` flattened the dialog buttons and cramped the toolbar).
