@@ -150,6 +150,15 @@ describe('table markup', () => {
     );
   });
 
+  test('keeps the classes of rows and cells', () => {
+    // ojoi finds an advert's serial-number row by `advertSubSerial`, and
+    // styles `advertText` and `advertType`.
+    const html =
+      '<table class="layout"><tbody><tr class="advertSubSerial"><td class="advertTD">1</td></tr>' +
+      '<tr><th class="advertType">a</th><td class="advertText">b</td></tr></tbody></table>';
+    expect(roundTrip(html)).toBe(html);
+  });
+
   test('a table of head rows only; no event handlers', () => {
     expect(roundTrip('<table><thead><tr><th>H</th></tr></thead></table>')).toBe(
       '<table><thead><tr><th>H</th></tr></thead></table>',
@@ -221,6 +230,36 @@ describe('the warning about what the editor drops', () => {
       '<table><tbody class="zz"><tr><td>a</td></tr></tbody></table>',
       'zz',
       true,
+    ],
+    [
+      '<table class="zz"><tbody><tr class="zz1"><th class="zz2">a</th><td class="zz3">b</td></tr></tbody></table>',
+      'zz3',
+      false,
+    ],
+    [
+      '<table><colgroup onclick="zz()"><col onmouseover="zz()"></colgroup><tbody><tr><td>a</td></tr></tbody></table>',
+      'zz',
+      true,
+    ],
+    [
+      '<table><tbody><tr onclick="zz()"><td>a</td></tr></tbody></table>',
+      'zz',
+      true,
+    ],
+    [
+      '<table><tbody><tr><td align="middle">a</td></tr></tbody></table>',
+      'middle',
+      true,
+    ],
+    [
+      '<table><tbody><tr><td style="text-align: start">a</td></tr></tbody></table>',
+      'start',
+      true,
+    ],
+    [
+      '<table><tbody><tr><td style="text-align: justify">a</td></tr></tbody></table>',
+      'justify',
+      false,
     ],
   ];
   test.each(cases)('%s', (html, marker, lost) => {

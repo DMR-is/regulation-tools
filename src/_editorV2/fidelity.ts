@@ -19,7 +19,7 @@ import { DOMParser, Schema } from '@tiptap/pm/model';
 
 import { HTMLText } from '../types';
 
-import { regulationSchemaExtensions } from './schema';
+import { isEventHandler, regulationSchemaExtensions } from './schema';
 import { editorInput, toRegulationHTML } from './serialize';
 
 const schema = getSchema(regulationSchemaExtensions);
@@ -124,7 +124,8 @@ const checkSchema = new Schema({
 
 /**
  * The attributes the schema keeps, by element: `true` for all of them
- * (event handlers aside), else their names. `style` stands for the
+ * (event handlers aside, and a cell's alignment only as `ALIGNMENTS`; see
+ * `lostTableAttributes`), else their names. `style` stands for the
  * properties in `KEPT_STYLES`. Elements not listed are either dropped whole
  * (and reported as such) or passed over (`PASSED_OVER`). Pinned against the
  * schema in src/__test__/editorV2.test.ts.
@@ -186,9 +187,45 @@ const TITLE_CLASSES: Record<string, Array<string>> = {
 type Lost = { key: string; example: string };
 
 /** The attributes of `elm` the editor would drop. */
+/**
+ * What a table element drops: event handlers, and on a cell an alignment
+ * other than `ALIGNMENTS` (its `text-align` is the cell's alignment).
+ */
+const lostTableAttributes = (elm: Element, lost: Array<Lost>) => {
+  const tag = elm.tagName.toLowerCase();
+  const isCell = tag === 'td' || tag === 'th';
+  const isAlignment = (value: string) =>
+    ALIGNMENTS.includes(value.trim().toLowerCase());
+  for (const { name, value } of Array.from(elm.attributes)) {
+    if (
+      isEventHandler(name) ||
+      (isCell && name === 'align' && !isAlignment(value))
+    ) {
+      lost.push({
+        key: `${tag} ${name}`,
+        example: `<${tag} ${name}="${value}">`,
+      });
+    } else if (isCell && name === 'style') {
+      value.split(';').forEach((decl) => {
+        const [property, align = ''] = decl.split(':');
+        property!.trim().toLowerCase() === 'text-align' &&
+          !isAlignment(align) &&
+          lost.push({
+            key: `${tag} style text-align`,
+            example: `<${tag} style="${decl.trim()}">`,
+          });
+      });
+    }
+  }
+};
+
 const lostAttributes = (elm: Element, lost: Array<Lost>) => {
   let kept = KEPT_ATTRIBUTES[elm.tagName];
-  if (!kept || kept === true || elm.attributes.length === 0) {
+  if (!kept || elm.attributes.length === 0) {
+    return;
+  }
+  if (kept === true) {
+    lostTableAttributes(elm, lost);
     return;
   }
   if (elm.tagName === 'A' && !elm.hasAttribute('href')) {
