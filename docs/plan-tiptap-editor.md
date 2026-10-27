@@ -1,7 +1,7 @@
 # Editor v2 on Tiptap
 
 Status: **phases 0–3 done**; trial in the apps (phase 4) on
-`1.0.0-next.6`, with the first four rounds of trial findings fixed (see
+`1.0.0-next.7`, with the first four rounds of trial findings fixed (see
 phase 4). `1.0.0-next.2` closed the alt-text gap (exit criterion 6). PR #7,
 reviewed; see *Review of PR #7* below.
 
@@ -831,6 +831,10 @@ unchanged sections in place when sections are added. Pre-release
   attribute for it. Now kept with the other attributes. `<colgroup>`/`<col>`
   kept event handlers; now left out. The warning now checks table elements
   too (event handlers, a cell alignment it does not keep).
+- **For `1.0.0-next.7`:** the numbering warning ("Númerun greina er ekki
+  samfelld") flagged lettered articles such as "10. gr. a." in 1108-2012.
+  It now accepts "N. gr. a" or "N. gr. a." after "N. gr.", the next letter
+  after that, then "N+1. gr.". Shared with `Editor`.
 - **Exit criteria: 1.0.0 is released when all of these hold.** After 1.0.0,
   changing `EditorV2`'s props is a 2.0.0, so it goes out only when nothing
   in the trial points to an API change.

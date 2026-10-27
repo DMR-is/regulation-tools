@@ -9,7 +9,8 @@ _Not yet released. Pre-releases on the `next` tag: `1.0.0-next.1`,
 fixes), `1.0.0-next.3` (the first trial round: the toolbar, dialogs and
 tables below), `1.0.0-next.4` (large tables load fast; the text scrolls in
 a height-capped frame), `1.0.0-next.5` (tables keep their markup), `1.0.0-next.6` (and their rows'
-and cells' classes)._
+and cells' classes), `1.0.0-next.7` (lettered articles pass the
+numbering warning)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -103,6 +104,9 @@ and cells' classes)._
 - Chore: `yarn publishdist` publishes pre-release versions under the `next`
   tag.
 - Feat: `TextWarnings` takes an optional `highlight` function.
+- Fix: The "Númerun greina er ekki samfelld" warning accepts lettered
+  articles: "14. gr. a" or "14. gr. a." after "14. gr.", "14. gr. b"
+  after that, then "15. gr.". Both editors.
 - Note: `Editor` still uses `@tinymce/tinymce-react` 3.x, whose peer range
   stops at React 18, so installing on React 19 gives a peer-dependency
   warning. It works (two of the apps already run it on 19); it goes away
