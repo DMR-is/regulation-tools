@@ -137,6 +137,38 @@ type WIP_WarningData = Omit<WarningData, 'angst'> & {
 
 export type WarningList = Array<WarningData>;
 
+// ---------------------------------------------------------------------------
+
+type ArticleNumber = { num: number; suffix?: string };
+
+/** Parses "14. gr.", "14. gr. a" and "14. gr. a." into number and letter.
+ *
+ * The article name (`<em>`) is ignored, so a name can't pass for a suffix.
+ */
+const parseArticleNumber = (elm: Element): ArticleNumber => {
+  const nameText = elm.querySelector('em')?.textContent || '';
+  const text = elm.textContent.replace(nameText, '');
+  const suffix = /^\s*\d+\.?\s*gr\.\s*([a-z])\.?\s*$/.exec(text)?.[1];
+  return { num: parseInt(text), suffix };
+};
+
+/** An article is followed by the next number, or by its own number with the
+ * next letter ("14." → "14. a" → "14. b" → "15.").
+ */
+const isNextArticleNumber = (
+  last: ArticleNumber | undefined,
+  item: ArticleNumber,
+) => {
+  const lastNum = last ? last.num : 0;
+  if (!item.suffix) {
+    return item.num === lastNum + 1;
+  }
+  const expectedSuffix = last?.suffix
+    ? String.fromCharCode(last.suffix.charCodeAt(0) + 1)
+    : 'a';
+  return item.num === lastNum && item.suffix === expectedSuffix;
+};
+
 // eslint-disable-next-line complexity
 export const makeWarnings = (
   text: HTMLText,
@@ -257,16 +289,13 @@ export const makeWarnings = (
       'h3.article__title:not(.article__title--provisional)';
     const articleTitles = root.qq(articleTitleSelector);
     const numberArticleTitles = articleTitles
-      .map((elm, idx) => ({ num: parseInt(elm.textContent), idx }))
+      .map((elm, idx) => ({ ...parseArticleNumber(elm), idx }))
       .filter(({ num }) => !isNaN(num));
 
     const surpriseArticleNumbers = numberArticleTitles.reduce<Array<number>>(
       (surprising, item, i, arr) => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const lastNum = i > 0 ? arr[i - 1]!.num : 0;
-        const expected = lastNum + 1;
-
-        if (item.num !== expected) {
+        const last = i > 0 ? arr[i - 1] : undefined;
+        if (!isNextArticleNumber(last, item)) {
           surprising.push(item.idx);
         }
         return surprising;
