@@ -30,7 +30,7 @@ const OWN_PROVISION_RE =
   /(?<!\p{L})(?:(?:öðlast|tekur)(?:\s+\p{L}+){0,3}?\s+gildi|gild(?:ir|a) (?:frá|til)|fell(?:ur|a) úr gildi|skal beita|sett(?: er)? (?:með|samkvæmt|á grundvelli)|sett með stoð|er sett á grundvelli|með stoð í|til innleiðingar|innleidd\p{L}*|endurskoð\p{L}*|koma til framkvæmda|kemur til framkvæmda|tilkynnt (?:til|í samræmi|samkvæmt))(?!\p{L})/iu;
 
 /**
- * What an instruction says: "orðast svo", "kemur:", "komi:", "bætist",
+ * What an instruction says: "orðast svo", "kemur:", "komi:", "koma orðin:", "bætist",
  * "falla brott", "Eftirfarandi breytingar verða". Older texts use the
  * subjunctive ("komi", "falli", "verði"), so both moods are here. Adding
  * and changing only as instructions say it ("bætist", "breytist"): "bæti"
@@ -38,17 +38,21 @@ const OWN_PROVISION_RE =
  * "Fjárhæðir breytast 1. janúar ár hvert").
  */
 const INSTRUCTION_RE =
-  /(?<!\p{L})(?:orðast|orðist|kom(?:ur|a|i)\s*:|kem(?:ur|a)\s*:|kom(?:i|a) (?:ný|eftirfarandi)|kem(?:ur|a) (?:ný|eftirfarandi)|bæt(?:ist|ast)|f(?:ellur|alla|elli|alli) (?:á )?(?:brott|niður)|svohljóðandi|verð(?:ur|i)\s*:|hljóð(?:ar|i) svo|breytist|breyting(?:ar)? verð(?:ur|a|i)|gerð(?:ar)? (?:sú|eftirfarandi) breyting)(?!\p{L})/u;
+  /(?<!\p{L})(?:orðast|orðist|k(?:om(?:ur|a|i)|em(?:ur|a))(?: orð(?:in|ið))?\s*:|kom(?:i|a) (?:ný|eftirfarandi)|kem(?:ur|a) (?:ný|eftirfarandi)|bæt(?:ist|ast)|f(?:ellur|alla|elli|alli) (?:á )?(?:brott|niður)|svohljóðandi|verð(?:ur|i)\s*:|hljóð(?:ar|i) svo|breytist|breyting(?:ar)? verð(?:ur|a|i)|gerð(?:ar)? (?:sú|eftirfarandi) breyting)(?!\p{L})/u;
+
+/** A paragraph about the amending regulation itself: "Reglugerð þessi …". */
+const ABOUT_ITSELF = /^(?:Reglugerð(?:in)? þessi|Reglugerðin)(?!\p{L})/u;
 
 /**
  * One of the regulation's own paragraphs. New wording can say "öðlast
- * gildi" too, so only one that starts as a gildistaka does ("Reglugerð
- * þessi …"), or says nothing an instruction does.
+ * gildi", "gildir til" or "skal beita" too, so in the new wording that
+ * follows a lead (`quoted`), only one that starts as a gildistaka does
+ * ("Reglugerð þessi …"). Elsewhere, so does one that says nothing an
+ * instruction does.
  */
-const isOwnParagraph = (text: string) =>
+const isOwnParagraph = (text: string, quoted: boolean) =>
   OWN_PROVISION_RE.test(text) &&
-  (/^(?:Reglugerð(?:in)? þessi|Reglugerðin)(?!\p{L})/u.test(text) ||
-    !INSTRUCTION_RE.test(text));
+  (ABOUT_ITSELF.test(text) || (!quoted && !INSTRUCTION_RE.test(text)));
 
 /** A lead whose new wording follows in the next blocks: "… orðast svo:". */
 const OPENS_WORDING = /(?::|svohljóðandi\.?|orðast svo\.?)$/u;
@@ -142,11 +146,20 @@ const articlesOf = (root: Element): Array<Article> => {
 };
 
 /**
+ * An act cited, as an implementing article lists them: "Framkvæmdarreglugerð
+ * framkvæmdastjórnarinnar (ESB) 2016/548 frá 8. apríl 2016 um …".
+ */
+const CITED_ACT =
+  /^(?:\p{L}+ )?(?:reglugerð|framkvæmdarreglugerð|ákvörðun|framkvæmdarákvörðun|tilskipun|framkvæmdartilskipun)\p{L}* (?:framkvæmdastjórnarinnar|Evrópuþingsins|ráðsins|sameiginlegu EES-nefndarinnar)(?!\p{L})/iu;
+
+/**
  * One of the regulation's own articles: its gildistaka, its own
  * transitional provision, the EU acts it implements. Those cite the same
  * acts and dates as the instructions, so a slip in an instruction would
- * hide behind them. Only an article that says so counts as one: an
- * instruction in words this doesn't know stays an instruction, and an
+ * hide behind them. Only an article that says so counts as one, in every
+ * paragraph that gives an amount or a date, other than one citing an act
+ * (the acts it implements, listed below a lead): an instruction in words this
+ * doesn't know stays an instruction ("hækkar í kr. 1.900"), and an
  * appendix's articles are its wording.
  */
 const isOwnArticle = ({ section, blocks, appendix }: Article) =>
@@ -155,7 +168,13 @@ const isOwnArticle = ({ section, blocks, appendix }: Article) =>
   (/gildistaka/i.test(section) ||
     (!blocks.some((b) => INSTRUCTION_RE.test(tidy(b))) &&
       (/bráðabirgð/i.test(section) ||
-        blocks.some((b) => OWN_PROVISION_RE.test(tidy(b))))));
+        (blocks.some((b) => OWN_PROVISION_RE.test(tidy(b))) &&
+          blocks.every(
+            (b) =>
+              OWN_PROVISION_RE.test(tidy(b)) ||
+              CITED_ACT.test(tidy(b)) ||
+              !numbersIn(b).some((t) => isValue(t) && !t.ofReference),
+          )))));
 
 export const readAmending = (html: HTMLText, asDiv: AsDiv): Amending => {
   const root = asDiv(html);
@@ -169,10 +188,14 @@ export const readAmending = (html: HTMLText, asDiv: AsDiv): Amending => {
     }
     const { section, blocks } = article;
     said.push(...blocks);
+    let quoted = false;
     for (const text of blocks) {
       const tokens = numbersIn(text).filter(isValue);
       mentioned.push(...tokens);
-      if (isOwnParagraph(tidy(text))) {
+      const flat = tidy(text);
+      const own = isOwnParagraph(flat, quoted);
+      quoted ||= OPENS_WORDING.test(flat);
+      if (own) {
         continue;
       }
       for (const token of tokens) {

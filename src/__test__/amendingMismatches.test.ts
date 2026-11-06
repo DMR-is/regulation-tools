@@ -428,6 +428,68 @@ describe('review of #18', () => {
     expect(check(text, raised)).toEqual([]);
   });
 
+  it('checks new wording that says "gildir til" or "skal beita"', () => {
+    const fees = '<h3>4. gr.</h3><p>Leyfi kostar kr. 15.000.</p>';
+    const licence = change(
+      fees,
+      '<h3>4. gr.</h3><p>Leyfi gildir til 5 ára og kostar kr. 17.000.</p>',
+    );
+    const text = (amount: string) =>
+      article(1, '4. gr. reglugerðarinnar orðast svo:') +
+      `<p>Leyfi gildir til 5 ára og kostar kr. ${amount}.</p>` +
+      gildistaka(2);
+    expect(check(text('17.000'), licence)).toEqual([]);
+    expect(texts(check(text('18.000'), licence))).toEqual([
+      'missingFromText: 17.000',
+      'notInChanges: 18.000',
+    ]);
+  });
+
+  it('checks an article whose verb it does not know beside an own phrase', () => {
+    const text = article(
+      1,
+      'Fjárhæðin í 5. gr. reglugerðarinnar hækkar í kr. 1.900.',
+      'Hinni nýju fjárhæð skal beita frá 1. janúar 2026.',
+    );
+    expect(texts(check(text, raised))).toEqual([
+      'missingFromText: 1.800',
+      'notInChanges: 1.900',
+    ]);
+  });
+
+  it('leaves out the acts an implementing article lists', () => {
+    const text =
+      article(1, 'Í stað „kr. 1.500“ í 5. gr. kemur: kr. 1.800.') +
+      article(
+        2,
+        'Með reglugerð þessari eru innleiddar eftirfarandi gerðir:',
+        'Reglugerð framkvæmdastjórnarinnar (ESB) 2022/2195 frá 10. nóvember 2022 um notkun á Acid Yellow 3.',
+        'Framkvæmdarákvörðun framkvæmdastjórnarinnar frá 19. júlí 2011 um viðurkenningu á áætlun.',
+      );
+    expect(check(text, raised)).toEqual([]);
+  });
+
+  it('reads "koma orðin:" as an instruction', () => {
+    const text = (amount: string) =>
+      article(
+        1,
+        `Í stað „kr. 1.500“ í 5. gr. koma orðin: kr. ${amount}, sem gildir til 2026.`,
+      );
+    expect(texts(check(text('1.900'), raised))).toEqual([
+      'missingFromText: 1.800',
+      'notInChanges: 1.900',
+      'notInChanges: 2026',
+    ]);
+  });
+
+  it('reads "breytast" in a transitional provision as prose', () => {
+    const text =
+      article(1, 'Í stað „kr. 1.500“ í 5. gr. kemur: kr. 1.800.') +
+      '<h3>Ákvæði til bráðabirgða.</h3>' +
+      '<p>Fjárhæðir breytast 1. janúar ár hvert, fyrst 1. janúar 2026.</p>';
+    expect(check(text, raised)).toEqual([]);
+  });
+
   it('reads an appendix titled in a paragraph after the signature', () => {
     const was = '<h2>Viðauki I</h2><p>Gjaldskrá: vottorð um búsetu.</p>';
     const now = was.replace(

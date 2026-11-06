@@ -339,9 +339,11 @@ export const numbersIn = (text: string): Array<NumberToken> => {
         .replace(LIST_REST, '');
       // At a block's start, or where new wording starts after its lead:
       // "6. tölul., svohljóðandi: 6. Greiðslur …" (not "kemur: 3.600.000.").
+      // A block's own number has one to three digits ("2.900." is an amount).
+      const short = /^\d{1,3}$/.test(raw);
       const atBlockStart =
         /(?:^|\n)\s*$/.test(before) ||
-        (/^\d{1,3}$/.test(raw) && /(?:svohljóðandi|svo)\s*:\s*$/u.test(before));
+        (short && /(?:svohljóðandi|svo)\s*:\s*$/u.test(before));
       const kind: NumberKind =
         REF_BEFORE.test(before) || REF_AFTER.test(after)
           ? 'ref'
@@ -352,7 +354,7 @@ export const numbersIn = (text: string): Array<NumberToken> => {
             ORDINAL_AFTER.test(text.slice(index + raw.length)) ||
             ITEM_NUMBER.test(text.slice(index + raw.length)) ||
             (atBlockStart &&
-              /^\d{1,3}$/.test(raw) &&
+              short &&
               OWN_NUMBER.test(text.slice(index + raw.length)))
           ? 'place'
           : 'value';
