@@ -14,7 +14,7 @@ import React, {
   useState,
 } from 'react';
 import { Editor, useEditorState } from '@tiptap/react';
-import { Upload } from 'lucide-react';
+import { Upload } from './icons';
 
 import { HTMLText } from '../types';
 import { importText } from '../_editorText';
@@ -111,7 +111,7 @@ const UploadButton = (props: {
       'Hleð upp…'
     ) : (
       <>
-        <Upload size={16} aria-hidden />
+        <Upload size={16} />
         {props.label}
       </>
     )}

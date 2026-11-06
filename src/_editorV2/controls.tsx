@@ -5,7 +5,7 @@
 */
 
 import React, { ReactNode, useEffect, useId, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from './icons';
 
 export const ICON_SIZE = 18;
 
@@ -102,11 +102,7 @@ export const Dropdown = (props: {
         onClick={() => setOpen(!open)}
       >
         {props.icon}
-        <ChevronDown
-          size={14}
-          className="regtools-toolbar__chevron"
-          aria-hidden
-        />
+        <ChevronDown size={14} className="regtools-toolbar__chevron" />
       </button>
       {open && (
         <div
