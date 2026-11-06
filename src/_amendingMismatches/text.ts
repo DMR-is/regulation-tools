@@ -224,7 +224,7 @@ export type NumberToken = {
 };
 
 const TOKEN_RE = new RegExp(
-  String.raw`(?<![\p{L}\d,])(?<!\d\.)(?:(\d{1,2})\.\s*(${MONTHS.join(
+  String.raw`(?<![\p{L}\d,])(?:(?<=(?<!\p{L})kr\.)|(?<![\p{L}\d]\.))(?:(\d{1,2})\.\s*(${MONTHS.join(
     '|',
   )})\s+(\d{4})(?!\d)|(\d+(?:[.,]\d+)*)(?![.,]?\d)(?!\p{L}))`,
   'giu',
@@ -245,6 +245,8 @@ const SECTION_NUMBER = /^\d+(?:\.\d{1,2})+$/;
 
 /** Words for the units amending text addresses, as they start. */
 const UNIT = String.raw`(?:gr(?!\p{L})|grein|mgr|málsgr|málsl|tölul|tl\.|stafl|kafl|hlut[ia]|viðauk|fylgiskj|undirlið|lið|bráðabirgð|skýring|flokk)`;
+/** Compounds of a unit word: "undirkafla 4", "gjaldflokki 104", "launaflokki 12". */
+const UNIT_PREFIX = String.raw`(?:undir|loka|efnis|gjald|launa|vöru)`;
 /** Units only after an ordinal: "3. línu í töflu", not "950 Tafla". */
 const ORDINAL_UNIT = String.raw`(?:tafl|töflu|línu|dálk|reit)`;
 
@@ -272,14 +274,18 @@ const PLACE_AFTER = new RegExp(
  * ways.
  */
 const PLACE_BEFORE = new RegExp(
-  String.raw`(?<!\p{L})${UNIT}\p{L}*\.?${S}*,?${S}*(?:\d+(?:\.\d+)*\.?(?:${S}*(?:,|og|eða|til|-)${S}*|${S}+))*$`,
+  String.raw`(?<!\p{L})${UNIT_PREFIX}?${UNIT}\p{L}*\.?${S}*,?${S}*(?:\d+(?:\.\d+)*\.?(?:${S}*(?:,|og|eða|til|-)${S}*|${S}+))*$`,
   'iu',
 );
 /** An ordinal: "6. breytingu", "10. hver", "(7.) breytingu". */
 const ORDINAL_AFTER = /^\.\)?\s+\p{Ll}/u;
 
-/** A reference number: "nr. 123/2020", "nr. 26", "bls. 422". */
-const REF_BEFORE = /(?:nr\.?|númer|bls\.?|\/)\s*$/u;
+/**
+ * A reference number: "nr. 123/2020", "nr. 26", "bls. 422", and an EU
+ * Official Journal citation's issue and date, "Stjtíð. ESB L 58, 3.3.2011".
+ */
+const REF_BEFORE =
+  /(?:nr\.?|númer|bls\.?|\/|(?<!\p{L})(?:ESB|EB)\.?\s+L\s*(?:\d+,\s*)?)\s*$/u;
 const REF_AFTER = /^\/\d/;
 /** What a reference's date or year follows. */
 const OF_REFERENCE =
@@ -345,7 +351,9 @@ export const numbersIn = (text: string): Array<NumberToken> => {
             PLACE_BEFORE.test(before) ||
             ORDINAL_AFTER.test(text.slice(index + raw.length)) ||
             ITEM_NUMBER.test(text.slice(index + raw.length)) ||
-            (atBlockStart && OWN_NUMBER.test(text.slice(index + raw.length)))
+            (atBlockStart &&
+              /^\d{1,3}$/.test(raw) &&
+              OWN_NUMBER.test(text.slice(index + raw.length)))
           ? 'place'
           : 'value';
       const canon = canonicalNumber(raw);

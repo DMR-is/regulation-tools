@@ -214,6 +214,8 @@ to an amount the base already has elsewhere passes. The figures below are
 for `getStructuredDiff` diffs. `@dmr.is/regulations-tools/amendingMismatches`
 exports the same function taking your own `asDiv` (`{ asDiv }` as the third
 argument), and the types. Everything under `_amendingMismatches/` is internal.
+Its patterns use regular-expression lookbehind, which needs Safari 16.4 or
+later in the browser.
 
 Each mismatch has a `kind` (`number`, `date` or, for `missingFromText`,
 `wording`), so amounts and dates can be shown first. It is one of:

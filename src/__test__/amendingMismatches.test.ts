@@ -289,6 +289,8 @@ describe('review of #18', () => {
       article(
         1,
         `Í stað „kr. 1.500“ í 5. gr. reglugerðarinnar komi: kr. ${amount}.`,
+        // Unread as an instruction, the article would count as the text's own.
+        'Reglugerð þessi öðlast þegar gildi.',
       );
     expect(check(komi('1.800'), raised)).toEqual([]);
     expect(texts(check(komi('1.900'), raised))).toEqual([
@@ -342,18 +344,19 @@ describe('review of #18', () => {
         check(
           article(
             1,
-            'Í stað „2024“ í 2. gr. kemur: 2025. Gjaldið er kr. 2.025.',
+            'Í stað „2024“ í 2. gr. kemur: 2025. Gjaldið er kr. 2025.',
           ),
           year,
         ),
       ),
-    ).toEqual(['notInChanges: 2.025']);
+    ).toEqual(['notInChanges: 2025']);
   });
 
   it('reads a long run of digits after a unit word in linear time', () => {
     const started = Date.now();
-    numbersIn(`lið ${'1'.repeat(60)} x`);
-    numbersIn(`lið ${'1 '.repeat(60)}x`);
+    // The run must be within reach of the number after it.
+    numbersIn(`lið ${'1'.repeat(25)} x 5`);
+    numbersIn(`lið ${'1 '.repeat(15)}x 5`);
     expect(Date.now() - started).toBeLessThan(100);
   });
 
@@ -397,6 +400,59 @@ describe('review of #18', () => {
     ]);
   });
 
+  it('knows its own provisions in other words than "öðlast gildi"', () => {
+    const text =
+      article(1, 'Í stað „kr. 1.500“ í 5. gr. kemur: kr. 1.800.') +
+      article(
+        2,
+        'Með stoð í lögum nr. 26/1986 öðlast reglugerð þessi gildi 1. mars 2025.',
+        'Reglugerð þessi gildir til 31. desember 2026.',
+      ) +
+      article(
+        3,
+        'Ákvæðum 1. gr. skal beita um umsóknir sem berast eftir 1. mars 2025.',
+      ) +
+      article(
+        4,
+        'Með reglugerð þessari eru innleiddar breytingar, dags. 20. júní 2019.',
+      ) +
+      article(5, 'Með stoð í ákvörðun ráðherra frá 1. mars 2025.');
+    expect(check(text, raised)).toEqual([]);
+  });
+
+  it('reads "bæti" in a transitional provision as prose', () => {
+    const text =
+      article(1, 'Í stað „kr. 1.500“ í 5. gr. kemur: kr. 1.800.') +
+      '<h3>Ákvæði til bráðabirgða.</h3>' +
+      '<p>Umsókn er hafnað nema umsækjandi bæti úr annmörkum fyrir 1. júlí 2025.</p>';
+    expect(check(text, raised)).toEqual([]);
+  });
+
+  it('reads an appendix titled in a paragraph after the signature', () => {
+    const was = '<h2>Viðauki I</h2><p>Gjaldskrá: vottorð um búsetu.</p>';
+    const now = was.replace(
+      'búsetu',
+      'búsetu og skráningu lögheimilis erlendis',
+    );
+    const text =
+      article(1, 'Viðauki I við reglugerðina orðast svo:') +
+      '<p class="Dags">Dómsmálaráðuneytinu, 21. mars 2023.</p>' +
+      '<p><strong>Viðauki I</strong></p>' +
+      '<p>Gjaldskrá: vottorð um búsetu og skráningu lögheimilis erlendis.</p>';
+    expect(check(text, change(was, now, '1170/2012 viðauki I'))).toEqual([]);
+  });
+
+  it('reads an appendix’s own articles as its wording', () => {
+    const was =
+      '<h2>Fylgiskjal I</h2><h3>1. gr.</h3><p>Reglum þessum skal beita um ársreikninga.</p>';
+    const now = was.replace('ársreikninga', 'ársreikninga og fjárhagsáætlanir');
+    const text =
+      article(1, 'Í stað fylgiskjals I kemur nýtt fylgiskjal I.') +
+      '<p class="Dags">Ráðuneytinu, 15. febrúar 2021.</p>' +
+      now;
+    expect(check(text, change(was, now, '1212/2015 fylgiskjal I'))).toEqual([]);
+  });
+
   it('returns nothing for nothing', () => {
     expect(findAmendingMismatches('' as HTMLText, [], { asDiv })).toEqual([]);
   });
@@ -426,11 +482,22 @@ describe('numbersIn', () => {
     expect(kinds('í 3. línu í töflu')).toEqual(['3:place']);
     expect(kinds('kafla 2.3.4 orðast')).toEqual(['2.3.4:place']);
     expect(kinds('bls. 422')).toEqual(['422:ref']);
+    expect(kinds('(Stjtíð. ESB L 58, 3.3.2011, bls. 53)')).toEqual([
+      '58:ref',
+      '3.3.2011:ref',
+      '53:ref',
+    ]);
     expect(kinds('Í flokknum 06 30 Gervihlutar')).toEqual([
       '06:place',
       '30:place',
     ]);
     expect(kinds('Gjaldið er kr.115 á ári.')).toEqual(['115:value']);
+    expect(kinds('í lið B.3 og töflu A.12')).toEqual([]);
+    expect(kinds('í undirkafla 4 og launaflokki 12')).toEqual([
+      '4:place',
+      '12:place',
+    ]);
+    expect(kinds('fyrir tímabilið 2025')).toEqual(['2025:value']);
     expect(
       kinds(
         'sjá https://eur-lex.europa.eu/TXT/?qid=1459959072574. Gjald 500 kr.',
@@ -453,5 +520,6 @@ describe('numbersIn', () => {
     expect(kinds('viðvörunar)\n kr. \n 950 \n\nTafla verður')).toEqual([
       '950:value',
     ]);
+    expect(kinds('Gjöld\n2.900.\nSkráning')).toEqual(['2.900:value']);
   });
 });

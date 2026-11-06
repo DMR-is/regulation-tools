@@ -22,19 +22,23 @@ import {
 
 /**
  * The amending regulation's own provisions: its legal basis, entry into
- * force, the EU acts it implements, its notification under the TRIS
- * directive. They state dates and numbers no base regulation holds.
+ * force ("öðlast reglugerð þessi gildi"), how long and to what it applies,
+ * the EU acts it implements, its notification under the TRIS directive.
+ * They state dates and numbers no base regulation holds.
  */
 const OWN_PROVISION_RE =
-  /(?<!\p{L})(?:öðlast (?:þegar )?gildi|tekur (?:þegar )?gildi|sett(?: er)? (?:með|samkvæmt|á grundvelli)|sett með stoð|er sett á grundvelli|með stoð í|til innleiðingar|koma til framkvæmda|kemur til framkvæmda|tilkynnt (?:til|í samræmi|samkvæmt))(?!\p{L})/u;
+  /(?<!\p{L})(?:(?:öðlast|tekur)(?:\s+\p{L}+){0,3}?\s+gildi|gild(?:ir|a) (?:frá|til)|fell(?:ur|a) úr gildi|skal beita|sett(?: er)? (?:með|samkvæmt|á grundvelli)|sett með stoð|er sett á grundvelli|með stoð í|til innleiðingar|innleidd\p{L}*|endurskoð\p{L}*|koma til framkvæmda|kemur til framkvæmda|tilkynnt (?:til|í samræmi|samkvæmt))(?!\p{L})/iu;
 
 /**
  * What an instruction says: "orðast svo", "kemur:", "komi:", "bætist",
  * "falla brott", "Eftirfarandi breytingar verða". Older texts use the
- * subjunctive ("komi", "falli", "verði"), so both moods are here.
+ * subjunctive ("komi", "falli", "verði"), so both moods are here. Adding
+ * and changing only as instructions say it ("bætist", "breytist"): "bæti"
+ * and "breytast" are as common in prose ("nema umsækjandi bæti úr",
+ * "Fjárhæðir breytast 1. janúar ár hvert").
  */
 const INSTRUCTION_RE =
-  /(?<!\p{L})(?:orðast|orðist|kom(?:ur|a|i)\s*:|kem(?:ur|a)\s*:|kom(?:i|a) (?:ný|eftirfarandi)|kem(?:ur|a) (?:ný|eftirfarandi)|bæt(?:ist|ast|i)|f(?:ellur|alla|elli|alli) (?:á )?(?:brott|niður)|svohljóðandi|verð(?:ur|i)\s*:|hljóð(?:ar|i) svo|breyt(?:ist|ast|i)|breyting(?:ar)? verð(?:ur|a|i)|gerð(?:ar)? (?:sú|eftirfarandi) breyting)(?!\p{L})/u;
+  /(?<!\p{L})(?:orðast|orðist|kom(?:ur|a|i)\s*:|kem(?:ur|a)\s*:|kom(?:i|a) (?:ný|eftirfarandi)|kem(?:ur|a) (?:ný|eftirfarandi)|bæt(?:ist|ast)|f(?:ellur|alla|elli|alli) (?:á )?(?:brott|niður)|svohljóðandi|verð(?:ur|i)\s*:|hljóð(?:ar|i) svo|breytist|breyting(?:ar)? verð(?:ur|a|i)|gerð(?:ar)? (?:sú|eftirfarandi) breyting)(?!\p{L})/u;
 
 /**
  * One of the regulation's own paragraphs. New wording can say "öðlast
@@ -50,6 +54,9 @@ const isOwnParagraph = (text: string) =>
 const OPENS_WORDING = /(?::|svohljóðandi\.?|orðast svo\.?)$/u;
 
 export const isHeading = (el: Element) => /^H[1-6]$/.test(el.tagName);
+
+/** An appendix's title, which can be a paragraph: `<p><strong>Viðauki I</strong></p>`. */
+const APPENDIX_TITLE = /^(?:viðauki|fylgiskjal)(?!\p{L})/iu;
 
 export type Amending = {
   /** The amounts and dates its instructions mention, as `valueKey`s. */
@@ -84,24 +91,30 @@ export type Amending = {
 const CURRENCY_BEFORE = /(?:kr\.?|ISK|EUR|€)\s*$/iu;
 const CURRENCY_AFTER = /^\s*(?:kr(?!\p{L})|kr\.|krón|ISK|EUR|evr|€|%)/iu;
 
-type Article = { section?: string; blocks: Array<string> };
+type Article = {
+  section?: string;
+  blocks: Array<string>;
+  /** After the signature: an appendix, which has articles of its own. */
+  appendix?: true;
+};
 
 /**
  * The text by article, without the signature. A heading other than an
  * article's that follows a lead ("… bætist nýtt ákvæði til bráðabirgða,
  * svohljóðandi:") is new wording, so it stays in its article. The signature
- * ends the text up to the next heading: an appendix.
+ * ends the text up to the next heading or appendix title: an appendix.
  */
 const articlesOf = (root: Element): Array<Article> => {
   const articles: Array<Article> = [];
   let inSignature = false;
+  let signed = false;
   for (const el of Array.from(root.children)) {
     const text = sidesOf(el).new;
     const flat = tidy(text);
     if (!flat) {
       continue;
     }
-    if (isHeading(el)) {
+    if (isHeading(el) || (inSignature && APPENDIX_TITLE.test(flat))) {
       inSignature = false;
       const current = articles[articles.length - 1];
       const last = current?.blocks[current.blocks.length - 1];
@@ -109,11 +122,15 @@ const articlesOf = (root: Element): Array<Article> => {
         current!.blocks.push(text);
         continue;
       }
-      articles.push({ section: flat, blocks: [] });
+      articles.push({
+        section: flat,
+        blocks: [],
+        appendix: signed || undefined,
+      });
       continue;
     }
     if (inSignature || isSignatureStart(el, flat)) {
-      inSignature = true;
+      inSignature = signed = true;
       continue;
     }
     if (!articles.length) {
@@ -129,10 +146,12 @@ const articlesOf = (root: Element): Array<Article> => {
  * transitional provision, the EU acts it implements. Those cite the same
  * acts and dates as the instructions, so a slip in an instruction would
  * hide behind them. Only an article that says so counts as one: an
- * instruction in words this doesn't know stays an instruction.
+ * instruction in words this doesn't know stays an instruction, and an
+ * appendix's articles are its wording.
  */
-const isOwnArticle = ({ section, blocks }: Article) =>
+const isOwnArticle = ({ section, blocks, appendix }: Article) =>
   section != null &&
+  !appendix &&
   (/gildistaka/i.test(section) ||
     (!blocks.some((b) => INSTRUCTION_RE.test(tidy(b))) &&
       (/bráðabirgð/i.test(section) ||
