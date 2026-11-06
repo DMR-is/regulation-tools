@@ -10,7 +10,8 @@ fixes), `1.0.0-next.3` (the first trial round: the toolbar, dialogs and
 tables below), `1.0.0-next.4` (large tables load fast; the text scrolls in
 a height-capped frame), `1.0.0-next.5` (tables keep their markup), `1.0.0-next.6` (and their rows'
 and cells' classes), `1.0.0-next.7` (lettered articles pass the
-numbering warning), `1.0.0-next.8` (`findAmendingMismatches`)._
+numbering warning), `1.0.0-next.8` (`findAmendingMismatches`),
+`1.0.0-next.9` (no `lucide-react` dependency)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -115,6 +116,9 @@ numbering warning), `1.0.0-next.8` (`findAmendingMismatches`)._
   Hints for a person, not proof; see the README, "Amending text mismatches".
   `scripts/amendingMismatchesCorpus.ts` measures it on published amending
   regulations.
+- Chore: `EditorV2`'s 28 icons are part of the package, copied from
+  Lucide, instead of a dependency on `lucide-react` (45 MB installed).
+  They look the same.
 - Note: `Editor` still uses `@tinymce/tinymce-react` 3.x, whose peer range
   stops at React 18, so installing on React 19 gives a peer-dependency
   warning. It works (two of the apps already run it on 19); it goes away

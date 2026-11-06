@@ -34,7 +34,7 @@ import {
   Table,
   Type,
   Undo2,
-} from 'lucide-react';
+} from './icons';
 
 import { Button, Dropdown, ICON_SIZE, MenuItem } from './controls';
 import {
