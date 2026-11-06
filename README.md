@@ -186,3 +186,77 @@ exported as `DIFF_CLASSES` from `@dmr.is/regulations-tools/diffClasses`.
 
 Note `ins.mod`: htmldiff's mark for _formatting changed, text did not_. A
 stylesheet that colours every `ins` green shows it as added text.
+
+## Amending text mismatches
+
+An amending regulation's text is published as written, while each base
+regulation gets the changes recorded on it. Nothing ties the two together, so
+an amount edited in the text and not in the recorded change (or the other way
+round) goes unnoticed. `findAmendingMismatches` looks for the telltale signs:
+
+```ts
+// In the browser:
+import findAmendingMismatches from '@dmr.is/regulations-tools/amendingMismatches-browser';
+// In Node (jsdom):
+import findAmendingMismatches from '@dmr.is/regulations-tools/amendingMismatches-server';
+
+const mismatches = findAmendingMismatches(amendingHtml, [
+  { name: '1170/2012', diff: impact.diff }, // one per change the text makes
+]);
+```
+
+Pass the amending text (with its appendixes, if any) and every recorded
+change it makes: each base regulation's diff as `getStructuredDiff` gives it,
+and each changed appendix's. A diff from `getDiff`, without `data-diff-*`
+attributes, works too, but less precisely: the whole base then counts as
+changed, so an amount the text states is looked for in all of it, and a slip
+to an amount the base already has elsewhere passes. The figures below are
+for `getStructuredDiff` diffs. `@dmr.is/regulations-tools/amendingMismatches`
+exports the same function taking your own `asDiv` (`{ asDiv }` as the third
+argument), and the types. Everything under `_amendingMismatches/` is internal.
+Its patterns use regular-expression lookbehind, which needs Safari 16.4 or
+later: on an older browser, importing the browser entry throws.
+
+Each mismatch has a `kind` (`number`, `date` or, for `missingFromText`,
+`wording`), so amounts and dates can be shown first. It is one of:
+
+- `missingFromText` — something a base change brings in that the text never
+  mentions: an amount, a date, or wording. `text` is as in the base
+  regulation, `regulation` and `section` ("5. gr.", old numbering) say where,
+  and for an amount or a date, `context` has the words around it.
+- `notInChanges` — an amount or a date the text states that no changed
+  passage of the base regulations holds, before or after. `text` and
+  `context` are from the amending text, `section` is its own article.
+
+An amount edited in the text alone ("kr. 115" → "kr. 120") gives both: the
+base's 115 is missing from the text, and the text's 120 is in no change.
+
+These are hints for a person to look at, not proof: prose can't be mapped back
+to a diff reliably.
+
+- Amounts and dates are compared exactly. "7.500" and "7500" are the same,
+  so are "1,20" and "1,2", and a date changed in part ("Í stað orðsins
+  „ágúst“ kemur: október") counts when the text gives each changed part.
+- Numbers that name a place ("3. mgr.", "61., 62. og 63. tölul."), count
+  units ("36 nýir töluliðir") or belong to a reference ("nr. 123/2020",
+  "bls. 422", the date of an act cited) are not values. Small whole numbers
+  (below 100) are as often places as values, so they need only be mentioned.
+- The text's own provisions are left out of what it states: its gildistaka,
+  legal basis, the EU acts it implements, its own transitional provision (an
+  article with no instruction in it), and the signature.
+- Wording is compared loosely: a word or three in any inflected form ("í
+  viðeigandi beygingarfalli"), a longer passage when most of its word triples
+  appear. A changed word inside a long new paragraph can go unnoticed.
+
+A quiet result does not mean the two agree.
+
+How well it does, measured on published amending regulations and their
+consolidated base texts (`scripts/amendingMismatchesCorpus.ts`, from the
+regulations API cache): of 607 published amending regulations since 2015, 6%
+get a warning. Most of those looked at come from the data rather than the
+check: a typo in the consolidated text ("eruvið"), a gap in a regulation's
+history, a second regulation amended that the API doesn't list. Planting the
+slip it was made for, an amount or a date changed in the text alone, it is
+caught 95% of the time (dates 97%, amounts 92%; the missed amounts are
+two-digit numbers). Appendixes are counted apart: many amending regulations
+link to an appendix rather than print it.

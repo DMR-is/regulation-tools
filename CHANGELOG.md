@@ -10,7 +10,7 @@ fixes), `1.0.0-next.3` (the first trial round: the toolbar, dialogs and
 tables below), `1.0.0-next.4` (large tables load fast; the text scrolls in
 a height-capped frame), `1.0.0-next.5` (tables keep their markup), `1.0.0-next.6` (and their rows'
 and cells' classes), `1.0.0-next.7` (lettered articles pass the
-numbering warning)._
+numbering warning), `1.0.0-next.8` (`findAmendingMismatches`)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -107,6 +107,14 @@ numbering warning)._
 - Fix: The "Númerun greina er ekki samfelld" warning accepts lettered
   articles: "14. gr. a" or "14. gr. a." after "14. gr.", "14. gr. b"
   after that, then "15. gr.". Both editors.
+- Feat: `findAmendingMismatches` (`amendingMismatches-browser`,
+  `amendingMismatches-server`): possible mismatches between an amending
+  regulation's text and the changes recorded on the regulations it amends —
+  an amount, a date or wording a change brings in that the text never
+  mentions, and an amount or a date the text states that no change holds.
+  Hints for a person, not proof; see the README, "Amending text mismatches".
+  `scripts/amendingMismatchesCorpus.ts` measures it on published amending
+  regulations.
 - Note: `Editor` still uses `@tinymce/tinymce-react` 3.x, whose peer range
   stops at React 18, so installing on React 19 gives a peer-dependency
   warning. It works (two of the apps already run it on 19); it goes away
