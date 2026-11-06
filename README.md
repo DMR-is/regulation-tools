@@ -208,11 +208,15 @@ const mismatches = findAmendingMismatches(amendingHtml, [
 Pass the amending text (with its appendixes, if any) and every recorded
 change it makes: each base regulation's diff as `getStructuredDiff` gives it,
 and each changed appendix's. A diff from `getDiff`, without `data-diff-*`
-attributes, works too, but less precisely. `@dmr.is/regulations-tools/amendingMismatches`
+attributes, works too, but less precisely: the whole base then counts as
+changed, so an amount the text states is looked for in all of it, and a slip
+to an amount the base already has elsewhere passes. The figures below are
+for `getStructuredDiff` diffs. `@dmr.is/regulations-tools/amendingMismatches`
 exports the same function taking your own `asDiv` (`{ asDiv }` as the third
 argument), and the types. Everything under `_amendingMismatches/` is internal.
 
-Each mismatch is one of:
+Each mismatch has a `kind` (`number`, `date` or, for `missingFromText`,
+`wording`), so amounts and dates can be shown first. It is one of:
 
 - `missingFromText` — something a base change brings in that the text never
   mentions: an amount, a date, or wording. `text` is as in the base
@@ -251,6 +255,6 @@ get a warning. Most of those looked at come from the data rather than the
 check: a typo in the consolidated text ("eruvið"), a gap in a regulation's
 history, a second regulation amended that the API doesn't list. Planting the
 slip it was made for, an amount or a date changed in the text alone, it is
-caught 95% of the time (dates 98%, amounts 91%; the misses are two-digit
-numbers). Appendixes are counted apart: many amending regulations link to an
-appendix rather than print it.
+caught 95% of the time (dates 97%, amounts 92%; the missed amounts are
+two-digit numbers). Appendixes are counted apart: many amending regulations
+link to an appendix rather than print it.

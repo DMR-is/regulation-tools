@@ -58,6 +58,7 @@ describe('an amount changed in one place only', () => {
     expect(check(text, PRICE)).toEqual([
       {
         type: 'missingFromText',
+        kind: 'number',
         text: '115',
         context: expect.stringContaining('Vikinglottó kr. 115'),
         regulation: '1170/2012',
@@ -65,6 +66,7 @@ describe('an amount changed in one place only', () => {
       },
       {
         type: 'notInChanges',
+        kind: 'number',
         text: '120',
         context: expect.stringContaining('kemur: í Vikinglottó kr. 120'),
         section: '1. gr.',
@@ -270,11 +272,133 @@ describe('input', () => {
     expect(check(article(1, 'Texti.'), change(base, after))).toEqual([]);
   });
 
-  it('structuredDiff-server style entry point binds asDiv', () => {
+  it('amendingMismatches-server binds asDiv', () => {
     const text = article(1, 'Í stað „kr. 110“ kemur: kr. 120.');
     expect(findAmendingMismatchesServer(text as HTMLText, [PRICE])).toEqual(
       check(text, PRICE),
     );
+  });
+});
+
+describe('review of #18', () => {
+  const fee = '<h3>5. gr.</h3><p>Gjaldið er kr. 1.500 á ári.</p>';
+  const raised = change(fee, fee.replace('1.500', '1.800'));
+
+  it('reads "komi:" as an instruction, as older texts write it', () => {
+    const komi = (amount: string) =>
+      article(
+        1,
+        `Í stað „kr. 1.500“ í 5. gr. reglugerðarinnar komi: kr. ${amount}.`,
+      );
+    expect(check(komi('1.800'), raised)).toEqual([]);
+    expect(texts(check(komi('1.900'), raised))).toEqual([
+      'missingFromText: 1.800',
+      'notInChanges: 1.900',
+    ]);
+  });
+
+  it('still counts an article whose verb it does not know', () => {
+    const text = article(
+      1,
+      'Fjárhæðin í 5. gr. reglugerðarinnar hækkar í kr. 1.900.',
+    );
+    expect(texts(check(text, raised))).toEqual([
+      'missingFromText: 1.800',
+      'notInChanges: 1.900',
+    ]);
+  });
+
+  it('checks a changed month in a date without a year', () => {
+    const base =
+      '<h3>3. gr.</h3><p>Umsóknir skulu berast fyrir 1. ágúst ár hvert.</p>';
+    const april = change(base, base.replace('ágúst', 'apríl'));
+    const text = (month: string) =>
+      article(1, `Í stað orðsins „ágúst“ í 3. gr. kemur: ${month}.`);
+    expect(check(text('apríl'), april)).toEqual([]);
+    expect(texts(check(text('október'), april))).toEqual([
+      'missingFromText: apríl',
+    ]);
+  });
+
+  it('takes no part of a date from the signature', () => {
+    const base = '<h3>3. gr.</h3><p>Heimildin gildir til 31. ágúst 2020.</p>';
+    const october = change(base, base.replace('ágúst', 'október'));
+    const text =
+      article(1, 'Í stað orðsins „ágúst“ í 3. gr. kemur: september.') +
+      '<p class="Dags">Ráðuneytinu, 21. október 2020.</p>';
+    expect(texts(check(text, october))).toEqual([
+      'missingFromText: 31. október 2020',
+    ]);
+  });
+
+  it('matches a year to a changed date, not an amount of money', () => {
+    const base = '<h3>2. gr.</h3><p>Fresturinn rennur út 15. maí 2024.</p>';
+    const year = change(base, base.replace('2024', '2025'));
+    expect(
+      check(article(1, 'Í stað „2024“ í 2. gr. kemur: 2025.'), year),
+    ).toEqual([]);
+    expect(
+      texts(
+        check(
+          article(
+            1,
+            'Í stað „2024“ í 2. gr. kemur: 2025. Gjaldið er kr. 2.025.',
+          ),
+          year,
+        ),
+      ),
+    ).toEqual(['notInChanges: 2.025']);
+  });
+
+  it('reads a long run of digits after a unit word in linear time', () => {
+    const started = Date.now();
+    numbersIn(`lið ${'1'.repeat(60)} x`);
+    numbersIn(`lið ${'1 '.repeat(60)}x`);
+    expect(Date.now() - started).toBeLessThan(100);
+  });
+
+  it('needs a small number only mentioned, a larger one as a value', () => {
+    const base =
+      '<h3>7. gr.</h3><p>Fresturinn er 14 dagar og gjaldið 900 kr.</p>';
+    const small = change(base, base.replace('14 dagar', '99 dagar'));
+    const large = change(base, base.replace('900 kr.', '100 kr.'));
+    // 99 and 100 appear in the text only as article numbers.
+    const text = article(
+      1,
+      'Ákvæði 99. gr. og 100. gr. reglugerðarinnar breytist.',
+    );
+    expect(check(text, small)).toEqual([]);
+    expect(texts(check(text, large))).toEqual(['missingFromText: 100']);
+  });
+
+  it('leaves the signature out after an instruction article', () => {
+    const text =
+      article(1, 'Í stað „kr. 1.500“ í 5. gr. kemur: kr. 1.800.') +
+      '<p class="Dags">Dómsmálaráðuneytinu, 21. mars 2023.</p>' +
+      '<p>Jón Jónsson.</p>';
+    expect(check(text, raised)).toEqual([]);
+  });
+
+  it('checks an appendix after the signature', () => {
+    const base = '<h2>Viðauki I</h2><p>Gjaldskrá: 1.234 kr.</p>';
+    const appendix = change(
+      base,
+      base.replace('1.234', '1.300'),
+      '1170/2012 viðauki I',
+    );
+    const text = (amount: string) =>
+      article(1, 'Viðauki I við reglugerðina orðast svo:') +
+      '<p class="Dags">Dómsmálaráðuneytinu, 21. mars 2023.</p>' +
+      `<h2>Viðauki I</h2><p>Gjaldskrá: ${amount} kr.</p>`;
+    expect(check(text('1.300'), appendix)).toEqual([]);
+    expect(texts(check(text('1.350'), appendix))).toEqual([
+      'missingFromText: 1.300',
+      'notInChanges: 1.350',
+    ]);
+  });
+
+  it('returns nothing for nothing', () => {
+    expect(findAmendingMismatches('' as HTMLText, [], { asDiv })).toEqual([]);
   });
 });
 
@@ -302,6 +426,16 @@ describe('numbersIn', () => {
     expect(kinds('í 3. línu í töflu')).toEqual(['3:place']);
     expect(kinds('kafla 2.3.4 orðast')).toEqual(['2.3.4:place']);
     expect(kinds('bls. 422')).toEqual(['422:ref']);
+    expect(kinds('Í flokknum 06 30 Gervihlutar')).toEqual([
+      '06:place',
+      '30:place',
+    ]);
+    expect(kinds('Gjaldið er kr.115 á ári.')).toEqual(['115:value']);
+    expect(
+      kinds(
+        'sjá https://eur-lex.europa.eu/TXT/?qid=1459959072574. Gjald 500 kr.',
+      ),
+    ).toEqual(['500:value']);
   });
 
   it('reads a date whole, and a cited act’s date as such', () => {

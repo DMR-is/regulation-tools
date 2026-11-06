@@ -9,11 +9,11 @@
 /** One kind of space, quote and dash; no soft hyphens. Keeps the length of the text it can. */
 const cleanChars = (s: string) =>
   s
-    .replace(/[­​]/g, '')
-    .replace(/[   \t\r]/g, ' ')
-    .replace(/[„“”«»]/g, '"')
-    .replace(/[‚‘’]/g, "'")
-    .replace(/[‐-―−]/g, '-');
+    .replace(/[\u00ad\u200b]/g, '')
+    .replace(/[\u00a0\u2007\u202f\t\r]/g, ' ')
+    .replace(/[\u201e\u201c\u201d\u00ab\u00bb]/g, '"')
+    .replace(/[\u201a\u2018\u2019]/g, "'")
+    .replace(/[\u2010-\u2015\u2212]/g, '-');
 
 /** For reports: single spaces, no space before punctuation. */
 export const tidy = (s: string) =>
@@ -164,17 +164,17 @@ export const sidesOf = (el: Node): Sides => {
   return { old, new: text, inserted };
 };
 
-/** The runs of inserted text, one per block. */
+/** The runs of inserted text, one per block, with where each starts in `new`. */
 export const insertedRuns = ({ new: text, inserted }: Sides) => {
-  const out: Array<string> = [];
-  let run = '';
+  const out: Array<{ text: string; index: number }> = [];
+  let start = -1;
   for (let i = 0; i <= text.length; i++) {
-    const c = text[i];
-    if (i < text.length && inserted[i] && c !== BOUNDARY) {
-      run += c;
-    } else if (run) {
-      out.push(run);
-      run = '';
+    const inRun = i < text.length && inserted[i] === 1 && text[i] !== BOUNDARY;
+    if (inRun && start < 0) {
+      start = i;
+    } else if (!inRun && start >= 0) {
+      out.push({ text: text.slice(start, i), index: start });
+      start = -1;
     }
   }
   return out;
@@ -224,7 +224,7 @@ export type NumberToken = {
 };
 
 const TOKEN_RE = new RegExp(
-  String.raw`(?<![\p{L}\d.,])(?:(\d{1,2})\.\s*(${MONTHS.join(
+  String.raw`(?<![\p{L}\d,])(?<!\d\.)(?:(\d{1,2})\.\s*(${MONTHS.join(
     '|',
   )})\s+(\d{4})(?!\d)|(\d+(?:[.,]\d+)*)(?![.,]?\d)(?!\p{L}))`,
   'giu',
@@ -265,9 +265,14 @@ const PLACE_AFTER = new RegExp(
   String.raw`^(?:${S}*,?${S}*(?:ný\p{L}*${S}+)?${UNIT}|\.${S}+${ORDINAL_UNIT})`,
   'iu',
 );
-/** A unit word before: "Málsliðir 3 og 4", "lið 1.5", "töluliðir, 89.", "Kafli 1.3.6". */
+/**
+ * A unit word before: "Málsliðir 3 og 4", "lið 1.5", "töluliðir, 89.",
+ * "Kafli 1.3.6", "flokknum 04 03". Each number before this one is followed
+ * by a separator or a space, so a long run of digits can't be split many
+ * ways.
+ */
 const PLACE_BEFORE = new RegExp(
-  String.raw`${UNIT}\p{L}*\.?${S}*,?${S}*(?:\d+(?:\.\d+)*\.?${S}*(?:,|og|eða|til|-)?${S}*)*$`,
+  String.raw`(?<!\p{L})${UNIT}\p{L}*\.?${S}*,?${S}*(?:\d+(?:\.\d+)*\.?(?:${S}*(?:,|og|eða|til|-)${S}*|${S}+))*$`,
   'iu',
 );
 /** An ordinal: "6. breytingu", "10. hver", "(7.) breytingu". */
@@ -279,8 +284,11 @@ const REF_AFTER = /^\/\d/;
 /** What a reference's date or year follows. */
 const OF_REFERENCE =
   /(?:nr\.?\s*[\d/]+(?:\/\p{L}+)?|\d+\/\d+(?:\/\p{L}+)?)\s*,?\s*(?:frá\s+)?$/u;
-/** A block's own number, "2." or "2)", at its start, before its text. */
-const OWN_NUMBER = /^[.)][ \t]+\p{L}/u;
+/**
+ * A block's own number, "2." or "2)", at its start, before its text, which
+ * can be in the next table cell: `<td>23.</td><td>Skírteini …</td>`.
+ */
+const OWN_NUMBER = /^[.)]\s+\p{L}/u;
 /** A list item numbered inline: "14) Sjálfbærniþættir". */
 const ITEM_NUMBER = /^\)\s+\p{Lu}/u;
 
@@ -293,46 +301,57 @@ export const dateParts = (t: NumberToken) => ({
   year: t.digits[1]!,
 });
 
-export const numbersIn = (text: string): Array<NumberToken> =>
-  Array.from(text.matchAll(TOKEN_RE), (m): NumberToken => {
-    const index = m.index!;
-    const raw = m[0];
-    const before = text.slice(Math.max(0, index - 40), index);
-    const ofReference = OF_REFERENCE.test(before) || undefined;
-    if (m[1]) {
-      const month = MONTHS.indexOf(m[2]!.toLowerCase()) + 1;
-      return {
-        kind: 'date',
-        raw,
-        canon: `${m[3]}-${pad2(String(month))}-${pad2(m[1])}`,
-        digits: [m[1].replace(/^0/, ''), m[3]!],
-        ofReference,
-        index,
-      };
-    }
-    const after = text
-      .slice(index + raw.length, index + raw.length + 60)
-      .replace(LIST_REST, '');
-    // At a block's start, or where new wording starts after its lead:
-    // "6. tölul., svohljóðandi: 6. Greiðslur …" (not "kemur: 3.600.000.").
-    const atBlockStart =
-      /(?:^|\n)\s*$/.test(before) ||
-      (/^\d{1,3}$/.test(raw) && /(?:svohljóðandi|svo)\s*:\s*$/u.test(before));
-    const kind: NumberKind =
-      REF_BEFORE.test(before) || REF_AFTER.test(after)
-        ? 'ref'
-        : SECTION_NUMBER.test(raw) ||
-          PLACE_AFTER.test(after) ||
-          PLACE_AFTER.test(text.slice(index + raw.length)) ||
-          PLACE_BEFORE.test(before) ||
-          ORDINAL_AFTER.test(text.slice(index + raw.length)) ||
-          ITEM_NUMBER.test(text.slice(index + raw.length)) ||
-          (atBlockStart && OWN_NUMBER.test(text.slice(index + raw.length)))
-        ? 'place'
-        : 'value';
-    const canon = canonicalNumber(raw);
-    return { kind, raw, canon, digits: [canon], ofReference, index };
-  });
+/** A web address: its numbers are part of it ("?qid=1459959072574"). */
+const URL_RE = /(?:https?:\/\/|www\.)\S+/giu;
+
+export const numbersIn = (text: string): Array<NumberToken> => {
+  const urls = Array.from(text.matchAll(URL_RE), (m) => [
+    m.index!,
+    m.index! + m[0].length,
+  ]);
+  const inUrl = (at: number) => urls.some(([a, b]) => a! <= at && at < b!);
+  return Array.from(text.matchAll(TOKEN_RE))
+    .filter((m) => !inUrl(m.index!))
+    .map((m): NumberToken => {
+      const index = m.index!;
+      const raw = m[0];
+      const before = text.slice(Math.max(0, index - 40), index);
+      const ofReference = OF_REFERENCE.test(before) || undefined;
+      if (m[1]) {
+        const month = MONTHS.indexOf(m[2]!.toLowerCase()) + 1;
+        return {
+          kind: 'date',
+          raw,
+          canon: `${m[3]}-${pad2(String(month))}-${pad2(m[1])}`,
+          digits: [m[1].replace(/^0/, ''), m[3]!],
+          ofReference,
+          index,
+        };
+      }
+      const after = text
+        .slice(index + raw.length, index + raw.length + 60)
+        .replace(LIST_REST, '');
+      // At a block's start, or where new wording starts after its lead:
+      // "6. tölul., svohljóðandi: 6. Greiðslur …" (not "kemur: 3.600.000.").
+      const atBlockStart =
+        /(?:^|\n)\s*$/.test(before) ||
+        (/^\d{1,3}$/.test(raw) && /(?:svohljóðandi|svo)\s*:\s*$/u.test(before));
+      const kind: NumberKind =
+        REF_BEFORE.test(before) || REF_AFTER.test(after)
+          ? 'ref'
+          : SECTION_NUMBER.test(raw) ||
+            PLACE_AFTER.test(after) ||
+            PLACE_AFTER.test(text.slice(index + raw.length)) ||
+            PLACE_BEFORE.test(before) ||
+            ORDINAL_AFTER.test(text.slice(index + raw.length)) ||
+            ITEM_NUMBER.test(text.slice(index + raw.length)) ||
+            (atBlockStart && OWN_NUMBER.test(text.slice(index + raw.length)))
+          ? 'place'
+          : 'value';
+      const canon = canonicalNumber(raw);
+      return { kind, raw, canon, digits: [canon], ofReference, index };
+    });
+};
 
 /** Amounts and dates are values: what a slip would change. */
 export const isValue = (t: NumberToken) =>

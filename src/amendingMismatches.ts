@@ -57,12 +57,14 @@ export type AmendedRegulation = {
 export type AmendingMismatch =
   | {
       type: 'missingFromText';
+      /** What it is about: a number (an amount, a reference), a date, or wording. */
+      kind: 'number' | 'date' | 'wording';
       /**
-       * What the base change brings in: the amount or date as written
+       * What the base change brings in: the number or date as written
        * there, or the wording.
        */
       text: string;
-      /** For an amount or date: the words around it in the base regulation. */
+      /** For a number or date: the words around it in the base regulation. */
       context?: string;
       /** The base regulation's name, when given. */
       regulation?: string;
@@ -71,6 +73,8 @@ export type AmendingMismatch =
     }
   | {
       type: 'notInChanges';
+      /** What it is about: a number (an amount) or a date. */
+      kind: 'number' | 'date';
       /** The amount or date as written in the amending text. */
       text: string;
       /** The words around it in the amending text. */
@@ -125,9 +129,8 @@ const partlyChanged = (
 /** Whether the amending text leaves out an inserted run of wording. */
 const wordingMissing = (run: string, old: string, amending: Amending) => {
   const words = wordsOf(run);
-  // Numbers only, or a date's month: compared as numbers and dates.
-  if (words.every((w) => MONTHS.includes(w))) {
-    return false;
+  if (!words.length) {
+    return false; // numbers only: compared as numbers
   }
   const oldWords = wordsOf(old);
   if (words.length < 4) {
@@ -179,6 +182,7 @@ export const findAmendingMismatches = (
   const report = (change: Change, t: NumberToken) =>
     out.push({
       type: 'missingFromText',
+      kind: t.kind === 'date' ? 'date' : 'number',
       text: t.raw,
       context: contextOf(change.sides.new, t),
       regulation: change.regulation,
@@ -220,8 +224,22 @@ export const findAmendingMismatches = (
         report(change, t);
       }
     }
-    for (const raw of insertedRuns(sides)) {
-      let text = tidy(raw).replace(/^[\s.,;:)"']+|[\s.,;:("']+$/g, '');
+    // A month inside a date is compared with the date ("Í stað orðsins
+    // „ágúst“ kemur: október" in "31. ágúst 2020"); one in a date without a
+    // year ("1. ágúst ár hvert") is wording like any other.
+    const dates = numbersIn(sides.new).filter((t) => t.kind === 'date');
+    const inDate = (at: number, length: number) =>
+      dates.some((d) => d.index <= at && at + length <= d.index + d.raw.length);
+    for (const run of insertedRuns(sides)) {
+      const runWords = wordsOf(run.text);
+      if (
+        runWords.length &&
+        runWords.every((w) => MONTHS.includes(w)) &&
+        inDate(run.index, run.text.length)
+      ) {
+        continue;
+      }
+      let text = tidy(run.text).replace(/^[\s.,;:)"']+|[\s.,;:("']+$/g, '');
       if (change.heading) {
         text = stripLabel(text);
       }
@@ -232,6 +250,7 @@ export const findAmendingMismatches = (
       ) {
         out.push({
           type: 'missingFromText',
+          kind: 'wording',
           text,
           regulation,
           section: change.section,
@@ -240,17 +259,33 @@ export const findAmendingMismatches = (
     }
   }
 
-  // What the amending text states, the base changes must hold.
+  // What the amending text states, the base changes must hold. A bare
+  // number that can be a day or a year also matches part of a changed date
+  // or a reference ("Í stað „2024“ kemur: 2025"); an amount of money
+  // ("kr. 2.025") doesn't.
   const base = new Set<string>();
+  const parts = new Set<string>();
   for (const { sides } of changes) {
     for (const t of [...numbersIn(sides.old), ...numbersIn(sides.new)]) {
-      base.add(valueKey(t));
-      t.digits.forEach((d) => base.add(`v:${d}`));
+      if (isValue(t)) {
+        base.add(valueKey(t));
+      }
+      if (t.kind !== 'value') {
+        t.digits.forEach((d) => parts.add(d));
+      }
     }
   }
-  for (const { token, context, section } of amending.stated) {
-    if (!base.has(valueKey(token)) && once(`n\0${valueKey(token)}`)) {
-      out.push({ type: 'notInChanges', text: token.raw, context, section });
+  for (const { token, context, section, datePart } of amending.stated) {
+    const held =
+      base.has(valueKey(token)) || (datePart && parts.has(token.canon));
+    if (!held && once(`n\0${valueKey(token)}`)) {
+      out.push({
+        type: 'notInChanges',
+        kind: token.kind === 'date' ? 'date' : 'number',
+        text: token.raw,
+        context,
+        section,
+      });
     }
   }
   return out;

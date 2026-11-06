@@ -8,7 +8,11 @@ import { HTMLText } from './types';
 
 export type * from './amendingMismatches';
 
-/** `findAmendingMismatches` for the browser, parsing with an inert document. */
+/**
+ * `findAmendingMismatches` for the browser, parsing with an inert document:
+ * the amending text comes from the sender, and parsing it in the page's own
+ * document would run its event handlers (`<img onerror>`).
+ */
 const findAmendingMismatchesBrowser = (
   amendingHtml: HTMLText,
   regulations: ReadonlyArray<AmendedRegulation>,

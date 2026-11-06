@@ -28,9 +28,13 @@ import {
 const OWN_PROVISION_RE =
   /(?<!\p{L})(?:öðlast (?:þegar )?gildi|tekur (?:þegar )?gildi|sett(?: er)? (?:með|samkvæmt|á grundvelli)|sett með stoð|er sett á grundvelli|með stoð í|til innleiðingar|koma til framkvæmda|kemur til framkvæmda|tilkynnt (?:til|í samræmi|samkvæmt))(?!\p{L})/u;
 
-/** What an instruction says: "orðast svo", "kemur:", "bætist", "falla brott". */
+/**
+ * What an instruction says: "orðast svo", "kemur:", "komi:", "bætist",
+ * "falla brott", "Eftirfarandi breytingar verða". Older texts use the
+ * subjunctive ("komi", "falli", "verði"), so both moods are here.
+ */
 const INSTRUCTION_RE =
-  /(?<!\p{L})(?:orðast|orðist|kem(?:ur|a)\s*:|kem(?:ur|a) (?:ný|eftirfarandi)|bæt(?:ist|ast)|f(?:ellur|alla) (?:á )?(?:brott|niður)|svohljóðandi|verður:|breytist)(?!\p{L})/u;
+  /(?<!\p{L})(?:orðast|orðist|kom(?:ur|a|i)\s*:|kem(?:ur|a)\s*:|kom(?:i|a) (?:ný|eftirfarandi)|kem(?:ur|a) (?:ný|eftirfarandi)|bæt(?:ist|ast|i)|f(?:ellur|alla|elli|alli) (?:á )?(?:brott|niður)|svohljóðandi|verð(?:ur|i)\s*:|hljóð(?:ar|i) svo|breyt(?:ist|ast|i)|breyting(?:ar)? verð(?:ur|a|i)|gerð(?:ar)? (?:sú|eftirfarandi) breyting)(?!\p{L})/u;
 
 /**
  * One of the regulation's own paragraphs. New wording can say "öðlast
@@ -52,9 +56,9 @@ export type Amending = {
   values: Set<string>;
   /** How many times its instructions give each date. */
   dates: Map<string, number>;
-  /** Every run of digits in the text. */
+  /** Every run of digits in its instructions and new wording. */
   digits: Set<string>;
-  /** Its words, `padded`, for whole-word search. */
+  /** The words of its instructions and new wording, `padded`, for whole-word search. */
   words: string;
   /** Prefixes of its words, for matching inflected forms. */
   prefixes: Set<string>;
@@ -63,8 +67,22 @@ export type Amending = {
    * The amounts and dates it states as changes: not those of its own
    * provisions, nor the date of an act it cites.
    */
-  stated: Array<{ token: NumberToken; context: string; section?: string }>;
+  stated: Array<{
+    token: NumberToken;
+    context: string;
+    section?: string;
+    /**
+     * A bare number of up to four digits, not an amount of money: it can be
+     * a day or a year, and match part of a changed date ("Í stað „2024“
+     * kemur: 2025").
+     */
+    datePart: boolean;
+  }>;
 };
+
+/** Money next to a number: "kr. 2.025", "2025 krónur". */
+const CURRENCY_BEFORE = /(?:kr\.?|ISK|EUR|€)\s*$/iu;
+const CURRENCY_AFTER = /^\s*(?:kr(?!\p{L})|kr\.|krón|ISK|EUR|evr|€|%)/iu;
 
 type Article = { section?: string; blocks: Array<string> };
 
@@ -106,25 +124,32 @@ const articlesOf = (root: Element): Array<Article> => {
   return articles;
 };
 
+/**
+ * One of the regulation's own articles: its gildistaka, its own
+ * transitional provision, the EU acts it implements. Those cite the same
+ * acts and dates as the instructions, so a slip in an instruction would
+ * hide behind them. Only an article that says so counts as one: an
+ * instruction in words this doesn't know stays an instruction.
+ */
+const isOwnArticle = ({ section, blocks }: Article) =>
+  section != null &&
+  (/gildistaka/i.test(section) ||
+    (!blocks.some((b) => INSTRUCTION_RE.test(tidy(b))) &&
+      (/bráðabirgð/i.test(section) ||
+        blocks.some((b) => OWN_PROVISION_RE.test(tidy(b))))));
+
 export const readAmending = (html: HTMLText, asDiv: AsDiv): Amending => {
   const root = asDiv(html);
-  const all = sidesOf(root).new;
-  const words = wordsOf(all);
+  const said: Array<string> = [];
 
   const stated: Amending['stated'] = [];
   const mentioned: Array<NumberToken> = [];
-  for (const { section, blocks } of articlesOf(root)) {
-    // An article with no instruction is the regulation's own: its
-    // gildistaka, its own transitional provision, the EU acts it
-    // implements. Those cite the same acts as the instructions, so a slip
-    // in an instruction would hide behind them: they don't count.
-    const own =
-      section != null &&
-      (/gildistaka/i.test(section) ||
-        !blocks.some((b) => INSTRUCTION_RE.test(tidy(b))));
-    if (own) {
+  for (const article of articlesOf(root)) {
+    if (isOwnArticle(article)) {
       continue;
     }
+    const { section, blocks } = article;
+    said.push(...blocks);
     for (const text of blocks) {
       const tokens = numbersIn(text).filter(isValue);
       mentioned.push(...tokens);
@@ -135,7 +160,18 @@ export const readAmending = (html: HTMLText, asDiv: AsDiv): Amending => {
         // The date of an act cited ("(EB) nr. 106/2008 frá 15. janúar
         // 2008") need not be in the base.
         if (!token.ofReference) {
-          stated.push({ token, context: contextOf(text, token), section });
+          const before = text.slice(Math.max(0, token.index - 6), token.index);
+          const after = text.slice(token.index + token.raw.length);
+          stated.push({
+            token,
+            context: contextOf(text, token),
+            section,
+            datePart:
+              token.kind === 'value' &&
+              /^\d{1,4}$/.test(token.raw) &&
+              !CURRENCY_BEFORE.test(before) &&
+              !CURRENCY_AFTER.test(after),
+          });
         }
       }
     }
@@ -147,6 +183,8 @@ export const readAmending = (html: HTMLText, asDiv: AsDiv): Amending => {
       dates.set(valueKey(t), (dates.get(valueKey(t)) || 0) + 1);
     }
   }
+  const all = said.join('\n');
+  const words = wordsOf(all);
   return {
     values: new Set(mentioned.map(valueKey)),
     dates,

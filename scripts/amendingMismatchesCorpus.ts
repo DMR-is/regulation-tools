@@ -36,13 +36,22 @@ import {
 import { getStructuredDiff } from '../src/structuredDiff';
 import { HTMLText } from '../src/types';
 
+// The same cache as ./regulationsApi: one folder per API host.
 const CACHE = join(
   process.env.REGULATIONS_CACHE_DIR ||
     join(process.cwd(), '.cache', 'regulations-api'),
-  'api.reglugerd.is',
+  process.env.REGULATIONS_API_URL
+    ? new URL(process.env.REGULATIONS_API_URL).host
+    : 'api.reglugerd.is',
 );
+if (!existsSync(CACHE)) {
+  console.error(
+    `No regulations API cache at ${CACHE}. Fill it with scripts/structuredDiffCorpus.ts first.`,
+  );
+  process.exit(1);
+}
 const arg = (name: string) =>
-  process.argv.find((a) => a.startsWith(`--${name}=`))?.split('=')[1];
+  process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const OUT = arg('out') || '.cache/amending-mismatches.json';
 const SINCE = arg('since') || '2015';
 
@@ -286,7 +295,7 @@ const run = () => {
   );
   console.log(
     `Published cases with any warning: ${warned.length} (${Math.round(
-      (100 * warned.length) / cases.length,
+      (100 * warned.length) / (cases.length || 1),
     )}%)`,
   );
   console.log(
