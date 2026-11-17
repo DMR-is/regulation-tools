@@ -185,7 +185,10 @@ const RegulationParagraph = Paragraph.extend({
       indent: {
         default: null,
         parseHTML: (elm) => {
-          const { marginLeft, textIndent } = elm.style;
+          const { textIndent } = elm.style;
+          // A zero margin (`margin-left: 0cm`, from Word) is no indent.
+          const marginLeft =
+            parseFloat(elm.style.marginLeft) !== 0 ? elm.style.marginLeft : '';
           return marginLeft || textIndent
             ? `${marginLeft}|${textIndent}`
             : null;

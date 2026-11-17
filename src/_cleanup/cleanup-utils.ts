@@ -263,7 +263,8 @@ export const makeMutators = (
       if (listType) {
         elm.setAttribute('type', listType);
       }
-      if (marginLeft) {
+      // Word writes `margin-left: 0cm` on every paragraph; zero is no indent.
+      if (marginLeft && parseFloat(marginLeft) !== 0) {
         const negativeTextIndent = parseFloat(textIndent) < 0 ? textIndent : '';
         elm.setAttribute(
           'data-indenting',

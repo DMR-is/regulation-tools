@@ -209,6 +209,16 @@ runCleanupMicroTests(dirtyClean, {
         '',
     },
 
+  'Drops zero margin-left (Word writes it on every paragraph)': {
+    input:
+      '<p class="MsoNormal" style="margin-left:0cm;text-align:justify">A</p>' +
+      '<p style="margin-left: 0px; text-indent: -2em">B</p>' +
+      '<div style="margin-left: 0pt"><p>C</p></div>' +
+      '<p style="margin-left: 36pt">D</p>' +
+      '',
+    expected: '<p>A</p><p>B</p><p>C</p><p style="margin-left: 36pt">D</p>' + '',
+  },
+
   'Throw when passing id="" down to a child that already has id=""': {
     input: '<div id="foo"><p id="bar">A</p><p>B</p>',
     throws: true,

@@ -176,8 +176,8 @@ export const makeWarnings = (
   disabledWarnings?: Set<WarningId> | Array<WarningId>,
 ): WarningList => {
   const warnings: WarningList = [];
-  const disabledSet = disabledWarnings instanceof Set 
-    ? disabledWarnings 
+  const disabledSet = disabledWarnings instanceof Set
+    ? disabledWarnings
     : new Set(disabledWarnings || []);
 
   const addWarning = (warning: WIP_WarningData) => {
@@ -409,14 +409,17 @@ export const makeWarnings = (
       });
     }
 
-    const styleMarginLeftSelector = '[style*="margin-left"]';
-    // const styleMarginLeftSelector = '[style*="margin-left"], [style*="text-indent"]';
-    const hasMarginLeft = root.qq(styleMarginLeftSelector);
+    // A zero margin (`margin-left: 0cm`, from Word) is no indent.
+    const findMarginLeft = (root: Element) =>
+      qq<HTMLElement>('[style*="margin-left"]', root).filter(
+        (elm) => parseFloat(elm.style.marginLeft) !== 0,
+      );
+    const hasMarginLeft = findMarginLeft(root);
     if (hasMarginLeft.length) {
       addWarning({
         id: 'hasMarginLeft',
         warning: t('hasMarginLeft', hasMarginLeft.length),
-        find: (root) => qq(styleMarginLeftSelector, root),
+        find: findMarginLeft,
       });
     }
 
