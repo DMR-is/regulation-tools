@@ -57,3 +57,25 @@ describe('articleNumbersWeird', () => {
     ).toBe(true);
   });
 });
+
+describe('hasMarginLeft', () => {
+  const marginWarning = (html: string) =>
+    makeWarnings(html as HTMLText).find(({ id }) => id === 'hasMarginLeft');
+
+  it('ignores zero margins', () => {
+    expect(
+      marginWarning(
+        '<p style="margin-left: 0cm">A</p><p style="margin-left: 0px">B</p>',
+      ),
+    ).toBeUndefined();
+  });
+
+  it('counts real indents only', () => {
+    const warning = marginWarning(
+      '<p style="margin-left: 0cm">A</p><p style="margin-left: 36pt">B</p>',
+    );
+    expect(warning?.warning).toBe(
+      '1 málsgrein með vinstri-spássíu (margin-left)',
+    );
+  });
+});

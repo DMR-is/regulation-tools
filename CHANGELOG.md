@@ -11,7 +11,8 @@ tables below), `1.0.0-next.4` (large tables load fast; the text scrolls in
 a height-capped frame), `1.0.0-next.5` (tables keep their markup), `1.0.0-next.6` (and their rows'
 and cells' classes), `1.0.0-next.7` (lettered articles pass the
 numbering warning), `1.0.0-next.8` (`findAmendingMismatches`),
-`1.0.0-next.9` (no `lucide-react` dependency)._
+`1.0.0-next.9` (no `lucide-react` dependency), `1.0.0-next.10` (no
+margin warning for Word's zero margins)._
 
 - **BREAKING:** React `^18 || ^19` (was `>=16.8 <20`). Developed and tested
   on React 19; `yarn typecheck:react18` keeps it working on 18.
@@ -119,6 +120,14 @@ numbering warning), `1.0.0-next.8` (`findAmendingMismatches`),
 - Chore: `EditorV2`'s 28 icons are part of the package, copied from
   Lucide, instead of a dependency on `lucide-react` (45 MB installed).
   They look the same.
+- Fix: Text pasted or imported from Word no longer gets the "málsgreinar
+  með vinstri-spássíu (margin-left)" warning on every paragraph (both
+  editors). Word writes `margin-left: 0cm` on paragraphs that are not
+  indented; cleanup kept it, and the warning counted it. Cleanup now drops
+  a zero `margin-left`, and the warning and `EditorV2` ignore one already
+  saved. Real indents are kept as before.
+- Fix: In `EditorV2`, choosing a paragraph format (Málsgrein, Inndregin
+  málsgrein, …) removes a pasted inline indent, as `Editor`'s formats do.
 - Note: `Editor` still uses `@tinymce/tinymce-react` 3.x, whose peer range
   stops at React 18, so installing on React 19 gives a peer-dependency
   warning. It works (two of the apps already run it on 19); it goes away

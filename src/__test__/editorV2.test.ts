@@ -335,6 +335,25 @@ describe('block formats', () => {
     expect(editor.getHTML()).toBe('<p>Reykjavík, 1. janúar 2026.</p>');
     editor.destroy();
   });
+
+  test('a paragraph format replaces a legacy indent', () => {
+    const editor = makeEditor(
+      '<p style="margin-left: 2em; text-indent: -2em">A</p>' +
+        '<p style="margin-left: 2em">B</p>',
+    );
+    cursorAt(editor, 'A');
+    setBlockFormat(editor, 'paragraph');
+    cursorAt(editor, 'B');
+    setBlockFormat(editor, 'indented');
+    expect(editor.getHTML()).toBe('<p>A</p><p class="indented">B</p>');
+    editor.destroy();
+  });
+
+  test('a zero margin-left is no indent', () => {
+    const editor = makeEditor('<p style="margin-left: 0cm">A</p>');
+    expect(editor.getHTML()).toBe('<p>A</p>');
+    editor.destroy();
+  });
 });
 
 // ---------------------------------------------------------------------------

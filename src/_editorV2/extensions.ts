@@ -143,10 +143,17 @@ export const setBlockFormat = (editor: Editor, format: BlockFormat) => {
     case 'subchapterTitle':
       return chain.setNode('subchapterTitle').run();
     default:
-      return chain
-        .setNode('paragraph')
-        .updateAttributes('paragraph', { class: PARAGRAPH_CLASSES[format] })
-        .run();
+      return (
+        chain
+          .setNode('paragraph')
+          // Like TinyMCE's formats (`style: ''`), a format replaces any legacy
+          // inline indent.
+          .updateAttributes('paragraph', {
+            class: PARAGRAPH_CLASSES[format],
+            indent: null,
+          })
+          .run()
+      );
   }
 };
 
